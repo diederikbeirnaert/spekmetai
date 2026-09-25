@@ -10,6 +10,8 @@ Het is gewone HTML, CSS en JavaScript: er is geen build-stap en geen framework. 
 | `host.html` | Groot scherm (beamer of tv): code, QR-code, vragen, media, tussenstand en podium |
 | `admin.html` | Login voor de admin: quizzen maken, weekendbrieven schrijven, back-up |
 | `brief.html` | Weekendbrieven lezen |
+| `login.html` / `account.html` | Eén login voor iedereen (gebruikersnaam of e-mail), account en wachtwoord wijzigen |
+| `portaal.html` | Weekendgangers: flip het ei in de pan en onthul je geheime opdracht 🤫 |
 
 ---
 
@@ -84,6 +86,19 @@ Voeg `<gebruiker>.github.io` toe aan *Firebase → Authentication → Settings �
 
 Bij een vraag met een video start de timer pas als je op **Antwoorden openen** klikt.
 
+## Geheime opdrachten voor het weekend
+
+1. Ga naar **Admin → 🤫 Weekendgangers** en voeg iedereen toe. De gebruikersnaam en het wachtwoord worden automatisch ingevuld, maar je mag ze aanpassen.
+2. Typ per persoon de geheime opdracht en klik op **Opslaan**.
+3. Klik op **📋 Login kopiëren** en stuur het bericht door via WhatsApp of een ander kanaal.
+4. De weekendganger logt in, tikt op het ei in de pan en ziet de opdracht verschijnen. In de admin zie je wie zijn ei al geflipt heeft.
+
+Wijzig je een opdracht? Dan moet die persoon het ei opnieuw flippen.
+
+## Twister 🌀
+
+In **Admin → 🌀 Twister** vind je een draaischijf in spiegelei-stijl. Klik op het ei of op **Draai!**. Het resultaat wordt ook voorgelezen, dat kun je uitzetten.
+
 ## Data en back-up
 
 Alles staat in de Firebase Realtime Database. Die is zelf één grote JSON-boom:
@@ -93,6 +108,8 @@ quizzes/   quizzen (alleen de admin kan ze lezen)
 media/     geüploade afbeeldingen
 letters/   weekendbrieven (publiek)
 games/     lopende spellen (worden na 24 uur opgeruimd)
+members/   weekendgangers (alleen de admin en de persoon zelf)
+missions/  geheime opdrachten (alleen de admin en de persoon zelf)
 admins/    wie admin is
 ```
 

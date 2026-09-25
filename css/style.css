@@ -81,12 +81,31 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 .nav a:hover { background: var(--yolk-soft); transform: translateY(-2px); }
 .nav a.active { background: var(--yolk); }
-@media (max-width: 560px) {
+/* Account-knop + hamburger (drie spekreepjes) */
+.header-right { display: flex; align-items: center; gap: 8px; }
+.acct-btn { white-space: nowrap; }
+.acct-btn.active { outline: 3px solid var(--ink); }
+.acct-name { max-width: 9ch; overflow: hidden; text-overflow: ellipsis; display: inline-block; vertical-align: bottom; }
+.menu-btn { display: none; width: 46px; height: 42px; border: 0; border-radius: 12px; background: var(--yolk-soft); cursor: pointer; padding: 9px 8px; flex-direction: column; justify-content: space-between; }
+.menu-btn span {
+  display: block; height: 6px; border-radius: 3px; transition: transform .3s, opacity .3s;
+  background: linear-gradient(var(--bacon) 0 30%, var(--bacon-fat) 30% 60%, var(--bacon-dark) 60%);
+}
+.menu-open .menu-btn span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+.menu-open .menu-btn span:nth-child(2) { opacity: 0; }
+.menu-open .menu-btn span:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+@media (min-width: 761px) { .site-header { gap: 20px; } .nav { margin-left: auto; } }
+@media (max-width: 760px) {
+  .site-header { padding: 8px 14px; flex-wrap: wrap; }
   .wordmark { font-size: 1.25rem; }
   .brand .logo-mark { width: 40px; height: 40px; }
-  .nav a { padding: 6px 10px; font-size: .95rem; }
-  .nav a.home-link { display: none; }
-  .site-header { padding: 8px 12px; }
+  .menu-btn { display: flex; }
+  .nav {
+    order: 3; width: 100%; flex-direction: column; gap: 2px;
+    max-height: 0; overflow: hidden; transition: max-height .35s ease, padding .35s;
+  }
+  .menu-open .nav { max-height: 320px; padding: 8px 0 4px; }
+  .nav a { padding: 12px 16px; font-size: 1.1rem; border-radius: 14px; }
 }
 @media (max-width: 360px) { .wordmark { display: none; } }
 
@@ -426,3 +445,59 @@ body.host .card { background: #fff; color: var(--ink); border-color: transparent
 a.tab { text-decoration: none; color: inherit; }
 body.host .pill:not(.yolk) { background: var(--pan-2); }
 body.host .site-header { padding-block: 6px; }
+
+/* ---------- Portaal: ei flippen ---------- */
+body.portaal main { max-width: 640px; }
+.flip-stage { position: relative; width: min(360px, 86vw); aspect-ratio: 1; perspective: 900px; transition: width .6s cubic-bezier(.3,1.3,.5,1); }
+.flip-stage.done { width: min(170px, 42vw); }
+.flip-pan { position: absolute; inset: 0; transform-origin: 48% 58%; }
+.flip-pan svg { width: 100%; height: 100%; }
+.shake-pan { animation: panShake .45s ease-in-out; }
+@keyframes panShake { 25% { transform: rotate(-5deg) translateX(-6px); } 60% { transform: rotate(4deg) translateX(5px); } }
+.flip-egg {
+  position: absolute; left: 47.5%; top: 58.75%; width: 54%; aspect-ratio: 120 / 100; translate: -50% -50%;
+  background: none; border: 0; padding: 0; cursor: pointer; transform-style: preserve-3d;
+  animation: eggIdle 2.6s ease-in-out infinite; -webkit-tap-highlight-color: transparent;
+}
+.flip-egg:disabled { cursor: default; filter: saturate(.6); }
+.flip-egg .face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: block; }
+.flip-egg .face svg { width: 100%; height: 100%; display: block; }
+.flip-egg .face.back { transform: rotateX(180deg); }
+.flip-egg.flipping { animation: eggFlip 1.6s cubic-bezier(.3,.7,.4,1) forwards; }
+@keyframes eggFlip {
+  0% { transform: none; }
+  12% { transform: translateY(6%) scale(1.1, .85); }
+  50% { transform: translateY(-125%) rotateX(360deg) scale(1.35); }
+  80% { transform: translateY(0) rotateX(540deg) scale(1); }
+  88% { transform: translateY(-12%) rotateX(540deg) scale(1.06, .94); }
+  100% { transform: translateY(0) rotateX(540deg); }
+}
+.flip-egg.burst { animation: eggBurst .45s ease-in forwards; }
+@keyframes eggBurst { from { transform: rotateX(540deg); } to { transform: rotateX(540deg) scale(2.4); opacity: 0; } }
+.flip-hint { font-weight: 800; font-size: 1.1rem; }
+.mission-card {
+  position: relative; margin-top: 50px; background: #fff; border: 4px solid var(--ink);
+  border-radius: 56px 70px 60px 74px / 70px 56px 74px 60px; padding: 58px 26px 30px;
+  box-shadow: 0 8px 0 #e9d9bb, 0 8px 0 4px var(--ink); animation: popIn .6s cubic-bezier(.3,1.7,.5,1) both;
+}
+.mission-yolk {
+  position: absolute; top: -44px; left: 50%; translate: -50% 0; width: 88px; height: 88px; border-radius: 50%;
+  background: var(--yolk); border: 4px solid var(--ink); display: grid; place-items: center; font-size: 2.4rem;
+  box-shadow: inset -8px -9px 0 rgba(0,0,0,.12);
+}
+.mission-text { font-family: var(--font-title); font-weight: 600; font-size: clamp(1.35rem, 5vw, 1.9rem); line-height: 1.25; margin: 14px 0; word-break: break-word; }
+
+/* ---------- Admin: weekendgangers ---------- */
+.member-card .row { align-items: flex-start; }
+.member-card textarea { min-height: 80px; }
+.cred { font-family: ui-monospace, Menlo, monospace; background: #fffaf0; border: 2px dashed var(--shell); border-radius: 10px; padding: 3px 8px; font-size: .9rem; }
+
+/* ---------- Twister ---------- */
+.twister { text-align: center; }
+.spinner-wrap { width: min(500px, 92vw); margin: 0 auto; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.spinner-wrap svg { width: 100%; height: auto; display: block; filter: drop-shadow(0 10px 0 rgba(58,38,24,.12)); }
+#spatula { transform-origin: 200px 200px; transform-box: view-box; transition: transform 4.6s cubic-bezier(.12,.85,.15,1); }
+.tw-result { min-height: 84px; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; font-family: var(--font-title); font-weight: 700; font-size: clamp(1.6rem, 6vw, 2.4rem); }
+.tw-dot { width: 54px; height: 54px; border-radius: 50%; border: 4px solid var(--ink); display: inline-block; box-shadow: inset -6px -7px 0 rgba(0,0,0,.15); }
+.tw-history { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
+.tw-history span { background: #fff; border: 2px solid var(--shell); border-radius: 999px; padding: 4px 12px; font-weight: 700; font-size: .9rem; }

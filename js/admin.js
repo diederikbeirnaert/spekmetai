@@ -1,13 +1,14 @@
 // Admin: inloggen, quizzen maken, weekendbrieven schrijven, instellingen.
-import { $, $$, ART, esc, shell, toast, uid, parseMediaUrl, mediaHtml, compressImage, md, fmtDate } from './common.js';
+import { $, $$, ART, esc, shell, toast, uid, parseMediaUrl, mediaHtml, compressImage, md, fmtDate, setSessionHint } from './common.js';
+import { renderTwister } from './twister.js';
 import {
   configured, db, ref, get, set, update, remove, push, useAuth, currentUser, isAdmin, notConfiguredHtml,
-  signInWithEmailAndPassword, signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential,
+  signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential,
+  createMemberAccount, deleteMemberAccount, cleanUsername, whoAmI,
 } from './fb.js';
 
 shell('admin');
 const app = $('#app');
-const EMAIL_KEY = 'smai.adminEmail';
 const TYPES = { mc: 'Meerkeuze', tf: 'Waar / niet waar', open: 'Open antwoord', info: 'Infoslide' };
 const TIMES = [5, 10, 15, 20, 30, 45, 60, 90, 120];
 
@@ -24,36 +25,18 @@ async function init() {
   useAuth('local');
   user = await currentUser();
   if (!user || user.isAnonymous) return renderLogin();
-  if (!(await isAdmin(user))) return renderNotAdmin();
+  if (!(await isAdmin(user))) {
+    if (await whoAmI(user)) return void location.replace('account.html'); // weekendganger, geen admin
+    return renderNotAdmin();
+  }
+  setSessionHint({ role: 'admin', name: 'Chef-kok', email: user.email });
   route();
 }
 
 /* ---------- Login ---------- */
 function renderLogin() {
-  let email = '';
-  try { email = localStorage.getItem(EMAIL_KEY) || ''; } catch {}
-  app.innerHTML = `<div class="login-wrap slide-up">
-    <div class="wobble">${ART.logo.replace('class="logo-mark"', 'class="logo-big"')}</div>
-    <h1>Keuken&shy;deur</h1>
-    <form class="card" id="lf" style="text-align:left">
-      <div class="field"><label for="em">E-mail</label><input class="input" id="em" type="email" autocomplete="username" value="${esc(email)}" required></div>
-      <div class="field"><label for="pw">Wachtwoord</label><input class="input" id="pw" type="password" autocomplete="current-password" required></div>
-      <button class="btn bacon big" style="width:100%">Binnen! 🍳</button>
-    </form></div>`;
-  $(email ? '#pw' : '#em').focus();
-  $('#lf').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    try {
-      const cred = await signInWithEmailAndPassword(useAuth(), $('#em').value.trim(), $('#pw').value);
-      try { localStorage.setItem(EMAIL_KEY, $('#em').value.trim()); } catch {}
-      user = cred.user;
-      if (!(await isAdmin(user))) return renderNotAdmin();
-      route();
-    } catch {
-      toast('Verkeerde e-mail of wachtwoord', 'bad');
-      $('#lf').classList.remove('shake'); void $('#lf').offsetWidth; $('#lf').classList.add('shake');
-    }
-  });
+  setSessionHint(null);
+  location.replace('login.html?next=admin.html');
 }
 
 function renderNotAdmin() {
@@ -62,7 +45,7 @@ function renderNotAdmin() {
     <p>Je bent ingelogd, maar dit account is nog geen admin. Ga in de Firebase-console naar <b>Realtime Database → Data</b> en voeg dit toe:</p>
     <div class="notice"><code>admins</code> → <code>${esc(user.uid)}</code> : <code>true</code></div>
     <div class="row"><button class="btn" onclick="location.reload()">Opnieuw proberen</button><button class="btn ghost" id="lo">Uitloggen</button></div></div>`;
-  $('#lo').onclick = () => signOut(useAuth()).then(() => location.reload());
+  $('#lo').onclick = () => signOut(useAuth()).then(() => { setSessionHint(null); location.href = 'index.html'; });
 }
 
 /* ---------- Routing ---------- */
@@ -79,6 +62,11 @@ function route() {
   if (page === 'letter') return editLetter(id);
   if (page === 'letters') return listLetters();
   if (page === 'settings') return settings();
+  if (page === 'members') return listMembers();
+  if (page === 'twister') {
+    frame('twister', '<div id="tw"></div>');
+    return renderTwister($('#tw'));
+  }
   listQuizzes();
 }
 
@@ -89,6 +77,8 @@ function frame(active, html) {
     <div class="tabs">
       <a class="tab ${active === 'quizzes' ? 'active' : ''}" href="#quizzes">🍳 Quizzen</a>
       <a class="tab ${active === 'letters' ? 'active' : ''}" href="#letters">✉️ Weekendbrief</a>
+      <a class="tab ${active === 'members' ? 'active' : ''}" href="#members">🤫 Weekendgangers</a>
+      <a class="tab ${active === 'twister' ? 'active' : ''}" href="#twister">🌀 Twister</a>
       <a class="tab ${active === 'settings' ? 'active' : ''}" href="#settings">⚙️ Instellingen</a>
     </div><div id="view">${html}</div>`;
 }
@@ -412,6 +402,100 @@ async function editLetter(id) {
   });
 }
 
+/* ---------- Weekendgangers & geheime opdrachten ---------- */
+const PW_WORDS = ['spekje', 'dooier', 'eitje', 'omelet', 'krokant', 'toastje', 'pannetje', 'zoutje', 'worstje', 'croque'];
+const genPassword = () => PW_WORDS[Math.floor(Math.random() * PW_WORDS.length)] + (10 + Math.floor(Math.random() * 90));
+const portalUrl = () => `${location.origin}${location.pathname.replace(/[^/]*$/, '')}portaal.html`;
+const fmtTime = (t) => new Date(t).toLocaleString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+async function listMembers() {
+  frame('members', '<div class="card muted">Laden…</div>');
+  const [members, missions] = await Promise.all(['members', 'missions'].map(async (k) => (await get(ref(db, k))).val() || {}));
+  const list = Object.entries(members).sort((a, b) => a[1].name.localeCompare(b[1].name));
+  const opened = list.filter(([id]) => missions[id]?.revealedAt).length;
+  const status = (ms) => (ms?.revealedAt ? `<span class="pill" style="background:var(--ok)">✅ Geopend ${esc(fmtTime(ms.revealedAt))}</span>`
+    : ms?.text ? '<span class="pill yolk">🥚 Nog niet geopend</span>' : '<span class="pill" style="background:var(--muted)">Nog geen opdracht</span>');
+
+  $('#view').innerHTML = `
+    <div class="card"><h3>Nieuwe weekendganger</h3>
+      <form id="mf" class="row">
+        <input class="input grow" id="mn" placeholder="Naam (bv. Jan)" maxlength="30" required>
+        <input class="input" id="mu" placeholder="gebruikersnaam" style="max-width:180px" autocapitalize="none" required>
+        <input class="input" id="mp" value="${genPassword()}" style="max-width:150px" minlength="6" required title="Wachtwoord (min. 6 tekens)">
+        <button class="btn bacon">+ Toevoegen</button>
+      </form></div>
+    <div class="row" style="margin:18px 0 12px"><span class="pill yolk">🍳 ${opened}/${list.length} opdrachten onthuld</span>
+      <a class="btn small ghost" href="portaal.html" target="_blank">👀 Portaal bekijken</a></div>
+    <div class="list">${list.map(([id, m]) => `
+      <div class="card member-card" data-id="${esc(id)}">
+        <div class="list-item">
+          <div class="grow"><h3>${esc(m.name)}</h3>
+            <span class="cred">👤 ${esc(m.username)}</span> <span class="cred">🔑 ${esc(m.password || '?')}</span></div>
+          ${status(missions[id])}
+          <button class="btn small" data-copy>📋 Login kopiëren</button>
+          <button class="btn small ghost icon" data-del title="Verwijderen">🗑</button>
+        </div>
+        <div class="field" style="margin:14px 0 8px"><label>Geheime opdracht</label>
+          <textarea class="input" data-mission placeholder="bv. Laat iemand anders onopgemerkt 3x 'spek' zeggen…">${esc(missions[id]?.text || '')}</textarea></div>
+        <div class="row"><button class="btn small ok" data-save disabled>Opslaan</button>
+          <span class="muted" style="font-size:.85rem">Na een wijziging moet ${esc(m.name)} het ei opnieuw flippen.</span></div>
+      </div>`).join('') || `<div class="card center"><div class="float" style="width:110px;margin:auto">${ART.egg()}</div><p>Nog geen weekendgangers.</p></div>`}
+    </div>`;
+
+  let userEdited = false;
+  $('#mu').oninput = () => { userEdited = true; };
+  $('#mn').oninput = () => { if (!userEdited) $('#mu').value = cleanUsername($('#mn').value); };
+  $('#mf').onsubmit = async (e) => {
+    e.preventDefault();
+    const name = $('#mn').value.trim();
+    const username = cleanUsername($('#mu').value);
+    const password = $('#mp').value.trim();
+    if (!username) return toast('Kies een gebruikersnaam (letters en cijfers)', 'bad');
+    if (list.some(([, m]) => m.username === username)) return toast('Die gebruikersnaam bestaat al', 'bad');
+    const btn = e.target.querySelector('button');
+    btn.disabled = true;
+    try {
+      const id = await createMemberAccount(username, password);
+      await set(ref(db, `members/${id}`), { name, username, password, createdAt: Date.now() });
+      toast(`${name} zit in de pan 🍳`, 'ok');
+      listMembers();
+    } catch (err) {
+      btn.disabled = false;
+      toast({
+        'auth/email-already-in-use': 'Die gebruikersnaam bestaat al',
+        'auth/weak-password': 'Wachtwoord moet minstens 6 tekens hebben',
+        'auth/operation-not-allowed': 'Zet Email/Password aan in Firebase Authentication',
+      }[err.code] || `Mislukt: ${err.message}`, 'bad');
+    }
+  };
+
+  $$('.member-card').forEach((card) => {
+    const id = card.dataset.id;
+    const m = members[id];
+    const ta = $('[data-mission]', card);
+    const save = $('[data-save]', card);
+    ta.oninput = () => { save.disabled = ta.value.trim() === (missions[id]?.text || ''); };
+    save.onclick = async () => {
+      const text = ta.value.trim();
+      await (text ? set(ref(db, `missions/${id}`), { text, updatedAt: Date.now() }) : remove(ref(db, `missions/${id}`)));
+      toast(`Opdracht voor ${m.name} opgeslagen 🤫`, 'ok');
+      listMembers();
+    };
+    $('[data-copy]', card).onclick = async () => {
+      const msg = `Hoi ${m.name}! 🍳\nJe geheime weekendopdracht ligt klaar in de pan:\n${portalUrl()}\n\nGebruikersnaam: ${m.username}\nWachtwoord: ${m.password}\n\n🤫 Niet verder vertellen!`;
+      try { await navigator.clipboard.writeText(msg); toast('Gekopieerd! Plak het in een berichtje 📋', 'ok'); }
+      catch { prompt('Kopieer dit bericht:', msg); }
+    };
+    $('[data-del]', card).onclick = async () => {
+      if (!confirm(`${m.name} en de opdracht verwijderen?`)) return;
+      try { await deleteMemberAccount(m.username, m.password); } catch { /* account bestond al niet meer */ }
+      await update(ref(db), { [`members/${id}`]: null, [`missions/${id}`]: null });
+      toast(`${m.name} verwijderd`);
+      listMembers();
+    };
+  });
+}
+
 /* ---------- Instellingen ---------- */
 function settings() {
   frame('settings', `<div class="stack">
@@ -439,8 +523,8 @@ function settings() {
     }
   };
   $('#exp').onclick = async () => {
-    const [quizzes, letters, media] = await Promise.all(['quizzes', 'letters', 'media'].map(async (k) => (await get(ref(db, k))).val() || {}));
-    const blob = new Blob([JSON.stringify({ quizzes, letters, media }, null, 2)], { type: 'application/json' });
+    const [quizzes, letters, media, members, missions] = await Promise.all(['quizzes', 'letters', 'media', 'members', 'missions'].map(async (k) => (await get(ref(db, k))).val() || {}));
+    const blob = new Blob([JSON.stringify({ quizzes, letters, media, members, missions }, null, 2)], { type: 'application/json' });
     const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'db.json' });
     a.click();
     URL.revokeObjectURL(a.href);
@@ -450,7 +534,7 @@ function settings() {
     try {
       const data = JSON.parse(await e.target.files[0].text());
       const upd = {};
-      for (const k of ['quizzes', 'letters', 'media']) for (const [id, v] of Object.entries(data[k] || {})) upd[`${k}/${id}`] = v;
+      for (const k of ['quizzes', 'letters', 'media', 'members', 'missions']) for (const [id, v] of Object.entries(data[k] || {})) upd[`${k}/${id}`] = v;
       if (!confirm(`${Object.keys(upd).length} items importeren? Items met hetzelfde id worden overschreven.`)) return;
       await update(ref(db), upd);
       toast('Geïmporteerd ✔', 'ok');
@@ -464,5 +548,5 @@ function settings() {
     await remove(ref(db, 'games'));
     toast('Pan is weer proper 🧹', 'ok');
   };
-  $('#lo').onclick = () => signOut(useAuth()).then(() => location.reload());
+  $('#lo').onclick = () => signOut(useAuth()).then(() => { setSessionHint(null); location.href = 'index.html'; });
 }

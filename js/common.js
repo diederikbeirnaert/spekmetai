@@ -83,6 +83,25 @@ export const ART = {
     <path class="sparkle" style="animation-delay:.7s" d="M60 110l4 10 10 4-10 4-4 10-4-10-10-4 10-4z" fill="#FFB703" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round"/>
   </svg>`,
 
+  panEmpty: `<svg viewBox="0 0 400 400" aria-hidden="true">
+    <g class="steam" stroke="#C9B79C" stroke-width="7" fill="none" stroke-linecap="round">
+      <path d="M150 70q-14-18 0-36t0-36"/><path d="M200 60q-14-18 0-36t0-36"/><path d="M250 70q-14-18 0-36t0-36"/>
+    </g>
+    <rect x="300" y="228" width="100" height="26" rx="13" transform="rotate(-28 300 240)" fill="${INK}"/>
+    <circle cx="190" cy="235" r="150" fill="#2B2D42"/>
+    <circle cx="190" cy="235" r="128" fill="#3D405B"/>
+    <circle cx="190" cy="235" r="128" fill="none" stroke="#4C5070" stroke-width="6" stroke-dasharray="4 18"/>
+    <g fill="#F6D5C3" opacity=".5"><circle cx="110" cy="200" r="4"/><circle cx="270" cy="300" r="5"/><circle cx="250" cy="150" r="3"/><circle cx="130" cy="310" r="3"/></g>
+  </svg>`,
+
+  // Onderkant van een gebakken ei: krokant randje en een vraagteken
+  eggBack: `<svg viewBox="0 0 120 100" aria-hidden="true">
+    <path d="M60 6c18 0 25 9 37 13s21 15 19 31-11 21-19 29-22 15-40 13S22 90 13 79 1 53 8 38s24-18 32-25S46 6 60 6z" fill="#F4D9A6" stroke="${INK}" stroke-width="3"/>
+    <path d="M60 14c15 0 21 8 31 11s17 12 16 25-9 17-15 24-18 12-33 11-24-9-31-18-9-22-4-32 20-14 26-19 5-2 10-2z" fill="#FFF3DC"/>
+    <g fill="#D9A066" opacity=".6"><circle cx="30" cy="40" r="3"/><circle cx="92" cy="66" r="4"/><circle cx="80" cy="26" r="2.5"/><circle cx="36" cy="72" r="2.5"/></g>
+    <text x="60" y="66" text-anchor="middle" font-family="Fredoka, Nunito, sans-serif" font-weight="700" font-size="44" fill="#FB8500" stroke="${INK}" stroke-width="2">?</text>
+  </svg>`,
+
   // Antwoordiconen (wit op gekleurde tegel)
   answer: [
     `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M4 18q5-5 10 0t10 0t10 0t10 0v12q-5-5-10 0t-10 0t-10 0t-10 0z" fill="#fff"/></svg>`,
@@ -113,20 +132,45 @@ export const ART = {
 export const eggAnswerInner = (i, text) =>
   `<span class="strip">${ART.bacon()}</span><span class="yolk">${ART.answer[i]}</span><span class="txt">${esc(text)}</span>`;
 
+/* ---------- Sessie-hint ---------- */
+// Klein geheugensteuntje (geen beveiliging!) zodat het menu meteen "Account" kan tonen
+// zonder eerst de Firebase-SDK te laden. De echte login-check gebeurt op de pagina zelf.
+const HINT_KEY = 'smai.session';
+export function getSessionHint() {
+  try { return JSON.parse(localStorage.getItem(HINT_KEY)); } catch { return null; }
+}
+export function setSessionHint(hint) {
+  try { hint ? localStorage.setItem(HINT_KEY, JSON.stringify(hint)) : localStorage.removeItem(HINT_KEY); } catch {}
+}
+
 /* ---------- Pagina-omlijsting ---------- */
 export function shell(active = '') {
   const links = [
     ['index.html', 'Home', 'home'],
     ['play.html', 'Meedoen', 'play'],
     ['brief.html', 'Weekendbrief', 'brief'],
+    ['portaal.html', 'Mijn opdracht', 'portaal'],
   ];
+  const hint = getSessionHint();
+  const acct = hint
+    ? `<a href="account.html" class="btn small acct-btn ${active === 'account' ? 'active' : ''}" title="Mijn account">👤 <span class="acct-name">${esc(hint.name || 'Account')}</span></a>`
+    : `<a href="login.html" class="btn small bacon acct-btn">Inloggen</a>`;
   const header = document.createElement('header');
   header.className = 'site-header';
   header.innerHTML = `
     <a class="brand" href="index.html" aria-label="SpekmetAI home">${ART.logo}<span class="wordmark">Spekmet<span class="ai">AI</span></span></a>
-    <nav class="nav ${active === 'host' ? 'hidden' : ''}">${links.map(([href, label, key]) =>
-      `<a href="${href}" class="${key === active ? 'active' : ''} ${key}-link">${label}</a>`).join('')}</nav>`;
+    ${active === 'host' ? '' : `
+    <nav class="nav" id="nav">${links.map(([href, label, key]) =>
+      `<a href="${href}" class="${key === active ? 'active' : ''}">${label}</a>`).join('')}</nav>
+    <div class="header-right">${acct}
+      <button class="menu-btn" id="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="nav"><span></span><span></span><span></span></button>
+    </div>`}`;
   document.body.prepend(header);
+  const btn = header.querySelector('#menu-btn');
+  btn?.addEventListener('click', () => {
+    const open = header.classList.toggle('menu-open');
+    btn.setAttribute('aria-expanded', open);
+  });
 
   const bg = document.createElement('div');
   bg.className = 'bg-float';

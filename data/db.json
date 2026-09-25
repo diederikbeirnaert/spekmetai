@@ -1,0 +1,52 @@
+{
+  "quizzes": {
+    "ontbijtquiz": {
+      "title": "Het Grote Ontbijtquiz",
+      "description": "Een voorbeeldquiz om de pan op te warmen.",
+      "questions": [
+        {
+          "id": "q1", "type": "mc", "text": "Wat hoort er zeker NIET in een klassiek Engels ontbijt?",
+          "media": null, "time": 20, "points": "normal",
+          "options": [
+            { "text": "Baked beans", "correct": false },
+            { "text": "Spek", "correct": false },
+            { "text": "Choco", "correct": true },
+            { "text": "Worstjes", "correct": false }
+          ]
+        },
+        {
+          "id": "q2", "type": "tf", "text": "Een struisvogelei kun je ongeveer 2 uur koken tot het hard is.",
+          "media": null, "time": 15, "points": "normal",
+          "options": [ { "text": "Waar", "correct": true }, { "text": "Niet waar", "correct": false } ]
+        },
+        {
+          "id": "q3", "type": "mc", "text": "Wat staat er in het logo van SpekmetAI in de dooier?",
+          "media": { "kind": "image", "src": "favicon.svg" }, "time": 20, "points": "double",
+          "options": [
+            { "text": "AI", "correct": true },
+            { "text": "EI", "correct": false },
+            { "text": "OK", "correct": false },
+            { "text": "Niks", "correct": false }
+          ]
+        },
+        {
+          "id": "q4", "type": "info", "text": "Intermezzo: even dansen tussen de eieren door 🕺",
+          "media": { "kind": "youtube", "src": "dQw4w9WgXcQ", "start": 43 }, "time": 20, "points": "none"
+        },
+        {
+          "id": "q5", "type": "open", "text": "Welk gerecht staat centraal op deze website? (drie woorden)",
+          "media": null, "time": 30, "points": "normal",
+          "answers": [ "spek met ei", "spek met eieren", "eieren met spek" ]
+        }
+      ]
+    }
+  },
+  "letters": {
+    "welkom": {
+      "title": "Welkom bij SpekmetAI!",
+      "date": "2026-09-25",
+      "published": true,
+      "body": "## De pan staat op het vuur 🍳\n\nHier komt elke week een **weekendbrief** met nieuws, weetjes en de resultaten van de quiz.\n\n- Quiz op vrijdag\n- Brief in het weekend\n- Spek met ei altijd\n\n> Wie vroeg opstaat, krijgt het krokantste spek."
+    }
+  }
+}

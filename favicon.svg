@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+    <g transform="rotate(-22 60 60)">
+      <path d="M4 76q10-9 20 0t20 0t20 0t20 0t20 0t20 0v16q-10-9-20 0t-20 0t-20 0t-20 0t-20 0t-20 0z" fill="#C8553D" stroke="#3A2618" stroke-width="2.5" stroke-linejoin="round"/>
+      <path d="M6 82q9-8 18 0t20 0t20 0t20 0t20 0t18 0" stroke="#F6D5C3" stroke-width="3.5" fill="none"/>
+    </g>
+    <path d="M60 12c14 0 21 8 31 11s19 12 18 27-7 19-10 28-10 21-27 23-27-4-36-11S9 72 11 57s10-23 18-31 17-14 31-14z" fill="#fff" stroke="#3A2618" stroke-width="3"/>
+    <g stroke="#FB8500" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M60 37V25"/><path d="M81 58h11l5-6"/><path d="M42 70l-9 8h-8"/>
+    </g>
+    <g fill="#FB8500"><circle cx="60" cy="22" r="3.6"/><circle cx="99" cy="50" r="3.6"/><circle cx="22" cy="78" r="3.6"/></g>
+    <circle cx="60" cy="58" r="21" fill="#FFB703" stroke="#3A2618" stroke-width="3"/>
+    <ellipse cx="51" cy="48" rx="6.5" ry="3.5" fill="#fff" opacity=".8" transform="rotate(-35 51 48)"/>
+    <text x="60" y="66.5" text-anchor="middle" font-family="Fredoka, Nunito, sans-serif" font-weight="700" font-size="21" fill="#3A2618">AI</text>
+    <path d="M99 10l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#FFB703" stroke="#3A2618" stroke-width="2" stroke-linejoin="round"/>
+  </svg>

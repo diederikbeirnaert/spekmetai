@@ -1,0 +1,49 @@
+{
+  "rules": {
+    "admins": {
+      "$uid": { ".read": "auth != null && auth.uid === $uid" }
+    },
+    "quizzes": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
+    },
+    "media": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
+    },
+    "letters": {
+      ".read": true,
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
+    },
+    "games": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      ".indexOn": ["createdAt"],
+      "$code": {
+        ".read": "auth != null",
+        "players": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('games').child($code).child('state').exists()",
+            ".validate": "newData.hasChildren(['name', 'avatar', 'score'])",
+            "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 20" },
+            "avatar": { ".validate": "newData.isString() && newData.val().length <= 8" },
+            "score": { ".validate": "newData.isNumber() && (newData.val() === 0 || root.child('admins').child(auth.uid).val() === true)" },
+            "online": { ".write": "auth != null && auth.uid === $uid && data.parent().exists()", ".validate": "newData.isBoolean()" },
+            "joinedAt": { ".validate": "newData.isNumber()" },
+            "streak": { ".validate": "newData.isNumber()" },
+            "last": { ".validate": "newData.hasChildren(['q'])" },
+            "$other": { ".validate": false }
+          }
+        },
+        "answers": {
+          "$qkey": {
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('games').child($code).child('state/phase').val() === 'question' && root.child('games').child($code).child('state/qkey').val() === $qkey && root.child('games').child($code).child('players').child($uid).exists()",
+              ".validate": "newData.hasChildren(['v', 'at']) && newData.child('at').val() === now && (newData.child('v').isNumber() || (newData.child('v').isString() && newData.child('v').val().length <= 80))"
+            }
+          }
+        }
+      }
+    }
+  }
+}

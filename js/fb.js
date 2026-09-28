@@ -86,3 +86,9 @@ export async function whoAmI(user) {
   } catch {}
   return null;
 }
+
+// Avatars van weekendgangers live volgen (voor quiz, jury, portaal).
+export function watchAvatars(onChange) {
+  if (!configured) return () => {};
+  return onValue(ref(db, 'avatars'), (s) => onChange(s.val() || {}), () => {});
+}

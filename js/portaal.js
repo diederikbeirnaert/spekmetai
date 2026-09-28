@@ -1,7 +1,7 @@
 // Portaal voor weekendgangers: inloggen en de geheime opdracht onthullen door het ei te flippen.
-import { $, ART, esc, shell, confetti, setSessionHint } from './common.js';
+import { $, ART, esc, shell, confetti, setSessionHint, av, setAvatars } from './common.js';
 import {
-  configured, db, ref, get, set, serverTimestamp, useAuth, currentUser, notConfiguredHtml, signOut,
+  configured, db, ref, get, set, serverTimestamp, useAuth, currentUser, notConfiguredHtml, signOut, watchAvatars,
 } from './fb.js';
 
 shell('portaal');
@@ -17,6 +17,7 @@ async function init() {
   user = await currentUser();
   if (user && !user.isAnonymous && (await loadMember())) {
     setSessionHint({ role: 'member', name: member.name, username: member.username });
+    watchAvatars(setAvatars);
     return renderPan();
   }
   // Ingelogd, maar geen weekendganger (bv. de admin): niet doorsturen, anders ontstaat er een lus.
@@ -55,6 +56,7 @@ function renderNotMember() {
 function renderPan() {
   const has = !!mission?.text;
   app.innerHTML = `<div class="play-screen">
+    <div class="big-avatar pop-in">${av({ member: true }, user.uid)}</div>
     <h1 style="margin:0">Hoi ${esc(member.name)} 👋</h1>
     <p class="muted" style="margin:0">${has ? 'Er ligt iets in je pan…' : 'Je opdracht wordt nog gebakken. Kom later terug!'}</p>
     <div class="flip-stage ${has ? '' : 'waiting'}" id="stage">

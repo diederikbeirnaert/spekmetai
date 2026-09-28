@@ -1,9 +1,9 @@
 // Host-scherm: maakt een spel aan, stuurt de vragen en rekent de punten uit.
 // Een Twister-quiz voegt daar aan toe: spinner per vraag, matspelers, jury, FREEZE + SpekVAR, gokjes en rotatie.
-import { $, $$, ART, esc, shell, toast, confetti, mediaHtml, normalize, whistle } from './common.js';
+import { $, $$, ART, esc, shell, toast, confetti, mediaHtml, normalize, whistle, av, setAvatars } from './common.js';
 import {
   configured, db, ref, get, set, update, remove, onValue, serverTimestamp, query, orderByChild, endAt,
-  useAuth, currentUser, isAdmin, serverNow, notConfiguredHtml,
+  useAuth, currentUser, isAdmin, serverNow, notConfiguredHtml, watchAvatars,
 } from './fb.js';
 import { LIMBS, COLORS, boardSvg, makeSpinner } from './twister.js';
 import { mountJuryPanel } from './jurypanel.js';
@@ -38,7 +38,7 @@ const optionTexts = (q) => (q.type === 'mc' || q.type === 'tf' ? (q.options || [
 const onlinePlayers = () => Object.entries(players).filter(([, p]) => p.online !== false);
 const ranked = () => Object.entries(players).map(([id, p]) => ({ id, ...p })).sort((a, b) => (b.score || 0) - (a.score || 0));
 const matPlayers = () => Object.keys(mat).filter((id) => players[id]).map((id) => ({ id, ...players[id] }));
-const who = (id) => (players[id] ? `${esc(players[id].avatar)} ${esc(players[id].name)}` : '?');
+const who = (id) => (players[id] ? `${av(players[id], id)} ${esc(players[id].name)}` : '?');
 
 init();
 
@@ -122,6 +122,7 @@ async function preloadMedia() {
 const resolveSrc = (m) => (m?.src?.startsWith('db:') ? mediaCache[m.src.slice(3)] : m?.src);
 
 async function start() {
+  watchAvatars(setAvatars);
   await preloadMedia();
   onValue(g('players'), (s) => { players = s.val() || {}; onPlayers(); });
   if (isTw()) {
@@ -324,7 +325,7 @@ function onPlayers() {
       }
       chip.classList.toggle('off', p.online === false);
       chip.classList.toggle('on-mat', !!mat[id]);
-      chip.innerHTML = `${mat[id] ? '<span class="mat-badge">🥓</span>' : ''}<span class="av">${esc(p.avatar)}</span>${esc(p.name)}<span class="kick" title="Verwijderen">✕</span>`;
+      chip.innerHTML = `${mat[id] ? '<span class="mat-badge">🥓</span>' : ''}<span class="av">${av(p, id)}</span>${esc(p.name)}<span class="kick" title="Verwijderen">✕</span>`;
     }
   } else if (state.phase === 'question') {
     updateAnswerCount();
@@ -392,7 +393,7 @@ function showQuestionContent() {
 }
 
 const limbBadge = (l) => (l == null ? '' : `<div class="limb-badge pop-in"><span>${LIMBS[l].icon}</span>${LIMBS[l].name}</div>`);
-const matRoster = () => `<div class="mat-roster"><b>🥓 Op de mat</b>${matPlayers().map((p) => `<span>${esc(p.avatar)} ${esc(p.name)}</span>`).join('') || '<span>niemand</span>'}</div>`;
+const matRoster = () => `<div class="mat-roster"><b>🥓 Op de mat</b>${matPlayers().map((p) => `<span>${av(p, p.id)} ${esc(p.name)}</span>`).join('') || '<span>niemand</span>'}</div>`;
 
 // Twister-intro: spatel draait naar het ledemaat, daarna even leestijd voor de vraag.
 async function spinIntro(limb) {
@@ -708,7 +709,7 @@ function renderScoreboard() {
     <div class="host-bar"><span class="pill yolk">Tussenstand</span><h2 style="margin:0">Wie ligt er bovenaan in de pan?</h2><button id="next"></button></div>
     <div class="scoreboard">${top.map((p, i) => `
       <div class="score-row slide-up" style="animation-delay:${i * 0.12}s">
-        <span class="rank">${i + 1}</span><span style="font-size:1.8rem">${esc(p.avatar)}</span>${esc(p.name)}
+        <span class="rank">${i + 1}</span><span style="font-size:1.8rem">${av(p, p.id)}</span>${esc(p.name)}
         ${isTw() && mat[p.id] ? '<span class="mat-badge" title="Volgende vraag op de mat">🥓</span>' : ''}
         <span class="sc">${p.score || 0}${p.last?.pts ? `<span class="delta ${p.last.pts < 0 ? 'neg' : ''}">${p.last.pts > 0 ? '+' : ''}${p.last.pts}</span>` : ''}</span>
         ${p.streak >= 3 ? '<span title="Reeks">🔥</span>' : ''}
@@ -727,13 +728,13 @@ async function goEnd() {
 function renderEnd() {
   const r = ranked();
   const step = (p, n) => (p ? `<div class="step p${n}">
-      <div class="who"><span class="av">${esc(p.avatar)}</span>${esc(p.name)}<small>${p.score || 0} pt</small></div>
+      <div class="who"><span class="av">${av(p, p.id)}</span>${esc(p.name)}<small>${p.score || 0} pt</small></div>
       <div class="block">${n}</div></div>` : `<div class="step p${n}"></div>`);
   app.innerHTML = `<div class="host-stage">
     <div class="host-bar"><span class="pill yolk">🏆 Eindstand</span><h2 style="margin:0">${esc(quiz.title)}</h2><button id="next"></button></div>
     <div class="podium">${step(r[1], 2)}${step(r[0], 1)}${step(r[2], 3)}</div>
     ${r.length > 3 ? `<div class="scoreboard" style="max-width:600px">${r.slice(3, 10).map((p, i) => `
-      <div class="score-row" style="font-size:1.1rem;padding:8px 16px"><span class="rank" style="width:34px;height:34px">${i + 4}</span>${esc(p.avatar)} ${esc(p.name)}<span class="sc">${p.score || 0}</span></div>`).join('')}</div>` : ''}
+      <div class="score-row" style="font-size:1.1rem;padding:8px 16px"><span class="rank" style="width:34px;height:34px">${i + 4}</span>${av(p, p.id)} ${esc(p.name)}<span class="sc">${p.score || 0}</span></div>`).join('')}</div>` : ''}
     ${snapshots.length ? `<h2 class="center" style="margin-top:20px">📸 SpekVAR-bloopers</h2>
       <div class="bloopers">${snapshots.map((s, i) => `<figure class="var-shot pop-in" style="animation-delay:${3 + i * 0.3}s"><img src="${s.src}" alt=""><figcaption>Vraag ${s.q}</figcaption></figure>`).join('')}</div>` : ''}
     <div class="row" style="justify-content:center"><a class="btn ghost" href="admin.html">Terug naar admin</a><a class="btn" href="host.html">Nieuwe quiz</a></div>

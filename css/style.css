@@ -586,3 +586,46 @@ body.jury-page main { max-width: 640px; }
 body.host .jury { margin-top: 4px; gap: 6px; }
 body.host .jury-row { padding: 5px 12px; }
 body.host .jury-c, body.host .jury-burn { width: 42px; height: 42px; }
+
+/* ---------- Avatars van weekendgangers ---------- */
+.av-pic {
+  display: inline-grid; place-items: center; width: 1.45em; height: 1.45em; border-radius: 50%; overflow: hidden;
+  vertical-align: middle; border: .09em solid var(--ink); flex: none; position: relative; line-height: 1;
+}
+.av-pic img { width: 100%; height: 100%; object-fit: contain; object-position: center bottom; display: block; }
+.av-pic .av-empty { font-size: .7em; opacity: .5; }
+.avbg-yolk { background: radial-gradient(circle at 34% 28%, rgba(255,255,255,.7) 0 9%, transparent 10%), radial-gradient(circle, #FFC933 0 52%, #FB8500 100%); }
+.avbg-bacon { background: repeating-linear-gradient(160deg, #C8553D 0 13%, #F6D5C3 13% 19%, #8C2F1B 19% 24%, #C8553D 24% 38%); }
+.avbg-pan { background: radial-gradient(circle, #4C5070 0 50%, #3D405B 52% 62%, #2B2D42 64%); }
+.avbg-toast { background: radial-gradient(circle, #F7DDB0 0 56%, #D9A066 60%); }
+.avbg-plate { background: radial-gradient(circle, #FFB703 0 7%, transparent 8%) 0 0 / 34% 34%, radial-gradient(circle, #fff 0 52%, #FFF3DC 54% 66%, #fff 68%); }
+.avbg-circuit {
+  background:
+    radial-gradient(circle, #FB8500 0 9%, transparent 10%) 0 0 / 50% 50%,
+    linear-gradient(90deg, transparent 23%, rgba(251,133,0,.45) 23% 27%, transparent 27%) 0 0 / 50% 50%,
+    linear-gradient(transparent 23%, rgba(251,133,0,.45) 23% 27%, transparent 27%) 0 0 / 50% 50%,
+    #FFF8EC;
+}
+.avbg-avocado { background: radial-gradient(circle at 50% 62%, #8B5A2B 0 16%, #D8E7A0 18% 54%, #5A8F29 58%); }
+.avbg-berry { background: radial-gradient(circle at 34% 28%, rgba(255,255,255,.5) 0 9%, transparent 10%), radial-gradient(circle, #5B6FD6 0 52%, #2A3A8F 100%); }
+
+/* Grootte per plek */
+.big-avatar .av-pic { width: 1.25em; height: 1.25em; border-width: .05em; }
+.player-chip .av-pic { font-size: 1.6rem; }
+.pill .av-pic { font-size: 1.3em; margin: -4px 0; }
+.podium .who .av-pic { font-size: 3.4rem; border-width: .06em; }
+.bet-btn .av-pic { font-size: 2.2rem; }
+.jury-who .av-pic, .score-row .av-pic { font-size: 1.6rem; }
+
+/* Admin: avatar kiezen */
+.avatar-edit { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.avatar-edit > .av-pic { font-size: 4.2rem; border-width: 4px; cursor: pointer; transition: transform .2s; }
+.avatar-edit > .av-pic:hover { transform: scale(1.06) rotate(-4deg); }
+.bg-swatches { display: flex; gap: 6px; flex-wrap: wrap; }
+.bg-swatch { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--shell); cursor: pointer; padding: 0; }
+.bg-swatch.sel { border-color: var(--ink); transform: scale(1.12); }
+.repo-avatars { display: flex; gap: 4px; flex-wrap: wrap; margin: 8px 0 4px; }
+.repo-av { width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--shell); background: var(--yolk-soft); padding: 0; cursor: pointer; overflow: hidden; transition: transform .15s; }
+.repo-av img { width: 100%; height: 100%; object-fit: contain; object-position: bottom; display: block; }
+.repo-av:hover { transform: scale(1.1); }
+.repo-av.sel { border-color: var(--ink); transform: scale(1.1); }

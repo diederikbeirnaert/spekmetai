@@ -1,9 +1,9 @@
 // Spelerscherm (gsm): meedoen met code + naam, antwoorden geven, score zien.
-import { $, $$, ART, AVATARS, esc, shell, toast, confetti, eggAnswerInner } from './common.js';
+import { $, $$, ART, AVATARS, esc, shell, toast, confetti, eggAnswerInner, av, setAvatars, getSessionHint, setSessionHint } from './common.js';
 import { LIMBS } from './twister.js';
 import {
   configured, db, ref, get, set, onValue, onDisconnect, serverTimestamp,
-  useAuth, ensureAnon, serverNow, notConfiguredHtml,
+  useAuth, ensureAnon, currentUser, serverNow, notConfiguredHtml, watchAvatars,
 } from './fb.js';
 
 shell('play');
@@ -12,7 +12,7 @@ const params = new URLSearchParams(location.search);
 const SKEY = 'smai.play';
 const PREF = 'smai.me';
 
-let user, code;
+let user, code, member = null; // member = ingelogde weekendganger
 let state = {}, current = {}, reveal = null, me = null, players = {}, mat = {};
 let hadMe = false, lastKey = '', ticker = null, wakeLock = null;
 
@@ -25,8 +25,16 @@ boot();
 async function boot() {
   if (!configured) return void (app.innerHTML = notConfiguredHtml());
   app.innerHTML = `<div class="play-screen"><div class="wobble" style="width:120px">${ART.egg()}</div><p class="muted">Pan opwarmen…</p></div>`;
-  useAuth('session');
-  user = await ensureAnon();
+  // Ingelogde weekendganger → zijn eigen account gebruiken (naam + avatar), anders een anonieme speler per tabblad.
+  const hint = getSessionHint();
+  useAuth(hint?.role === 'member' ? 'local' : 'session');
+  const u = await currentUser();
+  if (hint?.role === 'member' && u && !u.isAnonymous) {
+    member = (await get(ref(db, `members/${u.uid}`)).catch(() => null))?.val() || null;
+    if (!member) setSessionHint(null);
+  }
+  user = member ? u : await ensureAnon();
+  watchAvatars(setAvatars);
   const s = session();
   const urlCode = params.get('code');
   if (s.code && (!urlCode || urlCode === s.code)) {
@@ -40,7 +48,16 @@ async function boot() {
 function renderJoin(prefill) {
   const pf = prefs();
   let avatar = pf.avatar || AVATARS[Math.floor(Math.random() * AVATARS.length)];
-  app.innerHTML = `<div class="play-screen">
+  app.innerHTML = member ? `<div class="play-screen">
+    <div class="big-avatar pop-in">${av({ member: true }, user.uid)}</div>
+    <h1 style="margin:0">Hoi ${esc(member.name)}!</h1>
+    <p class="muted" style="margin:0">Je speelt mee met je eigen avatar.</p>
+    <form class="card" id="f" style="width:100%;text-align:left">
+      <div class="field"><label for="code">Quizcode</label>
+        <input class="input" id="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" value="${esc(prefill)}"
+          style="font-family:var(--font-title);font-size:1.8rem;letter-spacing:8px;text-align:center;font-weight:700" placeholder="······"></div>
+      <button class="btn bacon big" style="width:100%" id="go">In de pan! 🍳</button>
+    </form></div>` : `<div class="play-screen">
     <div class="wobble" style="width:110px">${ART.egg()}</div>
     <h1 style="margin:0">Doe mee!</h1>
     <form class="card" id="f" style="width:100%;text-align:left">
@@ -58,12 +75,12 @@ function renderJoin(prefill) {
     b.classList.add('sel');
     avatar = b.dataset.a;
   }));
-  (prefill ? $('#name') : $('#code')).focus();
+  (prefill && !member ? $('#name') : $('#code')).focus();
 
   $('#f').addEventListener('submit', async (e) => {
     e.preventDefault();
     const c = $('#code').value.replace(/\D/g, '');
-    const name = $('#name').value.trim().replace(/\s+/g, ' ').slice(0, 20);
+    const name = (member ? member.name : $('#name').value).trim().replace(/\s+/g, ' ').slice(0, 20);
     if (c.length !== 6) return shakeToast('Een code heeft 6 cijfers');
     if (!name) return shakeToast('Vul je naam in');
     $('#go').disabled = true;
@@ -71,10 +88,12 @@ function renderJoin(prefill) {
       const st = (await get(ref(db, `games/${c}/state`))).val();
       if (!st) throw new Error('Deze code bestaat niet 🥚');
       if (st.phase === 'end') throw new Error('Deze quiz is al afgelopen');
-      try { localStorage.setItem(PREF, JSON.stringify({ name, avatar })); } catch {}
+      if (!member) try { localStorage.setItem(PREF, JSON.stringify({ name, avatar })); } catch {}
       const mine = ref(db, `games/${c}/players/${user.uid}`);
       if (!(await get(mine)).exists()) {
-        await set(mine, { name, avatar, score: 0, joinedAt: serverTimestamp(), online: true });
+        const rec = { name, avatar: member ? '🍳' : avatar, score: 0, joinedAt: serverTimestamp(), online: true };
+        if (member) rec.member = true;
+        await set(mine, rec);
       }
       sessionStorage.removeItem(SKEY);
       saveSession({ code: c });
@@ -142,7 +161,7 @@ const limb = () => LIMBS[current.limb] || null;
 
 function topBar() {
   return `<div class="play-top">
-    <span class="pill yolk">${esc(me?.avatar || '')} ${esc(me?.name || '')}</span>
+    <span class="pill yolk">${av(me, user.uid)} ${esc(me?.name || '')}</span>
     <span class="pill">🥓 ${me?.score || 0}</span></div>`;
 }
 
@@ -171,7 +190,7 @@ function render() {
 
 function lobby() {
   app.innerHTML = `<div class="play-screen">
-    <div class="big-avatar pop-in">${esc(me.avatar)}</div>
+    <div class="big-avatar pop-in">${av(me, user.uid)}</div>
     <h1 style="margin:0">Je zit erin, ${esc(me.name)}!</h1>
     <p class="muted">Kijk naar het grote scherm, de quiz begint zo.</p>
     ${onMat() ? '<span class="pill yolk" style="font-size:1.1rem">🥓 Jij start op de Twister-mat!</span>' : ''}
@@ -264,7 +283,7 @@ function betScreen() {
   app.innerHTML = `${topBar()}<div class="play-screen">
     <h2 style="margin:0">🔮 Wie brandt er aan?</h2>
     <p class="muted" style="margin:0">Juist gegokt = +300</p>
-    <div class="bet-grid">${onTheMat.map((id) => `<button class="bet-btn" data-b="${esc(id)}"><span>${esc(players[id].avatar)}</span>${esc(players[id].name)}</button>`).join('')}
+    <div class="bet-grid">${onTheMat.map((id) => `<button class="bet-btn" data-b="${esc(id)}"><span>${av(players[id], id)}</span>${esc(players[id].name)}</button>`).join('')}
       <button class="bet-btn none" data-b="none"><span>😇</span>Niemand</button></div>
     <button class="btn ghost small" data-b="">Niet gokken</button></div>`;
   $$('[data-b]').forEach((b) => b.addEventListener('click', async () => {
@@ -333,7 +352,7 @@ function matRevealScreen(last) {
 
 function scoreboard() {
   app.innerHTML = `${topBar()}<div class="play-screen">
-    <div class="big-avatar float">${esc(me.avatar)}</div>
+    <div class="big-avatar float">${av(me, user.uid)}</div>
     <h1 style="margin:0">Plaats <span data-rank></span></h1>
     <p class="points">${me.score || 0} pt</p>
     ${onMat() ? '<span class="pill yolk" style="font-size:1.1rem">🥓 Volgende vraag sta jij op de mat</span>' : ''}
@@ -346,7 +365,7 @@ function end() {
   if (medal) confetti(50);
   sessionStorage.removeItem(SKEY);
   app.innerHTML = `<div class="play-screen">
-    <div class="big-avatar pop-in" style="font-size:5.5rem">${medal || esc(me.avatar)}</div>
+    <div class="big-avatar pop-in" style="font-size:5.5rem">${medal || av(me, user.uid)}</div>
     <h1 style="margin:0">${medal ? 'Op het podium!' : `Plaats ${r}`}</h1>
     <p class="points">${me.score || 0} pt</p>
     <p>Bedankt om mee te bakken, ${esc(me.name)}!</p>

@@ -1,6 +1,6 @@
 // Jury-gsm: met code + pin binnen, dan per vraag de kleuren van de matspelers aantikken.
-import { $, ART, esc, shell, toast } from './common.js';
-import { configured, db, ref, get, set, onValue, useAuth, ensureAnon, notConfiguredHtml } from './fb.js';
+import { $, ART, esc, shell, toast, av, setAvatars } from './common.js';
+import { configured, db, ref, get, set, onValue, useAuth, ensureAnon, notConfiguredHtml, watchAvatars } from './fb.js';
 import { LIMBS, COLORS } from './twister.js';
 import { mountJuryPanel } from './jurypanel.js';
 
@@ -16,6 +16,7 @@ async function boot() {
   if (!configured) return void (app.innerHTML = notConfiguredHtml());
   useAuth('session');
   user = await ensureAnon();
+  watchAvatars(setAvatars);
   let saved = null;
   try { saved = sessionStorage.getItem(SKEY); } catch {}
   if (saved && (await get(ref(db, `games/${saved}/jurors/${user.uid}`)).catch(() => null))?.exists()) return connect(saved);
@@ -98,14 +99,14 @@ function render(playersOnly = false) {
     <div class="wobble" style="width:110px">${ART.egg()}</div>
     <h2>${esc(msg)}</h2>
     ${state.phase === 'intro' && current.text ? `<p>${esc(current.text)}</p>` : ''}
-    <div class="mat-roster" style="color:#fff"><b>🥓 Op de mat</b>${matPlayers().map((p) => `<span>${esc(p.avatar)} ${esc(p.name)}</span>`).join('') || '<span>niemand</span>'}</div>
+    <div class="mat-roster" style="color:#fff"><b>🥓 Op de mat</b>${matPlayers().map((p) => `<span>${av(p, p.id)} ${esc(p.name)}</span>`).join('') || '<span>niemand</span>'}</div>
   </div>`;
 }
 
 function showReveal() {
-  const rows = Object.values(players).filter((p) => p.last?.q === state.qkey && p.last.mat).map((p) => {
+  const rows = Object.entries(players).filter(([, p]) => p.last?.q === state.qkey && p.last.mat).map(([id, p]) => {
     const l = p.last;
-    return `<div class="jury-row ${l.burned ? 'burned' : ''}"><span class="jury-who"><span class="av">${esc(p.avatar)}</span>${esc(p.name)}</span>
+    return `<div class="jury-row ${l.burned ? 'burned' : ''}"><span class="jury-who"><span class="av">${av(p, id)}</span>${esc(p.name)}</span>
       <b>${l.burned ? '🔥' : l.ok ? '✔' : '✘'} ${l.pts > 0 ? '+' : ''}${l.pts}</b></div>`;
   }).join('');
   app.innerHTML = `<div class="play-top"><span class="pill">⚖️ Jury · ${esc(code)}</span></div>

@@ -96,6 +96,8 @@ Bij een vraag met een video start de timer pas als je op **Antwoorden openen** k
 
 Wijzig je een opdracht? Dan moet die persoon het ei opnieuw flippen.
 
+**Avatars:** kies bij elke weekendganger een getekende avatar uit het rijtje; die staan als SVG in [`avatars/`](avatars/). Je kan ook op de cirkel klikken en een eigen PNG zonder achtergrond kiezen. Met de bolletjes ernaast kies je de achtergrond: eigeel, spekreepjes, pan, toast, ontbijtbord, AI-circuit, avocado of bosbes. Een ingelogde weekendganger die meedoet aan een quiz, vult alleen de code in. Naam en avatar worden dan automatisch gebruikt.
+
 ## 🌀 Twister-quiz (met echte mat)
 
 Zet in de quiz-editor **🌀 Twister-quiz** aan. Kies daarna het aantal plekken op de mat (standaard 4), en of je **📸 SpekVAR** wil gebruiken.
@@ -143,8 +145,11 @@ letters/   weekendbrieven (publiek)
 games/     lopende spellen (worden na 24 uur opgeruimd)
 members/   weekendgangers (alleen de admin en de persoon zelf)
 missions/  geheime opdrachten (alleen de admin en de persoon zelf)
+avatars/   avatar + achtergrond van weekendgangers
 admins/    wie admin is
 ```
+
+De getekende avatars pas je aan in [`avatars/generate.mjs`](avatars/generate.mjs) (kapsel, kleuren, bril…) en maak je opnieuw met `node avatars/generate.mjs`.
 
 In **Admin → Instellingen** kun je alles exporteren naar één `db.json` en weer importeren.
 [`data/db.json`](data/db.json) bevat de voorbeeldquiz in hetzelfde formaat.

@@ -1,8 +1,8 @@
 // Accountpagina: wie ben ik, snelkoppelingen, wachtwoord wijzigen, uitloggen.
-import { $, ART, esc, shell, toast, setSessionHint } from './common.js';
+import { $, ART, esc, shell, toast, setSessionHint, av, setAvatars } from './common.js';
 import {
   configured, db, ref, set, useAuth, currentUser, notConfiguredHtml, signOut, updatePassword,
-  EmailAuthProvider, reauthenticateWithCredential, whoAmI,
+  EmailAuthProvider, reauthenticateWithCredential, whoAmI, watchAvatars,
 } from './fb.js';
 
 shell('account');
@@ -18,9 +18,10 @@ async function init() {
   if (!me) { setSessionHint(null); return void location.replace('login.html?next=account.html'); }
   setSessionHint(me);
   const admin = me.role === 'admin';
+  if (!admin) watchAvatars(setAvatars);
 
   app.innerHTML = `<div class="login-wrap slide-up" style="max-width:480px">
-    <div class="wobble" style="width:130px;margin:auto">${ART.egg()}</div>
+    ${admin ? `<div class="wobble" style="width:130px;margin:auto">${ART.egg()}</div>` : `<div class="big-avatar pop-in">${av({ member: true }, user.uid)}</div>`}
     <h1 style="margin-bottom:6px">Hoi ${esc(me.name)}!</h1>
     <span class="pill ${admin ? '' : 'yolk'}">${admin ? '👩‍🍳 Admin' : '🤫 Weekendganger'}</span>
     <div class="card stack" style="margin-top:20px;text-align:left">

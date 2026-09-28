@@ -39,6 +39,13 @@
         }
       }
     },
+    "avatars": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      "$uid": {
+        ".validate": "newData.hasChildren(['bg']) && newData.child('bg').isString() && (!newData.child('img').exists() || (newData.child('img').isString() && newData.child('img').val().length < 400000))"
+      }
+    },
     "juryPins": {
       ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
       ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
@@ -79,6 +86,9 @@
             },
             "$other": {
               ".validate": false
+            },
+            "member": {
+              ".validate": "newData.val() === true && root.child('members').child($uid).exists()"
             }
           }
         },

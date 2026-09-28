@@ -128,6 +128,40 @@ export const ART = {
   </svg>`,
 };
 
+/* ---------- Avatars van weekendgangers ---------- */
+// PNG zonder achtergrond + een achtergrond in spek-met-AI-stijl (zie .avbg-* in style.css).
+export const AVATAR_BGS = [
+  { key: 'yolk', name: 'Eigeel' }, { key: 'bacon', name: 'Spekreepjes' }, { key: 'pan', name: 'Pan' },
+  { key: 'toast', name: 'Toast' }, { key: 'plate', name: 'Ontbijtbord' }, { key: 'circuit', name: 'AI-circuit' },
+  { key: 'avocado', name: 'Avocado' }, { key: 'berry', name: 'Bosbes' },
+];
+const avatarCache = {};
+
+// Avatar van een speler: een emoji, of de PNG-avatar als het een weekendganger is.
+export function av(p, id, cls = '') {
+  if (p?.member && id) {
+    const a = avatarCache[id];
+    return `<span class="av-pic avbg-${esc(a?.bg || 'yolk')} ${cls}" data-avatar="${esc(id)}">${a?.img ? `<img src="${a.img}" alt="">` : ''}</span>`;
+  }
+  return `<span class="av-emoji ${cls}">${esc(p?.avatar || '')}</span>`;
+}
+
+// Losse avatar-preview (admin), op basis van { img, bg }.
+export const avatarPreview = (a, cls = '') =>
+  `<span class="av-pic avbg-${esc(a?.bg || 'yolk')} ${cls}">${a?.img ? `<img src="${a.img}" alt="">` : '<span class="av-empty">🥚</span>'}</span>`;
+
+// Nieuwe avatars binnen → cache bijwerken en alles wat al op het scherm staat invullen.
+export function setAvatars(all) {
+  Object.keys(avatarCache).forEach((k) => delete avatarCache[k]);
+  Object.assign(avatarCache, all || {});
+  $$('[data-avatar]').forEach((el) => {
+    const a = avatarCache[el.dataset.avatar];
+    if (!a) return;
+    el.className = el.className.replace(/avbg-\S+/, `avbg-${a.bg || 'yolk'}`);
+    el.innerHTML = a.img ? `<img src="${a.img}" alt="">` : '';
+  });
+}
+
 // Binnenkant van een spiegelei-antwoordknop: dooier met icoon + tekst + stukje spek.
 export const eggAnswerInner = (i, text) =>
   `<span class="strip">${ART.bacon()}</span><span class="yolk">${ART.answer[i]}</span><span class="txt">${esc(text)}</span>`;
@@ -140,7 +174,10 @@ export function getSessionHint() {
   try { return JSON.parse(localStorage.getItem(HINT_KEY)); } catch { return null; }
 }
 export function setSessionHint(hint) {
-  try { hint ? localStorage.setItem(HINT_KEY, JSON.stringify(hint)) : localStorage.removeItem(HINT_KEY); } catch {}
+  try {
+    if (hint) localStorage.setItem(HINT_KEY, JSON.stringify(hint));
+    else localStorage.removeItem(HINT_KEY);
+  } catch {}
 }
 
 /* ---------- Pagina-omlijsting ---------- */
@@ -244,7 +281,7 @@ export function mediaHtml(media, { autoplay = false, resolved } = {}) {
 }
 
 // Afbeelding verkleinen voor snelle opslag en laden.
-export async function compressImage(file, max = 1400) {
+export async function compressImage(file, max = 1400, keepAlpha = false) {
   if (file.type === 'image/gif' && file.size < 1.5e6) {
     return await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(file); });
   }
@@ -255,7 +292,7 @@ export async function compressImage(file, max = 1400) {
   c.height = Math.round(bmp.height * scale);
   c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
   let out = c.toDataURL('image/webp', 0.82);
-  if (!out.startsWith('data:image/webp')) out = c.toDataURL('image/jpeg', 0.85);
+  if (!out.startsWith('data:image/webp')) out = keepAlpha ? c.toDataURL('image/png') : c.toDataURL('image/jpeg', 0.85);
   return out;
 }
 

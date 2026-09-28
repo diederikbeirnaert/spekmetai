@@ -1,5 +1,5 @@
 // Admin: inloggen, quizzen maken, weekendbrieven schrijven, instellingen.
-import { $, $$, ART, esc, shell, toast, uid, parseMediaUrl, mediaHtml, compressImage, md, fmtDate, setSessionHint } from './common.js';
+import { $, $$, ART, esc, shell, toast, uid, parseMediaUrl, mediaHtml, compressImage, md, fmtDate, setSessionHint, AVATAR_BGS, avatarPreview } from './common.js';
 import { renderTwister, LIMBS } from './twister.js';
 import {
   configured, db, ref, get, set, update, remove, push, useAuth, currentUser, isAdmin, notConfiguredHtml,
@@ -433,7 +433,9 @@ const fmtTime = (t) => new Date(t).toLocaleString('nl-BE', { weekday: 'short', d
 
 async function listMembers() {
   frame('members', '<div class="card muted">Laden…</div>');
-  const [members, missions] = await Promise.all(['members', 'missions'].map(async (k) => (await get(ref(db, k))).val() || {}));
+  const [members, missions, avatars] = await Promise.all(['members', 'missions', 'avatars'].map(async (k) => (await get(ref(db, k))).val() || {}));
+  const newAvatar = { bg: 'yolk', img: null };
+  repoAvatars = await fetch('avatars/index.json', { cache: 'no-store' }).then((r) => r.json()).catch(() => []);
   const list = Object.entries(members).sort((a, b) => a[1].name.localeCompare(b[1].name));
   const opened = list.filter(([id]) => missions[id]?.revealedAt).length;
   const status = (ms) => (ms?.revealedAt ? `<span class="pill" style="background:var(--ok)">✅ Geopend ${esc(fmtTime(ms.revealedAt))}</span>`
@@ -446,12 +448,14 @@ async function listMembers() {
         <input class="input" id="mu" placeholder="gebruikersnaam" style="max-width:180px" autocapitalize="none" required>
         <input class="input" id="mp" value="${genPassword()}" style="max-width:150px" minlength="6" required title="Wachtwoord (min. 6 tekens)">
         <button class="btn bacon">+ Toevoegen</button>
-      </form></div>
+      </form>
+      <div id="newav" style="margin-top:12px">${avatarEditor(newAvatar)}</div></div>
     <div class="row" style="margin:18px 0 12px"><span class="pill yolk">🍳 ${opened}/${list.length} opdrachten onthuld</span>
       <a class="btn small ghost" href="portaal.html" target="_blank">👀 Portaal bekijken</a></div>
     <div class="list">${list.map(([id, m]) => `
       <div class="card member-card" data-id="${esc(id)}">
         <div class="list-item">
+          <div data-av>${avatarEditor(avatars[id])}</div>
           <div class="grow"><h3>${esc(m.name)}</h3>
             <span class="cred">👤 ${esc(m.username)}</span> <span class="cred">🔑 ${esc(m.password || '?')}</span></div>
           ${status(missions[id])}
@@ -480,6 +484,7 @@ async function listMembers() {
     try {
       const id = await createMemberAccount(username, password);
       await set(ref(db, `members/${id}`), { name, username, password, createdAt: Date.now() });
+      await set(ref(db, `avatars/${id}`), newAvatar.img ? newAvatar : { bg: newAvatar.bg });
       toast(`${name} zit in de pan 🍳`, 'ok');
       listMembers();
     } catch (err) {
@@ -492,9 +497,19 @@ async function listMembers() {
     }
   };
 
+  // Avatar bij het aanmaken: enkel lokaal bijhouden tot "Toevoegen".
+  wireAvatarEditor($('#newav'), newAvatar, async (a) => { Object.assign(newAvatar, a); });
+
   $$('.member-card').forEach((card) => {
     const id = card.dataset.id;
     const m = members[id];
+    // Avatar van een bestaande weekendganger: meteen opslaan.
+    const cur = { bg: 'yolk', ...avatars[id] };
+    wireAvatarEditor($('[data-av]', card), cur, async (a) => {
+      Object.assign(cur, a);
+      await set(ref(db, `avatars/${id}`), cur.img ? cur : { bg: cur.bg });
+      toast(`Avatar van ${m.name} opgeslagen`, 'ok');
+    });
     const ta = $('[data-mission]', card);
     const save = $('[data-save]', card);
     ta.oninput = () => { save.disabled = ta.value.trim() === (missions[id]?.text || ''); };
@@ -512,9 +527,57 @@ async function listMembers() {
     $('[data-del]', card).onclick = async () => {
       if (!confirm(`${m.name} en de opdracht verwijderen?`)) return;
       try { await deleteMemberAccount(m.username, m.password); } catch { /* account bestond al niet meer */ }
-      await update(ref(db), { [`members/${id}`]: null, [`missions/${id}`]: null });
+      await update(ref(db), { [`members/${id}`]: null, [`missions/${id}`]: null, [`avatars/${id}`]: null });
       toast(`${m.name} verwijderd`);
       listMembers();
+    };
+  });
+}
+
+// Getekende avatars in de repo (avatars/*.svg, lijst in avatars/index.json).
+let repoAvatars = [];
+
+// Avatar-kiezer: kies een getekende avatar of upload een PNG, en kies een achtergrond met de bolletjes.
+function avatarEditor(a) {
+  return `<div class="avatar-edit">
+    ${avatarPreview(a).replace('class="av-pic', 'title="Klik om een PNG te kiezen" data-avpick class="av-pic')}
+    <div><div class="bg-swatches">${AVATAR_BGS.map((b) => `<button type="button" class="bg-swatch avbg-${b.key} ${(a?.bg || 'yolk') === b.key ? 'sel' : ''}" data-bg="${b.key}" title="${b.name}"></button>`).join('')}</div>
+      ${repoAvatars.length ? `<div class="repo-avatars">${repoAvatars.map((n) => `<button type="button" class="repo-av ${a?.img === `avatars/${n}.svg` ? 'sel' : ''}" data-repo="${esc(n)}" title="${esc(n)}"><img src="avatars/${esc(n)}.svg" alt="${esc(n)}"></button>`).join('')}</div>` : ''}
+      <small class="muted">Kies een getekende avatar, of klik op de cirkel voor een eigen PNG</small></div>
+    <input type="file" accept="image/png,image/webp,image/gif,image/*" data-avfile hidden>
+  </div>`;
+}
+
+function wireAvatarEditor(box, state, onChange) {
+  const refresh = () => {
+    box.innerHTML = avatarEditor(state);
+    wireAvatarEditor(box, state, onChange);
+  };
+  $('[data-avpick]', box).onclick = () => $('[data-avfile]', box).click();
+  $('[data-avfile]', box).onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const img = await compressImage(file, 320, true);
+      if (img.length > 380000) return toast('Afbeelding is te groot', 'bad');
+      await onChange({ img });
+      state.img = img;
+      refresh();
+    } catch (err) { toast(`Upload mislukt: ${err.message}`, 'bad'); }
+  };
+  box.querySelectorAll('[data-repo]').forEach((b) => {
+    b.onclick = async () => {
+      const img = `avatars/${b.dataset.repo}.svg`;
+      await onChange({ img });
+      state.img = img;
+      refresh();
+    };
+  });
+  box.querySelectorAll('[data-bg]').forEach((b) => {
+    b.onclick = async () => {
+      await onChange({ bg: b.dataset.bg });
+      state.bg = b.dataset.bg;
+      refresh();
     };
   });
 }

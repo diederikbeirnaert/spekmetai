@@ -1,6 +1,6 @@
 // Jury-paneel: per matspeler de kleur aantikken (in volgorde van neerzetten) en 🔥 bij aanbranden.
 // Wordt gebruikt op het hostscherm én op de jury-gsm; beide schrijven naar games/{code}/jury/{qkey}.
-import { ART, esc, toast } from './common.js';
+import { ART, esc, toast, av } from './common.js';
 import { db, ref, set, onValue } from './fb.js';
 import { COLORS } from './twister.js';
 
@@ -17,7 +17,7 @@ export function mountJuryPanel(el, { code, qkey, matPlayers, colorCount }) {
       const pos = data.order.indexOf(p.id) + 1;
       const burned = !!data.burned[p.id];
       return `<div class="jury-row ${burned ? 'burned' : ''}">
-        <span class="jury-who"><span class="jury-order">${pos || '·'}</span><span class="av">${esc(p.avatar)}</span>${esc(p.name)}</span>
+        <span class="jury-who"><span class="jury-order">${pos || '·'}</span><span class="av">${av(p, p.id)}</span>${esc(p.name)}</span>
         <span class="jury-colors">${Array.from({ length: colorCount }, (_, c) => `
           <button class="jury-c a${c} ${pick === c ? 'sel' : ''}" data-u="${esc(p.id)}" data-c="${c}" title="${COLORS[c].name}">${ART.answer[c]}</button>`).join('')}
         </span>

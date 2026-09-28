@@ -291,22 +291,7 @@ export function md(text) {
 export const fmtDate = (d) =>
   new Date(d).toLocaleDateString('nl-BE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
-/* ---------- Voorlezen & geluid ---------- */
-// Leest tekst voor in het Nederlands. De promise loopt af als het voorlezen klaar is
-// (of na een veiligheidstimeout, want niet elke browser meldt het einde betrouwbaar).
-export function speak(text) {
-  return new Promise((res) => {
-    if (!('speechSynthesis' in window) || !text) return res();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'nl-BE';
-    u.voice = speechSynthesis.getVoices().find((v) => v.lang.startsWith('nl')) || null;
-    const t = setTimeout(res, 2500 + text.split(/\s+/).length * 450);
-    u.onend = u.onerror = () => { clearTimeout(t); res(); };
-    speechSynthesis.cancel();
-    speechSynthesis.speak(u);
-  });
-}
-
+/* ---------- Geluid ---------- */
 // Scheidsrechtersfluitje, zonder geluidsbestand.
 let audioCtx;
 export function whistle() {

@@ -1,5 +1,5 @@
 // Twister-draaischijf in spiegelei-stijl: 4 ledematen × 4 kleuren, een spatel als wijzer.
-import { $, esc, speak } from './common.js';
+import { $, esc } from './common.js';
 
 const INK = '#3A2618';
 export const LIMBS = [
@@ -82,7 +82,6 @@ export function renderTwister(el) {
     <div class="tw-result" id="tw-result"><span class="muted" style="font-size:1.2rem">Klik op het ei of de knop om te draaien</span></div>
     <div class="row" style="justify-content:center">
       <button class="btn bacon big" id="tw-spin">Draai! 🍳</button>
-      <label class="row" style="gap:6px;font-weight:800"><input type="checkbox" id="tw-speak" checked> Voorlezen</label>
     </div>
     <div class="tw-history" id="tw-hist"></div>
   </div>`;
@@ -106,9 +105,7 @@ export function renderTwister(el) {
       <span class="tw-dot pop-in" style="background:${col.hex};animation-delay:.1s"></span>
       <span class="pop-in" style="animation-delay:.15s">${esc(col.name)}</span>`;
     history.unshift(`${limb.icon}${limb.short} · ${col.name}`);
-    $('#tw-hist', el).innerHTML = history.slice(0, 8).map((h) => `<span>${esc(h)}</span>`).join('');
-    if ($('#tw-speak', el).checked) speak(`${limb.name} op ${col.name}!`);
-  };
+    $('#tw-hist', el).innerHTML = history.slice(0, 8).map((h) => `<span>${esc(h)}</span>`).join('');  };
 
   $('#tw-spin', el).onclick = spin;
   $('#spin-wrap', el).onclick = spin;

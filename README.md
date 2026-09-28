@@ -104,7 +104,7 @@ Zet in de quiz-editor **🌀 Twister-quiz** aan. Kies daarna het aantal plekken 
 
 **Per vraag:**
 1. De spinner draait en kiest een ledemaat. Je kan per vraag ook zelf een vast ledemaat instellen.
-2. De vraag en de antwoorden worden voorgelezen.
+2. De vraag en de antwoorden verschijnen op het scherm, met 6 seconden leestijd.
 3. **Matspelers** zetten hun ledemaat op de kleur van hun antwoord. De andere spelers antwoorden op hun gsm en kunnen gokken **wie er aanbrandt** (+300).
 4. De jury tikt per matspeler de kleur aan, **in de volgorde waarin ze neerzetten**. Die volgorde bepaalt de snelheidspunten. 🔥 staat voor aangebrand.
 5. Na de tijd volgt **FREEZE! 🥶** met een fluitsignaal, en SpekVAR maakt een foto van de mat.
@@ -130,7 +130,7 @@ Zet in de quiz-editor **🌀 Twister-quiz** aan. Kies daarna het aantal plekken 
 
 ## Twister 🌀
 
-In **Admin → 🌀 Twister** vind je een draaischijf in spiegelei-stijl. Klik op het ei of op **Draai!**. Het resultaat wordt ook voorgelezen, dat kun je uitzetten.
+In **Admin → 🌀 Twister** vind je een draaischijf in spiegelei-stijl. Klik op het ei of op **Draai!**.
 
 ## Data en back-up
 

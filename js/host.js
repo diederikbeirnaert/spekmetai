@@ -1,6 +1,6 @@
 // Host-scherm: maakt een spel aan, stuurt de vragen en rekent de punten uit.
 // Een Twister-quiz voegt daar aan toe: spinner per vraag, matspelers, jury, FREEZE + SpekVAR, gokjes en rotatie.
-import { $, $$, ART, esc, shell, toast, confetti, mediaHtml, normalize, speak, whistle } from './common.js';
+import { $, $$, ART, esc, shell, toast, confetti, mediaHtml, normalize, whistle } from './common.js';
 import {
   configured, db, ref, get, set, update, remove, onValue, serverTimestamp, query, orderByChild, endAt,
   useAuth, currentUser, isAdmin, serverNow, notConfiguredHtml,
@@ -13,6 +13,7 @@ const app = $('#app');
 const params = new URLSearchParams(location.search);
 const POINTS = { normal: 1000, double: 2000, none: 0 };
 const INTRO_MS = 4000;
+const READ_MS = 6000; // leestijd na de Twister-spinner
 const MAT_SURVIVE = 150; // bonus per vraag dat je op de mat blijft staan
 const BURN_PENALTY = -500; // aangebrand
 const BET_PTS = 300; // juist gegokt wie aanbrandt
@@ -393,7 +394,7 @@ function showQuestionContent() {
 const limbBadge = (l) => (l == null ? '' : `<div class="limb-badge pop-in"><span>${LIMBS[l].icon}</span>${LIMBS[l].name}</div>`);
 const matRoster = () => `<div class="mat-roster"><b>🥓 Op de mat</b>${matPlayers().map((p) => `<span>${esc(p.avatar)} ${esc(p.name)}</span>`).join('') || '<span>niemand</span>'}</div>`;
 
-// Twister-intro: spatel draait naar het ledemaat, dan wordt alles voorgelezen.
+// Twister-intro: spatel draait naar het ledemaat, daarna even leestijd voor de vraag.
 async function spinIntro(limb) {
   const token = ++introToken;
   $('#introbar')?.remove();
@@ -405,18 +406,20 @@ async function spinIntro(limb) {
   afterSpin(limb, true);
 }
 
-async function afterSpin(limb, withVoice) {
-  const token = ++introToken;
-  const q = cur();
+function afterSpin(limb, autoOpen) {
+  introToken++;
   $('#status').textContent = `${LIMBS[limb].icon} ${LIMBS[limb].name}!`;
   showQuestionContent();
   setPrimary('Antwoorden openen 🍳', openAnswers);
-  if (!withVoice) return;
-  await speak(`${LIMBS[limb].name}!`);
-  if (token !== introToken) return;
-  const opts = optionTexts(q).map((t, i) => `${COLORS[i].name}: ${t}.`).join(' ');
-  await speak(`${q.text} ${opts}`);
-  if (token === introToken && state.phase === 'intro') openAnswers();
+  if (!autoOpen) return;
+  // Leestijd zodat de matspelers de vraag en de kleuren op het scherm kunnen lezen.
+  const bar = document.createElement('div');
+  bar.className = 'timer-bar';
+  bar.id = 'introbar';
+  bar.innerHTML = '<div></div>';
+  $('.host-stage').append(bar);
+  bar.firstChild.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: READ_MS, fill: 'forwards' });
+  introTimer = setTimeout(openAnswers, READ_MS);
 }
 
 function armIntro(fresh) {
@@ -488,7 +491,6 @@ function enterFreezeView(fresh) {
   if ($('#clock')) { $('#clock').firstChild.textContent = '0'; $('#clock').classList.remove('urgent'); }
   if (fresh) {
     whistle();
-    speak('Freeze!');
     lastSnap = varOn() ? snapshot() : null;
     if (lastSnap) snapshots.push({ src: lastSnap, q: state.index + 1 });
     const o = document.createElement('div');

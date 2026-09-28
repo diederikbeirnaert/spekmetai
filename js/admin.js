@@ -1,6 +1,6 @@
 // Admin: inloggen, quizzen maken, weekendbrieven schrijven, instellingen.
 import { $, $$, ART, esc, shell, toast, uid, parseMediaUrl, mediaHtml, compressImage, md, fmtDate, setSessionHint } from './common.js';
-import { renderTwister } from './twister.js';
+import { renderTwister, LIMBS } from './twister.js';
 import {
   configured, db, ref, get, set, update, remove, push, useAuth, currentUser, isAdmin, notConfiguredHtml,
   signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential,
@@ -126,8 +126,11 @@ async function loadSeed() {
 }
 
 /* ---------- Quiz-editor ---------- */
+// In een Twister-quiz kunnen geen open vragen (je kan geen tekst typen met je voet).
+const typesFor = (keep) => Object.entries(TYPES).filter(([t]) => !quiz?.twister || t !== 'open' || t === keep);
+
 const blankQuestion = (type = 'mc') => ({
-  id: uid(), type, text: '', media: null, time: 20, points: 'normal',
+  id: uid(), type, text: '', media: null, time: quiz?.twister ? 15 : 20, points: 'normal',
   options: type === 'tf' ? [{ text: 'Waar', correct: true }, { text: 'Niet waar', correct: false }]
     : type === 'mc' ? [0, 1, 2, 3].map((i) => ({ text: '', correct: i === 0 })) : [],
   answers: [],
@@ -155,10 +158,18 @@ function renderQuiz() {
     <div class="card stack" style="margin-top:14px">
       <div class="field"><label>Titel</label><input class="input" data-quiz="title" value="${esc(quiz.title)}" placeholder="Het Grote Ontbijtquiz" style="font-size:1.3rem;font-weight:800"></div>
       <div class="field" style="margin:0"><label>Beschrijving (optioneel)</label><input class="input" data-quiz="description" value="${esc(quiz.description || '')}"></div>
+      <div class="tw-settings">
+        <label class="check-row"><input type="checkbox" data-qset="twister" ${quiz.twister ? 'checked' : ''}>
+          <span><b>🌀 Twister-quiz</b><br><span class="muted">Matspelers antwoorden met hand of voet op de kleur, de rest speelt op de gsm.</span></span></label>
+        ${quiz.twister ? `<div class="row">
+          <label class="check-row">Plekken op de mat <input class="input" type="number" min="1" max="8" data-qset="matSpots" value="${quiz.matSpots || 4}" style="width:80px"></label>
+          <label class="check-row"><input type="checkbox" data-qset="spekvar" ${quiz.spekvar !== false ? 'checked' : ''}> 📸 SpekVAR (webcamfoto bij FREEZE)</label>
+        </div>` : ''}
+      </div>
     </div>
     <div class="stack" id="qs" style="margin-top:16px">${quiz.questions.map(questionCard).join('')}</div>
     <div class="card" style="margin-top:16px"><b>Vraag toevoegen:</b>
-      <div class="row" style="margin-top:10px">${Object.entries(TYPES).map(([t, l]) => `<button class="btn small ${t === 'mc' ? '' : 'ghost'}" data-add="${t}">+ ${l}</button>`).join('')}</div></div>
+      <div class="row" style="margin-top:10px">${typesFor().map(([t, l]) => `<button class="btn small ${t === 'mc' ? '' : 'ghost'}" data-add="${t}">+ ${l}</button>`).join('')}</div></div>
     <div class="savebar"><span class="status" id="savestate">${dirty ? '● Niet opgeslagen' : '✔ Opgeslagen'}</span>
       <button class="btn small ghost" id="hostq">▶ Host</button><button class="btn ok" id="save">Opslaan</button></div>`;
   loadPreviews();
@@ -178,6 +189,13 @@ function renderQuiz() {
   };
   view.onchange = (e) => {
     const t = e.target;
+    if (t.dataset.qset) {
+      const k = t.dataset.qset;
+      quiz[k] = t.type === 'checkbox' ? t.checked : Math.min(8, Math.max(1, +t.value || 4));
+      markDirty();
+      if (k === 'twister') renderQuiz();
+      return;
+    }
     const card = t.closest('[data-q]');
     const q = quiz.questions[card?.dataset.q];
     if (!q) return;
@@ -187,6 +205,7 @@ function renderQuiz() {
       Object.assign(q, { type: t.value, options: t.value === 'info' || t.value === 'open' ? [] : q.type === 'mc' && t.value === 'mc' ? q.options : fresh.options });
       rerenderCard(card);
     } else if (f === 'time') q.time = +t.value;
+    else if (f === 'limb') q.limb = +t.value;
     else if (f === 'points') q.points = t.value;
     else if (f === 'correct') {
       if (q.type === 'tf') q.options.forEach((o, i) => { o.correct = i === +t.dataset.o; });
@@ -244,9 +263,11 @@ function questionCard(q, i) {
   return `<div class="card q-card type-${q.type}" data-q="${i}">
     <div class="q-head">
       <span class="q-num">${i + 1}</span>
-      <select class="input" data-f="type" style="width:auto">${Object.entries(TYPES).map(([t, l]) => `<option value="${t}" ${t === q.type ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      <select class="input" data-f="type" style="width:auto">${typesFor(q.type).map(([t, l]) => `<option value="${t}" ${t === q.type ? 'selected' : ''}>${l}</option>`).join('')}</select>
       ${q.type === 'info' ? '' : `
       <select class="input" data-f="time" style="width:auto" title="Tijd">${TIMES.map((t) => `<option value="${t}" ${t === (q.time || 20) ? 'selected' : ''}>⏱ ${t}s</option>`).join('')}</select>
+      ${quiz.twister ? `<select class="input" data-f="limb" style="width:auto" title="Ledemaat">
+        <option value="-1">🎲 Spinner kiest</option>${LIMBS.map((l, li) => `<option value="${li}" ${q.limb === li ? 'selected' : ''}>${l.icon} ${l.name}</option>`).join('')}</select>` : ''}
       <select class="input" data-f="points" style="width:auto" title="Punten">
         <option value="normal" ${q.points === 'normal' ? 'selected' : ''}>🥓 Normaal</option>
         <option value="double" ${q.points === 'double' ? 'selected' : ''}>🥓🥓 Dubbel</option>
@@ -323,6 +344,7 @@ function validate() {
       if (q.options.some((o) => !o.text.trim())) return `${n}: vul alle antwoorden in (of verwijder er een)`;
       if (!q.options.some((o) => o.correct)) return `${n}: duid minstens één juist antwoord aan`;
     }
+    if (quiz.twister && q.type === 'open') return `${n}: open vragen kunnen niet in een Twister-quiz`;
     if (q.type === 'open' && !(q.answers || []).length) return `${n}: geef minstens één goedgekeurd antwoord`;
   }
   return null;
@@ -337,6 +359,7 @@ async function saveQuiz() {
     id: q.id, type: q.type, text: q.text.trim(), media: q.media || null, time: q.time || 20, points: q.points || 'normal',
     options: q.type === 'mc' || q.type === 'tf' ? q.options.map((o) => ({ text: o.text.trim(), correct: !!o.correct })) : null,
     answers: q.type === 'open' ? q.answers : null,
+    limb: quiz.twister && q.type !== 'info' && q.limb >= 0 ? q.limb : null,
   }));
   try {
     await set(ref(db, `quizzes/${id}`), data);

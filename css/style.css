@@ -311,7 +311,7 @@ body.play main { max-width: 640px; display: flex; flex-direction: column; }
 /* ---------- Host ---------- */
 body.host { background: var(--pan); color: #fff; }
 body.host .bg-float span { opacity: .07; }
-body.host main { max-width: 1400px; display: flex; flex-direction: column; min-height: 100dvh; }
+body.host main { max-width: 1400px; display: flex; flex-direction: column; min-height: 0; }
 body.host .site-header { background: rgba(43,45,66,.8); border-bottom-color: var(--pan-2); }
 body.host .site-header .wordmark, body.host .nav a { color: #fff; }
 body.host .nav a:hover { background: var(--pan-2); }
@@ -501,3 +501,88 @@ body.portaal main { max-width: 640px; }
 .tw-dot { width: 54px; height: 54px; border-radius: 50%; border: 4px solid var(--ink); display: inline-block; box-shadow: inset -6px -7px 0 rgba(0,0,0,.15); }
 .tw-history { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
 .tw-history span { background: #fff; border: 2px solid var(--shell); border-radius: 999px; padding: 4px 12px; font-weight: 700; font-size: .9rem; }
+
+/* ---------- Twister-quiz ---------- */
+.tw-settings { border-top: 2px dashed var(--shell); padding-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+.check-row { display: flex; align-items: center; gap: 10px; font-weight: 700; cursor: pointer; }
+.check-row input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--bacon); flex: none; }
+.tw-lobby { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+.tw-info { font-size: 1.05rem; line-height: 1.5; }
+.tw-info .pin { font-family: var(--font-title); font-size: 1.4rem; letter-spacing: 3px; color: var(--bacon); }
+.player-chip { position: relative; }
+.player-chip.on-mat { background: var(--yolk); box-shadow: 0 4px 0 var(--yolk-deep); }
+.player-chip:hover { text-decoration: none; }
+.player-chip .kick { margin-left: 6px; opacity: .35; font-size: .9rem; padding: 2px 4px; }
+.player-chip .kick:hover { opacity: 1; color: var(--bad); }
+.mat-badge { font-size: 1.2rem; }
+.var-box { display: flex; flex-direction: column; gap: 8px; width: 240px; }
+.var-live { width: 100%; max-width: 240px; aspect-ratio: 16/9; object-fit: cover; border-radius: 14px; background: #000; border: 3px solid #fff; }
+#right .var-live { width: 110px; margin-bottom: 10px; }
+.host-spinner { width: min(40vh, 90vw); }
+.limb-badge { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 14px; background: #fff; color: var(--ink); border-radius: 18px; padding: 8px; font-family: var(--font-title); font-weight: 700; font-size: .95rem; text-align: center; box-shadow: 0 5px 0 var(--yolk-deep); }
+.limb-badge span { font-size: 2.4rem; line-height: 1; }
+.mat-roster { display: flex; flex-direction: column; gap: 6px; background: var(--pan-2); border-radius: 16px; padding: 10px; font-size: .95rem; }
+.mat-roster span { background: #fff; color: var(--ink); border-radius: 999px; padding: 3px 10px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.host-answers.compact .host-answer { padding-block: 6px; font-size: clamp(1rem, 2vw, 1.5rem); }
+.host-answers.compact .host-answer .yolk { width: 54px; height: 54px; }
+.tw-color { display: block; font-size: .7em; text-transform: uppercase; letter-spacing: 1px; opacity: .6; }
+.freeze-overlay {
+  position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; pointer-events: none;
+  background: radial-gradient(circle, rgba(170,220,255,.55), rgba(43,45,66,.2)); animation: freezeFlash 1.5s ease-out forwards;
+}
+.freeze-overlay span { font-family: var(--font-title); font-weight: 700; font-size: clamp(4rem, 14vw, 11rem); color: #fff; text-shadow: 0 8px 0 #2a7fb8, 0 0 40px #aee3ff; animation: popIn .5s cubic-bezier(.3,1.7,.5,1) both; }
+@keyframes freezeFlash { 0% { background-color: rgba(255,255,255,.9); } 100% { opacity: 0; } }
+.var-shot { margin: 0; position: relative; }
+.var-shot img { max-height: 40vh; border-radius: 18px; border: 5px solid #fff; box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+.var-shot figcaption { position: absolute; top: 10px; left: 10px; background: var(--bacon); color: #fff; font-weight: 800; padding: 3px 10px; border-radius: 999px; font-size: .9rem; }
+.bloopers { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; }
+.bloopers img { max-height: 22vh; }
+.mat-results { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 12px; }
+.mat-res, .mat-move { background: #fff; color: var(--ink); border-radius: 999px; padding: 6px 14px; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; }
+.mat-res.ok b { color: var(--ok); } .mat-res.bad b { color: var(--muted); } .mat-res.burned { background: #ffe1d6; } .mat-res.burned b { color: var(--bad); }
+.mat-res.bet { background: var(--pan-2); color: #fff; }
+.mat-move.in { background: var(--yolk); } .mat-move.out { background: var(--bacon-fat); }
+.tw-dot.none { background: repeating-linear-gradient(45deg, #ddd 0 4px, #fff 4px 8px); }
+.mat-res .tw-dot { width: 20px; height: 20px; border-width: 2px; }
+.delta.neg { color: var(--bad); }
+
+/* Jury-paneel */
+.jury { display: flex; flex-direction: column; gap: 8px; max-width: 900px; margin: 10px auto 0; width: 100%; }
+.jury-row { display: flex; align-items: center; gap: 10px; background: #fff; color: var(--ink); border-radius: 18px; padding: 8px 12px; box-shadow: 0 4px 0 rgba(0,0,0,.2); }
+.jury-row.burned { background: #ffe1d6; }
+.jury-row.burned .jury-colors { opacity: .35; }
+.jury-who { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 1.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jury-who .av { font-size: 1.5rem; }
+.jury-order { width: 30px; height: 30px; border-radius: 50%; background: var(--yolk); display: grid; place-items: center; font-family: var(--font-title); flex: none; }
+.jury-colors { display: flex; gap: 6px; }
+.jury-c, .jury-burn { width: 48px; height: 48px; border-radius: 50%; border: 3px solid var(--ink); cursor: pointer; display: grid; place-items: center; padding: 0; transition: transform .12s; -webkit-tap-highlight-color: transparent; }
+.jury-c svg { width: 26px; height: 26px; }
+.jury-c.a0 { background: var(--a0); } .jury-c.a1 { background: var(--a1); } .jury-c.a2 { background: var(--a2); } .jury-c.a3 { background: var(--a3); }
+.jury-c:not(.sel) { opacity: .45; }
+.jury-c.sel { transform: scale(1.15); box-shadow: 0 0 0 4px var(--yolk); opacity: 1; }
+.jury-burn { background: #fff; font-size: 1.4rem; opacity: .5; }
+.jury-burn.on { background: var(--bad); opacity: 1; transform: scale(1.1); }
+@media (max-width: 480px) {
+  .jury-c, .jury-burn { width: 42px; height: 42px; }
+  .jury-row { flex-wrap: wrap; }
+  .jury-who { flex-basis: 100%; }
+}
+
+/* Gokken & freeze op de gsm */
+.bet-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; }
+.bet-btn { border: 3px solid var(--ink); background: #fff; border-radius: 20px; padding: 14px 8px; font-family: var(--font-title); font-weight: 600; font-size: 1.1rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; box-shadow: 0 5px 0 #e9d9bb, 0 5px 0 3px var(--ink); }
+.bet-btn span { font-size: 2rem; }
+.bet-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #e9d9bb, 0 1px 0 3px var(--ink); }
+.bet-btn.none { background: var(--yolk-soft); }
+.freeze-screen h1 { color: var(--a1); font-size: 3.4rem; }
+body.jury-page main { max-width: 640px; }
+.jury-legends { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.jury-legend { display: inline-flex; align-items: center; gap: 6px; background: #fff; border: 2px solid var(--shell); border-radius: 999px; padding: 3px 10px; font-weight: 700; font-size: .9rem; }
+.jury-legend .tw-dot { width: 18px; height: 18px; border-width: 2px; }
+/* Twister-vraag op het hostscherm: antwoorden op één rij, zodat de jury in beeld past */
+.host-answers.compact { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px 18px; padding: 4px 10px 8px; }
+.host-answers.compact .host-answer { gap: 10px; padding: 6px 14px 6px 8px; }
+.host-answers.compact .strip { display: none; }
+body.host .jury { margin-top: 4px; gap: 6px; }
+body.host .jury-row { padding: 5px 12px; }
+body.host .jury-c, body.host .jury-burn { width: 42px; height: 42px; }

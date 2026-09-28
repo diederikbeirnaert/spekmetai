@@ -1,5 +1,6 @@
 // Spelerscherm (gsm): meedoen met code + naam, antwoorden geven, score zien.
 import { $, $$, ART, AVATARS, esc, shell, toast, confetti, eggAnswerInner } from './common.js';
+import { LIMBS } from './twister.js';
 import {
   configured, db, ref, get, set, onValue, onDisconnect, serverTimestamp,
   useAuth, ensureAnon, serverNow, notConfiguredHtml,
@@ -12,7 +13,7 @@ const SKEY = 'smai.play';
 const PREF = 'smai.me';
 
 let user, code;
-let state = {}, current = {}, reveal = null, me = null, players = {};
+let state = {}, current = {}, reveal = null, me = null, players = {}, mat = {};
 let hadMe = false, lastKey = '', ticker = null, wakeLock = null;
 
 const session = () => { try { return JSON.parse(sessionStorage.getItem(SKEY)) || {}; } catch { return {}; } };
@@ -114,6 +115,7 @@ function connect(c) {
     render();
   });
   onValue(ref(db, `${base}/players`), (s) => { players = s.val() || {}; updateRank(); });
+  onValue(ref(db, `${base}/mat`), (s) => { mat = s.val() || {}; render(); });
   keepAwake();
 }
 
@@ -134,6 +136,9 @@ function updateRank() {
 }
 
 const answered = () => session().answered === `${code}:${state.qkey}`;
+const betDone = () => session().bet === `${code}:${state.qkey}`;
+const onMat = () => !!mat[user.uid];
+const limb = () => LIMBS[current.limb] || null;
 
 function topBar() {
   return `<div class="play-top">
@@ -151,7 +156,7 @@ function render() {
     return;
   }
   if (!me) return;
-  const key = [state.phase, state.qkey, answered(), reveal?.qkey, me.last?.q, current.text, current.type].join('|');
+  const key = [state.phase, state.qkey, answered(), betDone(), onMat(), reveal?.qkey, me.last?.q, current.text, current.type, current.limb].join('|');
   if (key === lastKey) {
     const sc = $('.play-top .pill:last-child');
     if (sc) sc.textContent = `🥓 ${me.score || 0}`;
@@ -159,7 +164,7 @@ function render() {
   }
   lastKey = key;
   clearInterval(ticker);
-  const screens = { lobby, intro, question, reveal: revealScreen, scoreboard, end };
+  const screens = { lobby, intro, question, freeze, reveal: revealScreen, scoreboard, end };
   (screens[state.phase] || lobby)();
   updateRank();
 }
@@ -169,6 +174,7 @@ function lobby() {
     <div class="big-avatar pop-in">${esc(me.avatar)}</div>
     <h1 style="margin:0">Je zit erin, ${esc(me.name)}!</h1>
     <p class="muted">Kijk naar het grote scherm, de quiz begint zo.</p>
+    ${onMat() ? '<span class="pill yolk" style="font-size:1.1rem">🥓 Jij start op de Twister-mat!</span>' : ''}
     <div class="sizzle" style="width:160px">${ART.bacon(true)}</div>
     <span class="pill" data-count></span>
   </div>`;
@@ -176,6 +182,14 @@ function lobby() {
 
 function intro() {
   const info = current.type === 'info';
+  if (current.twister) {
+    app.innerHTML = `${topBar()}<div class="play-screen">
+      ${limb() ? `<div class="big-avatar pop-in">${limb().icon}</div><h1 style="margin:0">${esc(limb().name)}!</h1>` : '<h2>🌀 De spinner draait…</h2>'}
+      ${onMat() ? '<span class="pill yolk" style="font-size:1.2rem">🥓 Jij staat op de mat</span><p><b>Luister naar de vraag</b> en zet je ledemaat op de kleur van je antwoord.</p>'
+        : `<h2>${esc(current.text || '')}</h2><p class="muted">Maak je klaar…</p>`}
+    </div>`;
+    return;
+  }
   app.innerHTML = `${topBar()}<div class="play-screen">
     <div class="float" style="width:120px">${ART.egg()}</div>
     ${info ? '<h2>Kijk naar het grote scherm 👀</h2>' : `<h2>${esc(current.text || 'Maak je klaar…')}</h2><p class="muted">Maak je klaar…</p>`}
@@ -183,6 +197,15 @@ function intro() {
 }
 
 function question() {
+  if (current.twister && onMat()) {
+    app.innerHTML = `${topBar()}<div class="play-screen">
+      <div class="big-avatar sizzle">${limb()?.icon || '🌀'}</div>
+      <h1 style="margin:0">📵 Gsm weg!</h1>
+      <h2>${esc(limb()?.name || '')} op je antwoord!</h2>
+      <p class="muted">De jury houdt bij waar je staat.</p></div>`;
+    return;
+  }
+  if (answered() && current.twister && !betDone()) return betScreen();
   if (answered()) {
     app.innerHTML = `${topBar()}<div class="play-screen">
       <div class="sizzle" style="width:170px">${ART.bacon(true)}</div>
@@ -235,12 +258,48 @@ async function answer(v, btn) {
   setTimeout(() => { lastKey = ''; render(); }, 450);
 }
 
+// Gok: wie van de matspelers brandt er aan?
+function betScreen() {
+  const onTheMat = Object.keys(mat).filter((id) => players[id]);
+  app.innerHTML = `${topBar()}<div class="play-screen">
+    <h2 style="margin:0">🔮 Wie brandt er aan?</h2>
+    <p class="muted" style="margin:0">Juist gegokt = +300</p>
+    <div class="bet-grid">${onTheMat.map((id) => `<button class="bet-btn" data-b="${esc(id)}"><span>${esc(players[id].avatar)}</span>${esc(players[id].name)}</button>`).join('')}
+      <button class="bet-btn none" data-b="none"><span>😇</span>Niemand</button></div>
+    <button class="btn ghost small" data-b="">Niet gokken</button></div>`;
+  $$('[data-b]').forEach((b) => b.addEventListener('click', async () => {
+    const bet = b.dataset.b;
+    saveSession({ bet: `${code}:${state.qkey}` });
+    if (bet) {
+      navigator.vibrate?.(30);
+      try { await set(ref(db, `games/${code}/bets/${state.qkey}/${user.uid}`), bet); } catch { toast('Te laat om te gokken ⏰', 'bad'); }
+    }
+    lastKey = '';
+    render();
+  }));
+}
+
+function freeze() {
+  app.innerHTML = `${topBar()}<div class="play-screen freeze-screen">
+    <div class="big-avatar pop-in">🥶</div>
+    <h1 style="margin:0">FREEZE!</h1>
+    <p>${onMat() ? '<b>Niet meer bewegen!</b> De jury kijkt…' : 'De jury kijkt wie waar staat…'}</p></div>`;
+}
+
+function matMove() {
+  if (!reveal) return '';
+  if (reveal.matIn?.includes(user.uid)) return '<span class="pill yolk" style="font-size:1.1rem">⬆️ Jij gaat de mat op!</span>';
+  if (reveal.matOut?.includes(user.uid)) return '<span class="pill" style="font-size:1.1rem">⬇️ Je gaat van de mat</span>';
+  return '';
+}
+
 function revealScreen() {
   const last = me.last;
   if (!last || last.q !== state.qkey) {
     app.innerHTML = `${topBar()}<div class="play-screen"><div class="wobble" style="width:120px">${ART.egg()}</div><h2>Even rekenen…</h2></div>`;
     return;
   }
+  if (last.mat) return matRevealScreen(last);
   const right = current.type === 'open'
     ? (reveal?.accepted || [])[0]
     : (reveal?.correct || []).map((i) => current.options?.[i]).filter(Boolean).join(' / ');
@@ -253,8 +312,23 @@ function revealScreen() {
     <h1 style="margin:0">${last.ok ? 'Juist! 🎉' : last.answered ? 'Helaas, fout!' : 'Te laat! ⏰'}</h1>
     ${last.ok ? `<div class="points pop-in">+${last.pts || 0}</div>` : right ? `<p>Het juiste antwoord was <b>${esc(right)}</b></p>` : ''}
     ${last.ok && me.streak >= 2 ? `<span class="pill yolk">🔥 ${me.streak} op rij!</span>` : ''}
+    ${last.bet ? `<p>🔮 Gok: ${last.betOk ? `<b>juist! +${last.betPts}</b>` : 'helaas mis'}</p>` : ''}
+    ${matMove()}
     <p class="muted">Je staat op plaats <b data-rank></b></p>
   </div>`;
+}
+
+function matRevealScreen(last) {
+  const title = last.burned ? '🔥 Aangebrand!' : last.ok ? 'Juist! 🎉' : last.answered ? 'Fout, maar je staat nog! 💪' : 'Geen kleur gezien 🤷';
+  if (last.ok) confetti(14);
+  navigator.vibrate?.(last.burned ? [200, 80, 200] : 60);
+  app.innerHTML = `${topBar()}<div class="play-screen">
+    ${last.burned || !last.ok ? `<div class="shake">${ART.crackedEgg}</div>` : ART.happyEgg}
+    <h1 style="margin:0">${title}</h1>
+    <div class="points pop-in" style="color:${last.pts < 0 ? 'var(--bad)' : 'inherit'}">${last.pts > 0 ? '+' : ''}${last.pts}</div>
+    ${!last.burned ? '<p class="muted" style="margin:0">(incl. +150 om te blijven staan)</p>' : ''}
+    ${matMove()}
+    <p class="muted">Je staat op plaats <b data-rank></b></p></div>`;
 }
 
 function scoreboard() {
@@ -262,6 +336,7 @@ function scoreboard() {
     <div class="big-avatar float">${esc(me.avatar)}</div>
     <h1 style="margin:0">Plaats <span data-rank></span></h1>
     <p class="points">${me.score || 0} pt</p>
+    ${onMat() ? '<span class="pill yolk" style="font-size:1.1rem">🥓 Volgende vraag sta jij op de mat</span>' : ''}
     <p class="muted">Volgende vraag komt eraan…</p></div>`;
 }
 

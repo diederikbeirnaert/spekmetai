@@ -1,14 +1,14 @@
 // Twister-draaischijf in spiegelei-stijl: 4 ledematen × 4 kleuren, een spatel als wijzer.
-import { $, esc } from './common.js';
+import { $, esc, speak } from './common.js';
 
 const INK = '#3A2618';
-const LIMBS = [
+export const LIMBS = [
   { name: 'Linkerhand', icon: '✋', short: 'L' },
   { name: 'Rechterhand', icon: '✋', short: 'R' },
   { name: 'Rechtervoet', icon: '🦶', short: 'R' },
   { name: 'Linkervoet', icon: '🦶', short: 'L' },
 ];
-const COLORS = [
+export const COLORS = [
   { name: 'rood', hex: '#E63946' },
   { name: 'blauw', hex: '#2A7FB8' },
   { name: 'geel', hex: '#F4C20D' },
@@ -18,7 +18,7 @@ const C = 200;
 const pt = (deg, r) => [C + r * Math.sin((deg * Math.PI) / 180), C - r * Math.cos((deg * Math.PI) / 180)];
 const f = (n) => n.toFixed(1);
 
-function boardSvg() {
+export function boardSvg() {
   // Golvend eiwit
   const blob = [];
   for (let d = 0; d < 360; d += 6) {
@@ -64,6 +64,18 @@ function boardSvg() {
   return `<svg viewBox="0 0 400 400" role="img" aria-label="Twister-draaischijf">${parts}</svg>`;
 }
 
+// Laat de spatel naar een vakje (0–15) draaien. Vakje = ledemaat * 4 + kleur.
+export function makeSpinner(el) {
+  let rot = 0;
+  const spatula = $('#spatula', el);
+  return (wedge) => new Promise((res) => {
+    const target = wedge * 22.5 + 3 + Math.random() * 16.5; // nooit precies op een grens
+    rot += 1440 + ((target - (rot % 360)) + 360) % 360;
+    spatula.style.transform = `rotate(${rot}deg)`;
+    setTimeout(res, 4700);
+  });
+}
+
 export function renderTwister(el) {
   el.innerHTML = `<div class="twister">
     <div class="spinner-wrap" id="spin-wrap" title="Klik om te draaien">${boardSvg()}</div>
@@ -75,38 +87,27 @@ export function renderTwister(el) {
     <div class="tw-history" id="tw-hist"></div>
   </div>`;
 
-  let rot = 0;
   let spinning = false;
   const history = [];
-  const spatula = $('#spatula', el);
+  const spinTo = makeSpinner(el);
 
-  const spin = () => {
+  const spin = async () => {
     if (spinning) return;
     spinning = true;
     $('#tw-spin', el).disabled = true;
     $('#tw-result', el).innerHTML = '<span class="muted" style="font-size:1.2rem">Draaien…</span>';
     const wedge = Math.floor(Math.random() * 16);
-    const target = wedge * 22.5 + 3 + Math.random() * 16.5; // nooit precies op een grens
-    rot += 1440 + ((target - (rot % 360)) + 360) % 360;
-    spatula.style.transform = `rotate(${rot}deg)`;
-    setTimeout(() => {
-      spinning = false;
-      $('#tw-spin', el).disabled = false;
-      const limb = LIMBS[Math.floor(wedge / 4)];
-      const col = COLORS[wedge % 4];
-      $('#tw-result', el).innerHTML = `<span class="pop-in">${esc(limb.icon)} ${esc(limb.name)}</span>
-        <span class="tw-dot pop-in" style="background:${col.hex};animation-delay:.1s"></span>
-        <span class="pop-in" style="animation-delay:.15s">${esc(col.name)}</span>`;
-      history.unshift(`${limb.icon}${limb.short} · ${col.name}`);
-      $('#tw-hist', el).innerHTML = history.slice(0, 8).map((h) => `<span>${esc(h)}</span>`).join('');
-      if ($('#tw-speak', el).checked && 'speechSynthesis' in window) {
-        const u = new SpeechSynthesisUtterance(`${limb.name} op ${col.name}!`);
-        u.lang = 'nl-BE';
-        u.voice = speechSynthesis.getVoices().find((v) => v.lang.startsWith('nl')) || null;
-        speechSynthesis.cancel();
-        speechSynthesis.speak(u);
-      }
-    }, 4700);
+    await spinTo(wedge);
+    spinning = false;
+    $('#tw-spin', el).disabled = false;
+    const limb = LIMBS[Math.floor(wedge / 4)];
+    const col = COLORS[wedge % 4];
+    $('#tw-result', el).innerHTML = `<span class="pop-in">${esc(limb.icon)} ${esc(limb.name)}</span>
+      <span class="tw-dot pop-in" style="background:${col.hex};animation-delay:.1s"></span>
+      <span class="pop-in" style="animation-delay:.15s">${esc(col.name)}</span>`;
+    history.unshift(`${limb.icon}${limb.short} · ${col.name}`);
+    $('#tw-hist', el).innerHTML = history.slice(0, 8).map((h) => `<span>${esc(h)}</span>`).join('');
+    if ($('#tw-speak', el).checked) speak(`${limb.name} op ${col.name}!`);
   };
 
   $('#tw-spin', el).onclick = spin;

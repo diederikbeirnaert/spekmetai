@@ -11,6 +11,7 @@ Het is gewone HTML, CSS en JavaScript: er is geen build-stap en geen framework. 
 | `admin.html` | Login voor de admin: quizzen maken, weekendbrieven schrijven, back-up |
 | `brief.html` | Weekendbrieven lezen |
 | `login.html` / `account.html` | Eén login voor iedereen (gebruikersnaam of e-mail), account en wachtwoord wijzigen |
+| `jury.html` | Jury-gsm voor de Twister-quiz |
 | `portaal.html` | Weekendgangers: flip het ei in de pan en onthul je geheime opdracht 🤫 |
 
 ---
@@ -94,6 +95,38 @@ Bij een vraag met een video start de timer pas als je op **Antwoorden openen** k
 4. De weekendganger logt in, tikt op het ei in de pan en ziet de opdracht verschijnen. In de admin zie je wie zijn ei al geflipt heeft.
 
 Wijzig je een opdracht? Dan moet die persoon het ei opnieuw flippen.
+
+## 🌀 Twister-quiz (met echte mat)
+
+Zet in de quiz-editor **🌀 Twister-quiz** aan. Kies daarna het aantal plekken op de mat (standaard 4), en of je **📸 SpekVAR** wil gebruiken.
+
+**Kleuren = antwoorden:** A = rood, B = blauw, C = geel en D = groen. Bij waar/niet waar is rood waar en blauw niet waar.
+
+**Per vraag:**
+1. De spinner draait en kiest een ledemaat. Je kan per vraag ook zelf een vast ledemaat instellen.
+2. De vraag en de antwoorden worden voorgelezen.
+3. **Matspelers** zetten hun ledemaat op de kleur van hun antwoord. De andere spelers antwoorden op hun gsm en kunnen gokken **wie er aanbrandt** (+300).
+4. De jury tikt per matspeler de kleur aan, **in de volgorde waarin ze neerzetten**. Die volgorde bepaalt de snelheidspunten. 🔥 staat voor aangebrand.
+5. Na de tijd volgt **FREEZE! 🥶** met een fluitsignaal, en SpekVAR maakt een foto van de mat.
+6. De onthulling toont de punten en wie er van en op de mat gaat.
+
+**Punten op de mat:**
+
+| Situatie | Punten |
+|---|---|
+| Juist | Tot 1000 punten (volgens de volgorde) |
+| Blijven staan | +150 |
+| Fout | 0 punten, en je blijft staan |
+| Aangebrand | −500 |
+
+**Rotatie:**
+- Wie aanbrandt, gaat sowieso van de mat.
+- Is niemand aangebrand, dan gaat de traagste met een fout antwoord eraf, maar alleen als er iemand kan invallen.
+- Vrije plekken gaan naar de beste gsm-speler van die vraag: wie juist antwoordde, het snelst.
+
+**Jury:** jij kunt dat als host op het grote scherm doen. Iemand anders kan ook jureren met een gsm via `jury.html`, met de code en de pin die in de lobby staan. Beide jury's synchroniseren live met elkaar.
+
+**SpekVAR:** kies in de lobby je (externe) webcam. De foto's blijven lokaal en verschijnen op het einde als bloopers. Zonder webcam zet je SpekVAR uit in de quiz-instellingen.
 
 ## Twister 🌀
 

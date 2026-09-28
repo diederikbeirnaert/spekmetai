@@ -39,6 +39,10 @@
         }
       }
     },
+    "juryPins": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
+    },
     "games": {
       ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
       ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
@@ -78,10 +82,28 @@
             }
           }
         },
+        "jurors": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && newData.val() === root.child('juryPins').child($code).val()"
+          }
+        },
+        "jury": {
+          "$qkey": {
+            ".write": "auth != null && root.child('games').child($code).child('jurors').child(auth.uid).exists() && root.child('games').child($code).child('state/qkey').val() === $qkey && (root.child('games').child($code).child('state/phase').val() === 'question' || root.child('games').child($code).child('state/phase').val() === 'freeze')"
+          }
+        },
+        "bets": {
+          "$qkey": {
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('games').child($code).child('state/phase').val() === 'question' && root.child('games').child($code).child('state/qkey').val() === $qkey && root.child('games').child($code).child('players').child($uid).exists() && !root.child('games').child($code).child('mat').child($uid).exists()",
+              ".validate": "newData.isString() && newData.val().length <= 40"
+            }
+          }
+        },
         "answers": {
           "$qkey": {
             "$uid": {
-              ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('games').child($code).child('state/phase').val() === 'question' && root.child('games').child($code).child('state/qkey').val() === $qkey && root.child('games').child($code).child('players').child($uid).exists()",
+              ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('games').child($code).child('state/phase').val() === 'question' && root.child('games').child($code).child('state/qkey').val() === $qkey && root.child('games').child($code).child('players').child($uid).exists() && !root.child('games').child($code).child('mat').child($uid).exists()",
               ".validate": "newData.hasChildren(['v', 'at']) && newData.child('at').val() === now && (newData.child('v').isNumber() || (newData.child('v').isString() && newData.child('v').val().length <= 80))"
             }
           }

@@ -2,10 +2,10 @@
 import { esc } from './common.js';
 
 // 40 temperaturen over 300 km, van t = 0 (bevroren, verder dan 300 km) tot t = 39 (raak, dichter dan 50 m).
-// Tot 50 km zakt het in stapjes van ±10% (bevroren → koud), vanaf 50 km wordt het lauw en warm,
-// en hoe dichter je komt, hoe fijner de stappen: op het einde komt het op tientallen meters aan.
-export const EDGES = [300, 270, 243, 219, 197, 177, 160, 144, 129, 116, 105, 94, 85, 76, 69, 62, 56, 50,
-  36, 26, 18.7, 13.4, 9.7, 7, 5, 3.6, 2.6, 1.9, 1.35, 0.97, 0.7, 0.5, 0.36, 0.26, 0.19, 0.135, 0.097, 0.07, 0.05];
+// Van 300 tot 70 km zakt het in stapjes van ±8% (bevroren → koud). Binnen 70 km is het ei al lauw
+// (moed geven!), en hoe dichter je komt, hoe fijner de stappen: op het einde gaat het om tientallen meters.
+export const EDGES = [300, 275, 253, 232, 213, 195, 179, 164, 151, 139, 127, 117, 107, 98, 90, 83, 76, 70,
+  50, 35, 25, 17.5, 12.5, 8.8, 6.2, 4.4, 3.1, 2.2, 1.55, 1.1, 0.78, 0.55, 0.39, 0.28, 0.2, 0.14, 0.1, 0.07, 0.05];
 export const STEPS = EDGES.length + 1;
 export const tempFor = (km) => { let t = 0; while (t < EDGES.length && km < EDGES[t]) t++; return t; };
 export const tempKey = (t) => `t${t}`;

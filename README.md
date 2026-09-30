@@ -137,7 +137,7 @@ Weekendgangers raden waar het weekend doorgaat.
 
 **Zo werkt het:**
 - Je moet ingelogd zijn en mag **1× per dag** een speldje op de kaart prikken.
-- Het **temperatuur-ei** toont hoe dicht je zit. Er zijn 40 stappen over 300 km: vanaf ±50 km wordt het lauw, en hoe dichterbij, hoe fijner de stappen (tot < 50 m). Het ei gaat van een bevroren ei in een ijsblok tot een gloeiend ei met vlammen en een gouden kroontje.
+- Het **temperatuur-ei** toont hoe dicht je zit. Er zijn 40 stappen over 300 km: binnen 70 km is het ei al lauw, en hoe dichterbij, hoe fijner de stappen (tot < 50 m). Het ei gaat van een bevroren ei in een ijsblok tot een gloeiend ei met vlammen en een gouden kroontje.
 - De echte locatie is niet uit de website te lezen. De database controleert zelf welke temperatuur klopt.
 
 **Admin → 🗺️ Raadkaart:**

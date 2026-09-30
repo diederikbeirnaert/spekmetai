@@ -1,10 +1,11 @@
 // Admin: inloggen, quizzen maken, weekendbrieven schrijven, instellingen.
-import { $, $$, ART, esc, shell, toast, uid, parseMediaUrl, mediaHtml, compressImage, md, fmtDate, setSessionHint, AVATAR_BGS, avatarPreview } from './common.js';
+import { $, $$, ART, esc, shell, toast, uid, parseMediaUrl, mediaHtml, compressImage, md, fmtDate, setSessionHint, AVATAR_BGS, avatarPreview, av, setAvatars } from './common.js';
 import { renderTwister, LIMBS } from './twister.js';
+import { makeMap, eggPin, goalPin, tColor, distanceKm, fmtKm, dayLabel, edgesTable } from './mapkit.js';
 import {
   configured, db, ref, get, set, update, remove, push, useAuth, currentUser, isAdmin, notConfiguredHtml,
   signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential,
-  createMemberAccount, deleteMemberAccount, cleanUsername, whoAmI,
+  createMemberAccount, deleteMemberAccount, cleanUsername, whoAmI, watchAvatars,
 } from './fb.js';
 
 shell('admin');
@@ -63,6 +64,7 @@ function route() {
   if (page === 'letters') return listLetters();
   if (page === 'settings') return settings();
   if (page === 'members') return listMembers();
+  if (page === 'raadkaart') return raadkaartAdmin();
   if (page === 'twister') {
     frame('twister', '<div id="tw"></div>');
     return renderTwister($('#tw'));
@@ -78,6 +80,7 @@ function frame(active, html) {
       <a class="tab ${active === 'quizzes' ? 'active' : ''}" href="#quizzes">🍳 Quizzen</a>
       <a class="tab ${active === 'letters' ? 'active' : ''}" href="#letters">✉️ Weekendbrief</a>
       <a class="tab ${active === 'members' ? 'active' : ''}" href="#members">🤫 Weekendgangers</a>
+      <a class="tab ${active === 'raadkaart' ? 'active' : ''}" href="#raadkaart">🗺️ Raadkaart</a>
       <a class="tab ${active === 'twister' ? 'active' : ''}" href="#twister">🌀 Twister</a>
       <a class="tab ${active === 'settings' ? 'active' : ''}" href="#settings">⚙️ Instellingen</a>
     </div><div id="view">${html}</div>`;
@@ -165,6 +168,8 @@ function renderQuiz() {
           <label class="check-row">Plekken op de mat <input class="input" type="number" min="1" max="8" data-qset="matSpots" value="${quiz.matSpots || 4}" style="width:80px"></label>
           <label class="check-row"><input type="checkbox" data-qset="spekvar" ${quiz.spekvar !== false ? 'checked' : ''}> 📸 SpekVAR (webcamfoto bij FREEZE)</label>
         </div>` : ''}
+        <label class="check-row"><input type="checkbox" data-qset="mapBonus" ${quiz.mapBonus ? 'checked' : ''}>
+          <span><b>🗺️ Raadkaart-bonus</b><br><span class="muted">De winnaar van de raadkaart krijgt in deze quiz ×1,2 op al haar punten.</span></span></label>
       </div>
     </div>
     <div class="stack" id="qs" style="margin-top:16px">${quiz.questions.map(questionCard).join('')}</div>
@@ -580,6 +585,117 @@ function wireAvatarEditor(box, state, onChange) {
       refresh();
     };
   });
+}
+
+/* ---------- Raadkaart ---------- */
+async function raadkaartAdmin() {
+  frame('raadkaart', '<div class="card muted">Laden…</div>');
+  const val = async (p) => (await get(ref(db, p))).val();
+  const [secret, config, reveal, guesses, members] = await Promise.all(
+    ['raadkaart/secret', 'raadkaart/config', 'raadkaart/reveal', 'raadkaart/guesses', 'members'].map(val));
+  const all = guesses || {};
+  const mem = members || {};
+  let spot = secret ? { lat: secret.lat, lng: secret.lng } : null;
+  const count = Object.values(all).reduce((n, g) => n + Object.keys(g).length, 0);
+  const testCount = Object.values(all).reduce((n, g) => n + Object.values(g).filter((x) => x.test).length, 0);
+
+  // Beste gok per weekendganger (echte afstand tot de geheime locatie)
+  const best = () => Object.entries(all).map(([uid, g]) => {
+    const list = Object.values(g);
+    const b = spot ? list.map((x) => ({ ...x, km: distanceKm(x, spot) })).sort((a, c) => a.km - c.km)[0] : list[0];
+    return { uid, name: mem[uid]?.name || 'Chef-kok (test)', n: list.length, ...b };
+  }).sort((a, c) => (a.km ?? 0) - (c.km ?? 0));
+
+  $('#view').innerHTML = `
+    <div class="rk-grid">
+      <div class="card rk-mapcard"><div id="amap" class="rk-map"></div></div>
+      <aside class="rk-side">
+        <div class="card stack">
+          <h3 style="margin:0">📍 Geheime locatie</h3>
+          <p class="muted" style="margin:0">Klik op de kaart om de weekendlocatie te prikken. Niemand anders kan die lezen.</p>
+          <div class="field" style="margin:0"><label>Naam (bij de onthulling)</label><input class="input" id="rkname" value="${esc(secret?.name || '')}" placeholder="bv. Durbuy"></div>
+          <label class="check-row"><input type="checkbox" id="rkopen" ${config?.open ? 'checked' : ''}> De kaart is open om te raden</label>
+          <label class="check-row"><input type="checkbox" id="rktest" ${config?.test ? 'checked' : ''}> 🧪 Testmodus: onbeperkt raden, ook voor jou als admin</label>
+          <button class="btn ok" id="rksave">Opslaan</button>
+          ${count && secret ? '<p class="muted" style="margin:0;font-size:.85rem">⚠️ Er zijn al gokken. Verschuif je de locatie, dan kloppen hun eerdere temperaturen niet meer.</p>' : ''}
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0">Gokken (${count})</h3>
+          <ol class="rk-rank">${best().map((b) => `<li>${av({ member: true }, b.uid)}<b>${esc(b.name)}</b>
+            <span class="muted">${b.n}×</span>${b.km != null ? `<span class="rk-km" style="background:${tColor(b.t)}">${fmtKm(b.km)}</span>` : ''}</li>`).join('') || '<li class="muted">Nog niemand heeft gegokt.</li>'}</ol>
+        </div>
+        <div class="card stack">
+          ${reveal ? `<p style="margin:0">✅ Onthuld: <b>${esc(reveal.name)}</b>. Winnaar: <b>${esc(reveal.results?.[0]?.name || '–')}</b></p>
+            <button class="btn ghost" id="rkunreveal">↩️ Onthulling intrekken</button>`
+            : '<button class="btn bacon big" id="rkreveal">🥚 Onthul de locatie</button>'}
+          <button class="btn ghost small" id="rktestclear">🧪 Testgokken wissen (${testCount})</button>
+          <button class="btn ghost small" id="rkreset">🧹 Alle gokken wissen</button>
+        </div>
+      </aside>
+    </div>`;
+  watchAvatars(setAvatars);
+
+  const map = await makeMap($('#amap'), spot ? { center: [spot.lat, spot.lng], zoom: 8 } : {});
+  const L = window.L;
+  let goal = spot ? L.marker([spot.lat, spot.lng], { icon: goalPin(L) }).addTo(map) : null;
+  for (const [uid, g] of Object.entries(all)) {
+    for (const x of Object.values(g)) {
+      L.marker([x.lat, x.lng], { icon: eggPin(L, tColor(x.t), `${x.test ? '🧪 ' : ''}${mem[uid]?.name || 'Chef-kok'} · ${dayLabel(x.day)}`) }).addTo(map);
+    }
+  }
+  map.on('click', (e) => {
+    spot = { lat: +e.latlng.lat.toFixed(5), lng: +e.latlng.lng.toFixed(5) };
+    goal?.remove();
+    goal = L.marker([spot.lat, spot.lng], { icon: goalPin(L) }).addTo(map);
+  });
+
+  $('#rksave').onclick = async () => {
+    if (!spot) return toast('Prik eerst de locatie op de kaart', 'bad');
+    const name = $('#rkname').value.trim();
+    await update(ref(db, 'raadkaart'), {
+      secret: { lat: spot.lat, lng: spot.lng, k: Math.cos((spot.lat * Math.PI) / 180), name },
+      edges: edgesTable(), // afstandsgrenzen voor de 40 temperaturen (gebruikt door de databaseregels)
+      'config/open': $('#rkopen').checked,
+      'config/test': $('#rktest').checked,
+    });
+    toast('Raadkaart opgeslagen 🗺️', 'ok');
+  };
+  $('#rkreveal')?.addEventListener('click', async () => {
+    if (!spot || !secret) return toast('Sla eerst een locatie op', 'bad');
+    if (!confirm('De locatie voor iedereen onthullen? Daarna kan niemand nog raden.')) return;
+    const results = best().filter((b) => b.km != null).map((b) => ({ uid: b.uid, name: b.name, lat: b.lat, lng: b.lng, km: +b.km.toFixed(2) }));
+    await set(ref(db, 'raadkaart/reveal'), {
+      lat: secret.lat, lng: secret.lng, name: secret.name || $('#rkname').value.trim(), at: Date.now(),
+      winner: results[0]?.uid || null, results,
+    });
+    toast('Onthuld! 🥚💥', 'ok');
+    raadkaartAdmin();
+  });
+  $('#rkunreveal')?.addEventListener('click', async () => {
+    if (!confirm('Onthulling intrekken? De locatie wordt weer geheim.')) return;
+    await remove(ref(db, 'raadkaart/reveal'));
+    raadkaartAdmin();
+  });
+  // Testgokken wissen. Wie getest heeft, mag daarna vandaag gewoon (echt) raden.
+  $('#rktestclear').onclick = async () => {
+    if (!testCount) return toast('Er zijn geen testgokken');
+    if (!confirm(`${testCount} testgok(ken) wissen?`)) return;
+    const upd = {};
+    for (const [uid, g] of Object.entries(all)) {
+      const tests = Object.entries(g).filter(([, x]) => x.test);
+      tests.forEach(([k]) => { upd[`guesses/${uid}/${k}`] = null; });
+      if (tests.length) upd[`last/${uid}`] = null;
+    }
+    await update(ref(db, 'raadkaart'), upd);
+    toast('Testgokken gewist 🧪', 'ok');
+    raadkaartAdmin();
+  };
+  $('#rkreset').onclick = async () => {
+    if (!confirm('Alle gokken van iedereen wissen?')) return;
+    await update(ref(db, 'raadkaart'), { guesses: null, last: null, reveal: null });
+    toast('Alle gokken gewist 🧹');
+    raadkaartAdmin();
+  };
 }
 
 /* ---------- Instellingen ---------- */

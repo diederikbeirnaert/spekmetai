@@ -46,6 +46,33 @@
         ".validate": "newData.hasChildren(['bg']) && newData.child('bg').isString() && (!newData.child('img').exists() || (newData.child('img').isString() && newData.child('img').val().length < 400000))"
       }
     },
+    "raadkaart": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      "config": {
+        ".read": "auth != null"
+      },
+      "reveal": {
+        ".read": "auth != null"
+      },
+      "last": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid && root.child('members').child($uid).exists() && root.child('raadkaart/config/open').val() === true && !root.child('raadkaart/reveal').exists()",
+          ".validate": "newData.child('at').val() === now && newData.child('day').isNumber() && newData.child('day').val() * 86400000 <= now + 7200000 && (newData.child('day').val() + 1) * 86400000 > now + 7200000 && (!data.exists() || newData.child('day').val() > data.child('day').val() || root.child('raadkaart/config/test').val() === true)"
+        }
+      },
+      "guesses": {
+        ".read": "auth != null && root.child('raadkaart/reveal').exists()",
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          "$gid": {
+            ".write": "auth != null && auth.uid === $uid && root.child('members').child($uid).exists() && root.child('raadkaart/config/open').val() === true && !root.child('raadkaart/reveal').exists() && !data.exists()",
+            ".validate": "newData.hasChildren(['lat', 'lng', 't', 'tk', 'day', 'at']) && newData.child('lat').val() >= -90 && newData.child('lat').val() <= 90 && newData.child('lng').val() >= -180 && newData.child('lng').val() <= 180 && newData.child('at').val() === now && newData.child('day').val() === newData.parent().parent().parent().child('last').child($uid).child('day').val() && newData.child('tk').isString() && root.child('raadkaart/edges').child(newData.child('tk').val()).exists() && newData.child('t').val() === root.child('raadkaart/edges').child(newData.child('tk').val()).child('t').val() && (((newData.child('lat').val() - root.child('raadkaart/secret').child('lat').val()) * 111.2) * ((newData.child('lat').val() - root.child('raadkaart/secret').child('lat').val()) * 111.2) + ((newData.child('lng').val() - root.child('raadkaart/secret').child('lng').val()) * 111.2 * root.child('raadkaart/secret').child('k').val()) * ((newData.child('lng').val() - root.child('raadkaart/secret').child('lng').val()) * 111.2 * root.child('raadkaart/secret').child('k').val())) >= root.child('raadkaart/edges').child(newData.child('tk').val()).child('lo2').val() && (((newData.child('lat').val() - root.child('raadkaart/secret').child('lat').val()) * 111.2) * ((newData.child('lat').val() - root.child('raadkaart/secret').child('lat').val()) * 111.2) + ((newData.child('lng').val() - root.child('raadkaart/secret').child('lng').val()) * 111.2 * root.child('raadkaart/secret').child('k').val()) * ((newData.child('lng').val() - root.child('raadkaart/secret').child('lng').val()) * 111.2 * root.child('raadkaart/secret').child('k').val())) < root.child('raadkaart/edges').child(newData.child('tk').val()).child('hi2').val()"
+          }
+        }
+      }
+    },
     "juryPins": {
       ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
       ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"

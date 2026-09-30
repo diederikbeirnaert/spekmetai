@@ -27,6 +27,8 @@ const shownChips = new Set();
 const cam = { stream: null, video: null };
 const snapshots = []; // SpekVAR-foto's voor de bloopers op het einde
 let lastSnap = null;
+let bonusUid = null; // winnaar van de raadkaart (×1,2 als de quiz dat toelaat)
+const BONUS = 1.2;
 
 const g = (p = '') => ref(db, `games/${code}${p ? `/${p}` : ''}`);
 const cur = () => quiz.questions[state.index];
@@ -123,6 +125,7 @@ const resolveSrc = (m) => (m?.src?.startsWith('db:') ? mediaCache[m.src.slice(3)
 
 async function start() {
   watchAvatars(setAvatars);
+  if (quiz.mapBonus) bonusUid = (await get(ref(db, 'raadkaart/reveal/winner')).catch(() => null))?.val() || null;
   await preloadMedia();
   onValue(g('players'), (s) => { players = s.val() || {}; onPlayers(); });
   if (isTw()) {
@@ -325,7 +328,7 @@ function onPlayers() {
       }
       chip.classList.toggle('off', p.online === false);
       chip.classList.toggle('on-mat', !!mat[id]);
-      chip.innerHTML = `${mat[id] ? '<span class="mat-badge">🥓</span>' : ''}<span class="av">${av(p, id)}</span>${esc(p.name)}<span class="kick" title="Verwijderen">✕</span>`;
+      chip.innerHTML = `${id === bonusUid ? '<span class="mat-badge" title="Raadkaart-winnaar: ×1,2 punten">🗺️</span>' : ''}${mat[id] ? '<span class="mat-badge">🥓</span>' : ''}<span class="av">${av(p, id)}</span>${esc(p.name)}<span class="kick" title="Verwijderen">✕</span>`;
     }
   } else if (state.phase === 'question') {
     updateAnswerCount();
@@ -619,6 +622,10 @@ async function doReveal() {
         if (last.betOk) { pts += BET_PTS; last.betPts = BET_PTS; }
       }
     }
+    if (id === bonusUid && pts > 0) {
+      pts = Math.round(pts * BONUS);
+      last.bonus = true;
+    }
     const streak = ok ? (p.streak || 0) + 1 : 0;
     Object.assign(last, { ok, pts, answered });
     upd[`players/${id}/score`] = (p.score || 0) + pts;
@@ -711,6 +718,7 @@ function renderScoreboard() {
       <div class="score-row slide-up" style="animation-delay:${i * 0.12}s">
         <span class="rank">${i + 1}</span><span style="font-size:1.8rem">${av(p, p.id)}</span>${esc(p.name)}
         ${isTw() && mat[p.id] ? '<span class="mat-badge" title="Volgende vraag op de mat">🥓</span>' : ''}
+        ${p.id === bonusUid ? '<span class="mat-badge" title="Raadkaart-winnaar: ×1,2 punten">🗺️×1,2</span>' : ''}
         <span class="sc">${p.score || 0}${p.last?.pts ? `<span class="delta ${p.last.pts < 0 ? 'neg' : ''}">${p.last.pts > 0 ? '+' : ''}${p.last.pts}</span>` : ''}</span>
         ${p.streak >= 3 ? '<span title="Reeks">🔥</span>' : ''}
       </div>`).join('') || '<p class="center">Nog niemand…</p>'}

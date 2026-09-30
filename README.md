@@ -12,6 +12,7 @@ Het is gewone HTML, CSS en JavaScript: er is geen build-stap en geen framework. 
 | `brief.html` | Weekendbrieven lezen |
 | `login.html` / `account.html` | Eén login voor iedereen (gebruikersnaam of e-mail), account en wachtwoord wijzigen |
 | `jury.html` | Jury-gsm voor de Twister-quiz |
+| `raadkaart.html` | Raad de locatie van het weekend (weekendgangers) |
 | `portaal.html` | Weekendgangers: flip het ei in de pan en onthul je geheime opdracht 🤫 |
 
 ---
@@ -129,6 +130,22 @@ Zet in de quiz-editor **🌀 Twister-quiz** aan. Kies daarna het aantal plekken 
 **Jury:** jij kunt dat als host op het grote scherm doen. Iemand anders kan ook jureren met een gsm via `jury.html`, met de code en de pin die in de lobby staan. Beide jury's synchroniseren live met elkaar.
 
 **SpekVAR:** kies in de lobby je (externe) webcam. De foto's blijven lokaal en verschijnen op het einde als bloopers. Zonder webcam zet je SpekVAR uit in de quiz-instellingen.
+
+## 🗺️ Raadkaart: "Waar bakken we?"
+
+Weekendgangers raden waar het weekend doorgaat.
+
+**Zo werkt het:**
+- Je moet ingelogd zijn en mag **1× per dag** een speldje op de kaart prikken.
+- Het **temperatuur-ei** toont hoe dicht je zit. Er zijn 12 stappen van ongeveer 17 km, tussen 0 en 200 km. Het ei gaat van een bevroren blauw ei met sneeuw tot een gloeiend rood ei met vlammen.
+- De echte locatie is niet uit de website te lezen. De database controleert zelf welke temperatuur klopt.
+
+**Admin → 🗺️ Raadkaart:**
+- Prik de geheime locatie, geef ze een naam en zet de kaart open.
+- Met **🧪 Testmodus** mag je onbeperkt raden, ook als admin. Achteraf wis je de testgokken met één knop.
+- **🥚 Onthul** toont de locatie aan iedereen. Alle avatars verschijnen op hun beste gok, met de afstand erbij. Wie het dichtst zat, wint.
+
+**Quizbonus:** zet in een quiz **🗺️ Raadkaart-bonus** aan. Dan krijgt de winnaar ×1,2 op al haar punten in die quiz.
 
 ## Twister 🌀
 

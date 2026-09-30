@@ -332,6 +332,7 @@ function revealScreen() {
     ${last.ok ? `<div class="points pop-in">+${last.pts || 0}</div>` : right ? `<p>Het juiste antwoord was <b>${esc(right)}</b></p>` : ''}
     ${last.ok && me.streak >= 2 ? `<span class="pill yolk">🔥 ${me.streak} op rij!</span>` : ''}
     ${last.bet ? `<p>🔮 Gok: ${last.betOk ? `<b>juist! +${last.betPts}</b>` : 'helaas mis'}</p>` : ''}
+    ${last.bonus ? '<span class="pill yolk">🗺️ Raadkaart-bonus ×1,2</span>' : ''}
     ${matMove()}
     <p class="muted">Je staat op plaats <b data-rank></b></p>
   </div>`;

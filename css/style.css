@@ -94,8 +94,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .menu-open .menu-btn span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
 .menu-open .menu-btn span:nth-child(2) { opacity: 0; }
 .menu-open .menu-btn span:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
-@media (min-width: 761px) { .site-header { gap: 20px; } .nav { margin-left: auto; } }
-@media (max-width: 760px) {
+@media (min-width: 981px) { .site-header { gap: 20px; } .nav { margin-left: auto; } }
+@media (max-width: 980px) {
   .site-header { padding: 8px 14px; flex-wrap: wrap; }
   .wordmark { font-size: 1.25rem; }
   .brand .logo-mark { width: 40px; height: 40px; }
@@ -629,3 +629,81 @@ body.host .jury-c, body.host .jury-burn { width: 42px; height: 42px; }
 .repo-av img { width: 100%; height: 100%; object-fit: contain; object-position: bottom; display: block; }
 .repo-av:hover { transform: scale(1.1); }
 .repo-av.sel { border-color: var(--ink); transform: scale(1.1); }
+
+/* ---------- Raadkaart ---------- */
+body.raadkaart main { max-width: 1280px; }
+.rk-head { margin-bottom: 14px; }
+.rk-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
+@media (max-width: 860px) { .rk-grid { grid-template-columns: 1fr; } }
+.rk-mapcard { padding: 8px; }
+.rk-map { height: min(68vh, 640px); border-radius: 16px; z-index: 0; }
+@media (max-width: 860px) { .rk-map { height: 58vh; } }
+.rk-side { display: flex; flex-direction: column; gap: 16px; }
+.rk-side h3 { margin: 6px 0; }
+.temp-egg { width: 150px; height: 150px; display: block; margin: 0 auto; overflow: visible; }
+.temp-egg.shiver { animation: shiver .18s linear infinite alternate; }
+.temp-egg.glow { animation: heatPulse 1.2s ease-in-out infinite; }
+@keyframes shiver { from { transform: translateX(-1.5px) rotate(-1deg); } to { transform: translateX(1.5px) rotate(1deg); } }
+@keyframes heatPulse { 50% { transform: scale(1.05); filter: drop-shadow(0 0 14px rgba(214,40,40,.55)); } }
+.rk-scale { display: flex; align-items: center; gap: 8px; margin: 8px 0 12px; }
+.rk-bar { position: relative; flex: 1; height: 16px; border-radius: 99px; border: 2px solid var(--ink);
+  background: linear-gradient(90deg, #4F9FE0, #A9D8F0 25%, #F3E6CF 45%, #FFD166 62%, #F77F00 80%, #D62828); }
+.rk-bar i { position: absolute; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; border: 3px solid var(--ink); box-shadow: 0 0 0 2px #fff; }
+.rk-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow: auto; }
+.rk-list li { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+.rk-dot { width: 22px; height: 22px; border-radius: 50%; border: 3px solid var(--ink); flex: none; }
+.rk-rank { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.rk-rank li { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 14px; background: #fffaf0; font-size: 1.05rem; }
+.rk-rank li.me { outline: 3px solid var(--yolk); }
+.rk-rank .av-pic { font-size: 1.8rem; }
+.rk-rank b { flex: 1; }
+.rk-pos { width: 30px; text-align: center; font-family: var(--font-title); font-weight: 700; }
+.rk-km { border: 2px solid var(--ink); border-radius: 999px; padding: 2px 10px; font-weight: 800; font-size: .9rem; }
+.rk-crack .temp-egg { width: 120px; height: 120px; }
+
+/* Kaart in spek-met-ei-kleuren + pinnen */
+.egg-map .leaflet-tile-pane { filter: sepia(.35) saturate(1.25) hue-rotate(-8deg) brightness(1.04); }
+.egg-map.leaflet-container { background: #F6E7C8; font-family: var(--font-body); cursor: crosshair; }
+.egg-map .leaflet-control-zoom a { font-family: var(--font-title); color: var(--ink); }
+.egg-map .leaflet-bar { border: 2px solid var(--ink); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm); }
+.egg-pin, .avatar-pin, .goal-pin { background: none; border: 0; }
+.egg-pin svg { width: 38px; height: 46px; filter: drop-shadow(0 3px 2px rgba(0,0,0,.25)); }
+.egg-pin-label { position: absolute; left: 50%; top: 100%; transform: translateX(-50%); white-space: nowrap; background: #fff; border: 2px solid var(--ink); border-radius: 999px; padding: 1px 8px; font-weight: 800; font-size: .75rem; color: var(--ink); }
+.avatar-pin-head { width: 54px; height: 54px; }
+.avatar-pin-head .av-pic { font-size: 37px; border-width: 3px; box-shadow: 0 4px 6px rgba(0,0,0,.3); }
+.avatar-pin-tip { width: 0; height: 0; margin: -2px auto 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 12px solid var(--ink); }
+.goal-pin svg { width: 80px; height: 80px; animation: popIn .7s cubic-bezier(.3,1.7,.5,1) both, floaty 3s ease-in-out 1s infinite; filter: drop-shadow(0 6px 6px rgba(0,0,0,.3)); }
+.goal-label { font-family: var(--font-title); font-weight: 700; font-size: 1rem; border: 3px solid var(--ink); border-radius: 12px; background: var(--yolk); color: var(--ink); }
+/* Animaties van het temperatuur-ei */
+.temp-egg.bobble { animation: wobble 3s ease-in-out infinite; }
+.temp-egg .te-flake { animation: teFall 3.2s linear infinite; }
+@keyframes teFall { 0% { opacity: 0; translate: 0 -10px; } 15% { opacity: 1; } 100% { opacity: 0; translate: 6px 46px; rotate: 90deg; } }
+.temp-egg .te-flake, .temp-egg .te-flame, .temp-egg .te-sparkle { transform-box: fill-box; transform-origin: center; }
+.temp-egg .te-flame { transform-origin: 50% 100%; animation: teFlicker .35s ease-in-out infinite alternate; }
+@keyframes teFlicker { from { transform: scale(1, 1) rotate(-3deg); } to { transform: scale(.9, 1.15) rotate(3deg); } }
+.temp-egg .te-spark { animation: teSpark 1.6s ease-out infinite; }
+@keyframes teSpark { 0% { opacity: 0; translate: 0 0; } 20% { opacity: 1; } 100% { opacity: 0; translate: 4px -30px; } }
+.temp-egg .te-steam { animation: steam 2.4s ease-in-out infinite; opacity: 0; }
+.temp-egg .te-bubble { animation: teBubble 1.5s ease-in infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes teBubble { 0% { transform: scale(.2); opacity: 0; } 60% { opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
+.temp-egg .te-drip { animation: teDrip 2s ease-in infinite; }
+@keyframes teDrip { 0%, 30% { opacity: 0; translate: 0 -6px; } 45% { opacity: 1; } 100% { opacity: 0; translate: 0 24px; } }
+.temp-egg .te-brr { animation: teBrr 2.4s ease-in-out infinite; }
+@keyframes teBrr { 0%, 100% { opacity: 0; translate: -4px 4px; } 30%, 70% { opacity: 1; translate: 0 0; } }
+.temp-egg .te-sparkle { animation: sparkle 2s ease-in-out infinite; }
+.temp-egg .te-sweat { animation: teDrip 1.8s ease-in infinite; }
+.temp-egg .te-halo { animation: heatPulse 1.2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.rk-test { background: #E8F4FF; border: 2px dashed #4F9FE0; border-radius: 14px; padding: 8px 12px; font-weight: 700; font-size: .9rem; margin-bottom: 10px; color: #2A5F8F; }
+.leaflet-container .avatar-pin .av-pic img { width: 100% !important; height: 100% !important; }
+/* Temperatuur-ei: extra looks voor de 40 stappen (tempo via --te-speed: hoe heter, hoe sneller) */
+.temp-egg .te-flame { animation-duration: calc(var(--te-speed, 1s) * .3); }
+.temp-egg .te-halo { animation-duration: calc(var(--te-speed, 1s) * 1); }
+.temp-egg.dance { animation: teDance calc(var(--te-speed, 1s) * .8) ease-in-out infinite; }
+@keyframes teDance { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-5px) rotate(2deg); } }
+.temp-egg.party { animation: teParty 1s cubic-bezier(.3,1.6,.5,1) infinite; }
+@keyframes teParty { 0%, 100% { transform: translateY(0) scale(1); } 40% { transform: translateY(-10px) scale(1.05, .95) rotate(-4deg); } 70% { transform: translateY(0) scale(.97, 1.03) rotate(3deg); } }
+.temp-egg .te-burst { animation: teBurst 1.4s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes teBurst { 0% { transform: scale(.1); opacity: 0; } 30% { opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
+.temp-egg .te-crown { animation: floaty 1.6s ease-in-out infinite; }
+.temp-egg .te-hat { animation: teHat 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes teHat { 50% { transform: rotate(-5deg); } }

@@ -187,6 +187,7 @@ export function shell(active = '') {
     ['play.html', 'Meedoen', 'play'],
     ['brief.html', 'Weekendbrief', 'brief'],
     ['portaal.html', 'Mijn opdracht', 'portaal'],
+    ['raadkaart.html', 'Raadkaart', 'raadkaart'],
   ];
   const hint = getSessionHint();
   const acct = hint

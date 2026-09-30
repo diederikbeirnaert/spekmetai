@@ -138,7 +138,9 @@ const sunglasses = `<g transform="rotate(-6 160 74)">
     <path d="M98 76 Q160 60 222 76" ${stroke(5)} fill="none"/>
     <rect x="102" y="60" width="48" height="28" rx="13" fill="#6B4A2E" ${stroke(4)}/><rect x="170" y="60" width="48" height="28" rx="13" fill="#6B4A2E" ${stroke(4)}/>
     <path d="M110 67 L124 66 M178 67 L192 66" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".6"/></g>`;
-const noseRing = `<circle cx="169" cy="188" r="4.2" fill="none" stroke="#E0B34A" stroke-width="2.4"/><circle cx="167" cy="185" r="1" fill="#fff" opacity=".8"/>`;
+// Neuspiercing: subtiel, dun ringetje dat door de linkerneusvleugel prikt (rechts voor de kijker).
+const noseRing = `<path d="M170.4 186.6 A2.3 2.3 0 1 1 169.4 189.8" stroke="#B8902E" stroke-width="1.9" fill="none" stroke-linecap="round"/>
+  <path d="M170.4 186.6 A2.3 2.3 0 1 1 169.4 189.8" stroke="#F2C94C" stroke-width="1" fill="none" stroke-linecap="round"/>`;
 const hoops = `<g fill="none" stroke="#E0B34A" stroke-width="4.5"><circle cx="80" cy="196" r="11"/><circle cx="240" cy="196" r="11"/></g>`;
 const studs = `<g fill="#F2C94C" ${stroke(1.5)}><circle cx="80" cy="186" r="4.5"/><circle cx="240" cy="186" r="4.5"/></g>`;
 const necklace = `<g fill="none" stroke="#E0B34A" stroke-width="3" stroke-linecap="round">

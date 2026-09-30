@@ -131,6 +131,18 @@ Zet in de quiz-editor **🌀 Twister-quiz** aan. Kies daarna het aantal plekken 
 
 **SpekVAR:** kies in de lobby je (externe) webcam. De foto's blijven lokaal en verschijnen op het einde als bloopers. Zonder webcam zet je SpekVAR uit in de quiz-instellingen.
 
+## 🛡️ Admin light
+
+In **Admin → 🤫 Weekendgangers** geef je een weekendganger met een vinkje **admin light**. Die ziet dan via zijn account een knop **"Naar de keuken"**.
+
+Admin light mag:
+- quizzen maken en aanpassen (niet verwijderen);
+- quizzen hosten en jureren;
+- geheime opdrachten geven;
+- op de raadkaart ieders gokken bekijken (niet de geheime locatie of de afstanden) en zelf gewoon meeraden.
+
+Accounts, wachtwoorden, avatars, de weekendbrief, de instellingen en het beheer van de raadkaart blijven alleen voor de admin.
+
 ## 🗺️ Raadkaart: "Waar bakken we?"
 
 Weekendgangers raden waar het weekend doorgaat.

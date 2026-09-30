@@ -23,11 +23,12 @@ async function init() {
   app.innerHTML = `<div class="login-wrap slide-up" style="max-width:480px">
     ${admin ? `<div class="wobble" style="width:130px;margin:auto">${ART.egg()}</div>` : `<div class="big-avatar pop-in">${av({ member: true }, user.uid)}</div>`}
     <h1 style="margin-bottom:6px">Hoi ${esc(me.name)}!</h1>
-    <span class="pill ${admin ? '' : 'yolk'}">${admin ? '👩‍🍳 Admin' : '🤫 Weekendganger'}</span>
+    <span class="pill ${admin ? '' : 'yolk'}">${admin ? '👩‍🍳 Admin' : me.mod ? '🛡️ Weekendganger · admin light' : '🤫 Weekendganger'}</span>
     <div class="card stack" style="margin-top:20px;text-align:left">
       <div><span class="muted">${admin ? 'E-mail' : 'Gebruikersnaam'}</span><br><b>${esc(admin ? me.email : me.username)}</b></div>
       <a class="btn big ${admin ? 'pan' : 'bacon'}" style="width:100%" href="${admin ? 'admin.html' : 'portaal.html'}">${admin ? '🍳 Naar de keuken' : '🥚 Mijn geheime opdracht'}</a>
       ${admin ? '' : '<a class="btn big pan" style="width:100%" href="raadkaart.html">🗺️ Raad waar we heen gaan</a>'}
+      ${me.mod ? '<a class="btn big" style="width:100%" href="admin.html">🛡️ Naar de keuken (admin light)</a>' : ''}
     </div>
     <form class="card" id="pwf" style="margin-top:16px;text-align:left">
       <h3>Wachtwoord wijzigen</h3>

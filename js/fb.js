@@ -41,6 +41,16 @@ export async function isAdmin(user) {
   try { return (await get(ref(db, `admins/${user.uid}`))).val() === true; } catch { return false; }
 }
 
+// Admin light: een weekendganger met beperkte adminrechten (quizzen, hosten, opdrachten, raadkaart bekijken).
+export async function isMod(user) {
+  if (!user || user.isAnonymous) return false;
+  try { return (await get(ref(db, `moderators/${user.uid}`))).val() === true; } catch { return false; }
+}
+// Admin of admin light
+export async function isStaff(user) {
+  return (await isAdmin(user)) || (await isMod(user));
+}
+
 // Servertijd, zodat de timer op alle toestellen gelijk loopt.
 let offset = 0;
 if (configured) onValue(ref(db, '.info/serverTimeOffset'), (s) => { offset = s.val() || 0; });
@@ -82,7 +92,7 @@ export async function whoAmI(user) {
   if (await isAdmin(user)) return { role: 'admin', name: 'Chef-kok', email: user.email };
   try {
     const m = (await get(ref(db, `members/${user.uid}`))).val();
-    if (m) return { role: 'member', name: m.name, username: m.username };
+    if (m) return { role: 'member', name: m.name, username: m.username, mod: await isMod(user) };
   } catch {}
   return null;
 }

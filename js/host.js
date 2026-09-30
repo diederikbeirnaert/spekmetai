@@ -3,7 +3,7 @@
 import { $, $$, ART, esc, shell, toast, confetti, mediaHtml, normalize, whistle, av, setAvatars } from './common.js';
 import {
   configured, db, ref, get, set, update, remove, onValue, serverTimestamp, query, orderByChild, endAt,
-  useAuth, currentUser, isAdmin, serverNow, notConfiguredHtml, watchAvatars,
+  useAuth, currentUser, isStaff, serverNow, notConfiguredHtml, watchAvatars,
 } from './fb.js';
 import { LIMBS, COLORS, boardSvg, makeSpinner } from './twister.js';
 import { mountJuryPanel } from './jurypanel.js';
@@ -48,7 +48,7 @@ async function init() {
   if (!configured) return void (app.innerHTML = notConfiguredHtml());
   useAuth('local');
   const user = await currentUser();
-  if (!(await isAdmin(user))) {
+  if (!(await isStaff(user))) {
     app.innerHTML = `<div class="card center login-wrap"><div class="wobble">${ART.egg()}</div>
       <h2>Alleen de chef-kok mag hosten</h2><p>Log eerst in als admin.</p><a class="btn" href="login.html?next=host.html">Inloggen</a></div>`;
     return;

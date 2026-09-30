@@ -5,13 +5,30 @@
         ".read": "auth != null && auth.uid === $uid"
       }
     },
-    "quizzes": {
+    "moderators": {
       ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid"
+      }
+    },
+    "roster": {
+      ".read": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
       ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
     },
+    "quizzes": {
+      ".read": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      "$qid": {
+        ".write": "(auth != null && root.child('moderators').child(auth.uid).val() === true) && newData.exists()"
+      }
+    },
     "media": {
-      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
-      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
+      ".read": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      "$mid": {
+        ".write": "(auth != null && root.child('moderators').child(auth.uid).val() === true) && newData.exists()"
+      }
     },
     "letters": {
       ".read": true,
@@ -29,14 +46,15 @@
       }
     },
     "missions": {
-      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      ".read": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
       ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
         "revealedAt": {
           ".write": "auth != null && auth.uid === $uid && !data.exists() && data.parent().exists()",
           ".validate": "newData.val() === now"
-        }
+        },
+        ".write": "auth != null && root.child('moderators').child(auth.uid).val() === true"
       }
     },
     "avatars": {
@@ -63,7 +81,7 @@
         }
       },
       "guesses": {
-        ".read": "auth != null && root.child('raadkaart/reveal').exists()",
+        ".read": "(auth != null && root.child('raadkaart/reveal').exists()) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
         "$uid": {
           ".read": "auth != null && auth.uid === $uid",
           "$gid": {
@@ -74,12 +92,12 @@
       }
     },
     "juryPins": {
-      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
-      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
+      ".read": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
+      ".write": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)"
     },
     "games": {
-      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
-      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      ".read": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
+      ".write": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
       ".indexOn": [
         "createdAt"
       ],
@@ -96,7 +114,7 @@
               ".validate": "newData.isString() && newData.val().length <= 8"
             },
             "score": {
-              ".validate": "newData.isNumber() && (newData.val() === 0 || root.child('admins').child(auth.uid).val() === true)"
+              ".validate": "newData.isNumber() && (newData.val() === 0 || auth != null && root.child('admins').child(auth.uid).val() === true || auth != null && root.child('moderators').child(auth.uid).val() === true)"
             },
             "online": {
               ".write": "auth != null && auth.uid === $uid && data.parent().exists()",

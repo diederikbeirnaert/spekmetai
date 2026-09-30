@@ -5,7 +5,7 @@ import { makeMap, eggPin, goalPin, tColor, distanceKm, fmtKm, dayLabel, edgesTab
 import {
   configured, db, ref, get, set, update, remove, push, useAuth, currentUser, isAdmin, notConfiguredHtml,
   signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential,
-  createMemberAccount, deleteMemberAccount, cleanUsername, whoAmI, watchAvatars,
+  createMemberAccount, deleteMemberAccount, cleanUsername, whoAmI, watchAvatars, isMod,
 } from './fb.js';
 
 shell('admin');
@@ -14,6 +14,7 @@ const TYPES = { mc: 'Meerkeuze', tf: 'Waar / niet waar', open: 'Open antwoord', 
 const TIMES = [5, 10, 15, 20, 30, 45, 60, 90, 120];
 
 let user, dirty = false, quiz = null, letter = null;
+let light = false; // admin light: beperkte rechten (quizzen, hosten, opdrachten, raadkaart bekijken)
 const mediaCache = {};
 
 window.addEventListener('beforeunload', (e) => { if (dirty) e.preventDefault(); });
@@ -27,7 +28,13 @@ async function init() {
   user = await currentUser();
   if (!user || user.isAnonymous) return renderLogin();
   if (!(await isAdmin(user))) {
-    if (await whoAmI(user)) return void location.replace('account.html'); // weekendganger, geen admin
+    const me = await whoAmI(user);
+    if (me?.mod) {
+      light = true;
+      setSessionHint(me);
+      return route();
+    }
+    if (me) return void location.replace('account.html'); // weekendganger, geen admin
     return renderNotAdmin();
   }
   setSessionHint({ role: 'admin', name: 'Chef-kok', email: user.email });
@@ -59,6 +66,10 @@ function route() {
   currentHash = location.hash;
   dirty = false;
   const [page, id] = location.hash.slice(1).split('/').map(decodeURIComponent);
+  // Admin light ziet de weekendbrief en de instellingen niet.
+  if (light && ['letter', 'letters', 'settings'].includes(page)) return listQuizzes();
+  if (light && page === 'members') return missionsLight();
+  if (light && page === 'raadkaart') return raadkaartLight();
   if (page === 'quiz') return editQuiz(id);
   if (page === 'letter') return editLetter(id);
   if (page === 'letters') return listLetters();
@@ -73,17 +84,20 @@ function route() {
 }
 
 function frame(active, html) {
+  const tabs = [
+    ['quizzes', '🍳 Quizzen'],
+    !light && ['letters', '✉️ Weekendbrief'],
+    ['members', light ? '🤫 Opdrachten' : '🤫 Weekendgangers'],
+    ['raadkaart', '🗺️ Raadkaart'],
+    ['twister', '🌀 Twister'],
+    !light && ['settings', '⚙️ Instellingen'],
+  ].filter(Boolean);
   app.innerHTML = `<div class="row" style="justify-content:space-between;margin-bottom:10px">
-      <h1 style="margin:0">Keuken <span class="wobble" style="display:inline-block;width:52px;vertical-align:middle">${ART.egg()}</span></h1>
+      <h1 style="margin:0">Keuken <span class="wobble" style="display:inline-block;width:52px;vertical-align:middle">${ART.egg()}</span>
+        ${light ? '<span class="pill yolk" style="font-size:.9rem;vertical-align:middle">🛡️ Admin light</span>' : ''}</h1>
       <a class="btn small ghost" href="host.html">▶ Host een quiz</a></div>
-    <div class="tabs">
-      <a class="tab ${active === 'quizzes' ? 'active' : ''}" href="#quizzes">🍳 Quizzen</a>
-      <a class="tab ${active === 'letters' ? 'active' : ''}" href="#letters">✉️ Weekendbrief</a>
-      <a class="tab ${active === 'members' ? 'active' : ''}" href="#members">🤫 Weekendgangers</a>
-      <a class="tab ${active === 'raadkaart' ? 'active' : ''}" href="#raadkaart">🗺️ Raadkaart</a>
-      <a class="tab ${active === 'twister' ? 'active' : ''}" href="#twister">🌀 Twister</a>
-      <a class="tab ${active === 'settings' ? 'active' : ''}" href="#settings">⚙️ Instellingen</a>
-    </div><div id="view">${html}</div>`;
+    <div class="tabs">${tabs.map(([k, l]) => `<a class="tab ${active === k ? 'active' : ''}" href="#${k}">${l}</a>`).join('')}</div>
+    <div id="view">${html}</div>`;
 }
 
 /* ---------- Quizlijst ---------- */
@@ -101,7 +115,7 @@ async function listQuizzes() {
         <a class="btn small" href="host.html?quiz=${encodeURIComponent(id)}">▶ Host</a>
         <a class="btn small ghost" href="#quiz/${encodeURIComponent(id)}">✏️ Bewerk</a>
         <button class="btn small ghost icon" data-dup="${esc(id)}" title="Dupliceren">⧉</button>
-        <button class="btn small ghost icon" data-del="${esc(id)}" title="Verwijderen">🗑</button>
+        ${light ? '' : `<button class="btn small ghost icon" data-del="${esc(id)}" title="Verwijderen">🗑</button>`}
       </div>`).join('') || `<div class="card center"><div class="float" style="width:120px;margin:auto">${ART.egg()}</div><p>Nog geen quizzen. Tijd om te bakken!</p></div>`}
     </div>`;
   $('#new').onclick = () => { location.hash = `quiz/${uid()}`; };
@@ -438,7 +452,14 @@ const fmtTime = (t) => new Date(t).toLocaleString('nl-BE', { weekday: 'short', d
 
 async function listMembers() {
   frame('members', '<div class="card muted">Laden…</div>');
-  const [members, missions, avatars] = await Promise.all(['members', 'missions', 'avatars'].map(async (k) => (await get(ref(db, k))).val() || {}));
+  const [members, missions, avatars, roster, mods] = await Promise.all(['members', 'missions', 'avatars', 'roster', 'moderators'].map(async (k) => (await get(ref(db, k))).val() || {}));
+  // Namenlijst zonder wachtwoorden bijhouden, zodat admin light de weekendgangers kan zien.
+  const rosterUpd = {};
+  for (const [id, m] of Object.entries(members)) {
+    if (roster[id]?.name !== m.name || roster[id]?.username !== m.username) rosterUpd[`roster/${id}`] = { name: m.name, username: m.username };
+  }
+  for (const id of Object.keys(roster)) if (!members[id]) rosterUpd[`roster/${id}`] = null;
+  if (Object.keys(rosterUpd).length) update(ref(db), rosterUpd).catch(() => {});
   const newAvatar = { bg: 'yolk', img: null };
   repoAvatars = await fetch('avatars/index.json', { cache: 'no-store' }).then((r) => r.json()).catch(() => []);
   const list = Object.entries(members).sort((a, b) => a[1].name.localeCompare(b[1].name));
@@ -461,8 +482,9 @@ async function listMembers() {
       <div class="card member-card" data-id="${esc(id)}">
         <div class="list-item">
           <div data-av>${avatarEditor(avatars[id])}</div>
-          <div class="grow"><h3>${esc(m.name)}</h3>
-            <span class="cred">👤 ${esc(m.username)}</span> <span class="cred">🔑 ${esc(m.password || '?')}</span></div>
+          <div class="grow"><h3>${esc(m.name)} ${mods[id] ? '<span class="pill yolk" style="font-size:.7rem">🛡️ admin light</span>' : ''}</h3>
+            <span class="cred">👤 ${esc(m.username)}</span> <span class="cred">🔑 ${esc(m.password || '?')}</span>
+            <label class="check-row" style="margin-top:8px;font-size:.9rem"><input type="checkbox" data-mod ${mods[id] ? 'checked' : ''}> 🛡️ Admin light (quizzen, hosten, opdrachten, raadkaart bekijken)</label></div>
           ${status(missions[id])}
           <button class="btn small" data-copy>📋 Login kopiëren</button>
           <button class="btn small ghost icon" data-del title="Verwijderen">🗑</button>
@@ -489,6 +511,7 @@ async function listMembers() {
     try {
       const id = await createMemberAccount(username, password);
       await set(ref(db, `members/${id}`), { name, username, password, createdAt: Date.now() });
+      set(ref(db, `roster/${id}`), { name, username }).catch(() => {}); // namenlijst voor admin light
       await set(ref(db, `avatars/${id}`), newAvatar.img ? newAvatar : { bg: newAvatar.bg });
       toast(`${name} zit in de pan 🍳`, 'ok');
       listMembers();
@@ -524,6 +547,11 @@ async function listMembers() {
       toast(`Opdracht voor ${m.name} opgeslagen 🤫`, 'ok');
       listMembers();
     };
+    $('[data-mod]', card).onchange = async (e) => {
+      await set(ref(db, `moderators/${id}`), e.target.checked || null);
+      toast(e.target.checked ? `${m.name} is nu admin light 🛡️` : `${m.name} is geen admin light meer`, 'ok');
+      listMembers();
+    };
     $('[data-copy]', card).onclick = async () => {
       const msg = `Hoi ${m.name}! 🍳\nJe geheime weekendopdracht ligt klaar in de pan:\n${portalUrl()}\n\nGebruikersnaam: ${m.username}\nWachtwoord: ${m.password}\n\n🤫 Niet verder vertellen!`;
       try { await navigator.clipboard.writeText(msg); toast('Gekopieerd! Plak het in een berichtje 📋', 'ok'); }
@@ -532,7 +560,7 @@ async function listMembers() {
     $('[data-del]', card).onclick = async () => {
       if (!confirm(`${m.name} en de opdracht verwijderen?`)) return;
       try { await deleteMemberAccount(m.username, m.password); } catch { /* account bestond al niet meer */ }
-      await update(ref(db), { [`members/${id}`]: null, [`missions/${id}`]: null, [`avatars/${id}`]: null });
+      await update(ref(db), { [`members/${id}`]: null, [`missions/${id}`]: null, [`avatars/${id}`]: null, [`roster/${id}`]: null, [`moderators/${id}`]: null });
       toast(`${m.name} verwijderd`);
       listMembers();
     };
@@ -717,6 +745,71 @@ async function raadkaartAdmin() {
     toast('Alle gokken gewist 🧹');
     raadkaartAdmin();
   };
+}
+
+/* ---------- Admin light: opdrachten geven ---------- */
+async function missionsLight() {
+  frame('members', '<div class="card muted">Laden…</div>');
+  const [roster, missions] = await Promise.all(['roster', 'missions'].map(async (k) => (await get(ref(db, k))).val() || {}));
+  const list = Object.entries(roster).sort((a, b) => a[1].name.localeCompare(b[1].name));
+  const status = (ms) => (ms?.revealedAt ? `<span class="pill" style="background:var(--ok)">✅ Geopend ${esc(fmtTime(ms.revealedAt))}</span>`
+    : ms?.text ? '<span class="pill yolk">🥚 Nog niet geopend</span>' : '<span class="pill" style="background:var(--muted)">Nog geen opdracht</span>');
+  $('#view').innerHTML = `<div class="list">${list.map(([id, m]) => `
+    <div class="card member-card" data-id="${esc(id)}">
+      <div class="list-item">${av({ member: true }, id)}<div class="grow"><h3>${esc(m.name)}</h3></div>${status(missions[id])}</div>
+      <div class="field" style="margin:14px 0 8px"><label>Geheime opdracht</label>
+        <textarea class="input" data-mission>${esc(missions[id]?.text || '')}</textarea></div>
+      <button class="btn small ok" data-save disabled>Opslaan</button>
+    </div>`).join('') || '<div class="card muted">Nog geen weekendgangers.</div>'}</div>`;
+  watchAvatars(setAvatars);
+  $$('.member-card').forEach((card) => {
+    const id = card.dataset.id;
+    const ta = $('[data-mission]', card);
+    const save = $('[data-save]', card);
+    ta.oninput = () => { save.disabled = ta.value.trim() === (missions[id]?.text || ''); };
+    save.onclick = async () => {
+      const text = ta.value.trim();
+      await (text ? set(ref(db, `missions/${id}`), { text, updatedAt: Date.now() }) : remove(ref(db, `missions/${id}`)));
+      toast(`Opdracht voor ${roster[id].name} opgeslagen 🤫`, 'ok');
+      missionsLight();
+    };
+  });
+}
+
+/* ---------- Admin light: raadkaart bekijken (zonder geheime locatie) ---------- */
+async function raadkaartLight() {
+  frame('raadkaart', '<div class="card muted">Laden…</div>');
+  const val = async (p) => (await get(ref(db, p)).catch(() => null))?.val();
+  const [guesses, roster, config, reveal] = await Promise.all(['raadkaart/guesses', 'roster', 'raadkaart/config', 'raadkaart/reveal'].map(val));
+  const all = guesses || {};
+  const names = roster || {};
+  const people = Object.entries(all).map(([uid, g]) => {
+    const list = Object.values(g).filter((x) => !x.test);
+    return { uid, name: names[uid]?.name || '?', n: list.length, warmest: list.reduce((m, x) => Math.max(m, x.t), -1) };
+  }).filter((p) => p.n).sort((a, b) => b.warmest - a.warmest);
+  $('#view').innerHTML = `
+    <div class="rk-grid">
+      <div class="card rk-mapcard"><div id="amap" class="rk-map"></div></div>
+      <aside class="rk-side">
+        <div class="card stack">
+          <p style="margin:0">👀 Je ziet alle gokken en hoe warm ze zitten, maar niet de geheime locatie.</p>
+          <p class="muted" style="margin:0">Kaart: <b>${config?.open ? 'open' : 'dicht'}</b>${reveal ? ` · onthuld: <b>${esc(reveal.name || '')}</b>` : ''}</p>
+          <a class="btn pan" href="raadkaart.html">🗺️ Zelf raden</a>
+        </div>
+        <div class="card"><h3 style="margin-top:0">Warmste gok per persoon</h3>
+          <ol class="rk-rank">${people.map((p) => `<li>${av({ member: true }, p.uid)}<b>${esc(p.name)}</b>
+            <span class="muted">${p.n}×</span><span class="rk-dot" style="background:${tColor(p.warmest)}"></span></li>`).join('') || '<li class="muted">Nog niemand heeft gegokt.</li>'}</ol></div>
+      </aside>
+    </div>`;
+  watchAvatars(setAvatars);
+  const map = await makeMap($('#amap'));
+  const L = window.L;
+  for (const [uid, g] of Object.entries(all)) {
+    for (const x of Object.values(g)) {
+      if (x.test) continue;
+      L.marker([x.lat, x.lng], { icon: eggPin(L, tColor(x.t), `${names[uid]?.name || '?'} · ${dayLabel(x.day)}`) }).addTo(map);
+    }
+  }
 }
 
 /* ---------- Instellingen ---------- */

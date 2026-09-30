@@ -2,11 +2,22 @@
 import { esc } from './common.js';
 
 // 40 temperaturen over 300 km, van t = 0 (bevroren, verder dan 300 km) tot t = 39 (raak, dichter dan 50 m).
-// Van 300 tot 70 km zakt het in stapjes van ±8% (bevroren → koud). Binnen 70 km is het ei al lauw
-// (moed geven!), en hoe dichter je komt, hoe fijner de stappen: op het einde gaat het om tientallen meters.
+//   300 – 70 km  bevroren → koud (stapjes van ±8%)
+//    70 – 10 km  lauw → warm (moed geven!)
+//    10 –  5 km  zeer warm (2 eigen eitjes)
+//     < 5 km     heet → gloeiend → raak, steeds fijner tot op tientallen meters
 export const EDGES = [300, 275, 253, 232, 213, 195, 179, 164, 151, 139, 127, 117, 107, 98, 90, 83, 76, 70,
-  50, 35, 25, 17.5, 12.5, 8.8, 6.2, 4.4, 3.1, 2.2, 1.55, 1.1, 0.78, 0.55, 0.39, 0.28, 0.2, 0.14, 0.1, 0.07, 0.05];
+  50, 35, 25, 17.5, 10, 7.5, 5, 3.6, 2.6, 1.9, 1.35, 0.97, 0.7, 0.5, 0.36, 0.26, 0.19, 0.135, 0.097, 0.07, 0.05];
 export const STEPS = EDGES.length + 1;
+// Hoe warm elk van de 40 eieren eruitziet (0 = bevroren … 1 = raak). Per stap vastgelegd, zodat elke
+// afstandsband precies het juiste ei krijgt.
+const VIS = [
+  ...Array.from({ length: 18 }, (_, t) => (0.44 * t) / 17), // t0–t17: 300 → 70 km, bevroren → koud
+  0.46, 0.5, 0.54, 0.58, 0.63, // t18–t22: 70 → 10 km, lauw → warm (zonnebril)
+  0.67, 0.7, // t23–t24: 10 → 5 km, zeer warm
+  ...Array.from({ length: 15 }, (_, k) => 0.73 + (0.27 * k) / 14), // t25–t39: < 5 km, heet → gloeiend → raak
+];
+export const tProgress = (t) => VIS[Math.max(0, Math.min(VIS.length - 1, t))];
 export const tempFor = (km) => { let t = 0; while (t < EDGES.length && km < EDGES[t]) t++; return t; };
 export const tempKey = (t) => `t${t}`;
 // Tabel met grenzen (in km², vierkant) die de databaseregels gebruiken om een gok te controleren.
@@ -28,7 +39,7 @@ export function tempColor(f) {
   }
   return STOPS.at(-1)[1];
 }
-export const tColor = (t) => tempColor(t / (STEPS - 1));
+export const tColor = (t) => tempColor(tProgress(t));
 
 // Het temperatuur-ei: 40 looks van bevroren (ijsblok, mutsje, sneeuw) tot gloeiend (vlammen, vonken,
 // sterretjesogen) en raak (kroontje, hartjesogen, vuurwerk). Animaties via de .te-*-klassen in style.css.
@@ -37,9 +48,13 @@ const FLAKES = [[24, 20, 0, 1], [62, 8, 1.1, 0.8], [104, 14, 0.5, 1], [138, 30, 
 const FLAMES = [[28, 124, 1], [132, 124, 1], [46, 132, 0.8], [114, 132, 0.8], [16, 104, 0.75], [144, 104, 0.75], [64, 138, 0.7], [96, 138, 0.7]];
 const SPARKS = [[40, 80], [122, 72], [70, 36], [100, 40], [30, 50], [130, 44], [56, 22], [110, 20]];
 
+const range0 = (a, b, f) => f >= a && f < b;
+
 export function tempEgg(t, cls = '') {
-  const f = t / (STEPS - 1);
-  const win = f === 1;
+  const f = tProgress(t);
+  const win = t === STEPS - 1;
+  const veryWarm = range0(0.66, 0.72, f); // de twee 'zeer warm'-eitjes (10 – 5 km)
+  const panting = f >= 0.69 && f < 0.72; // tweede: zonnebril omhoog, hijgend
   const range = (a, b) => f >= a && f < b;
   const ramp = (a, b) => Math.max(0, Math.min(1, (f - a) / (b - a)));
   const white = f < 0.5 ? mix('#CFEAFB', '#FFFFFF', f / 0.5) : win ? '#FFF6D6' : mix('#FFFFFF', '#FFE4D6', (f - 0.5) / 0.5);
@@ -91,6 +106,8 @@ export function tempEgg(t, cls = '') {
         ? `<ellipse cx="80" cy="90" rx="3.5" ry="4" fill="${ink}"/>`
         : f < 0.7
           ? `<path d="M72 88 q8 8 16 0" stroke="${ink}" stroke-width="3.5" fill="none" stroke-linecap="round"/>`
+          : veryWarm
+            ? `<path d="M71 87 q9 10 18 0 Z" fill="#7A2E2E" stroke="${ink}" stroke-width="3" stroke-linejoin="round"/>${panting ? '<path class="te-tongue" d="M76 91 q4 9 8 0 Z" fill="#E27B7B" stroke="' + ink + '" stroke-width="1.8"/>' : ''}`
           : f < 0.85 || win
             ? `<path d="M70 87 q10 12 20 0 Z" fill="#7A2E2E" stroke="${ink}" stroke-width="3" stroke-linejoin="round"/>${win ? '<path d="M77 93 q3 5 6 0" fill="#E27B7B"/>' : ''}`
             : `<ellipse cx="80" cy="91" rx="7" ry="8" fill="#7A2E2E" stroke="${ink}" stroke-width="3"/>`;
@@ -122,9 +139,13 @@ export function tempEgg(t, cls = '') {
     ${range(0.1, 0.32) ? `<g class="te-hat"><path d="M56 64 C56 44 104 44 104 64 Z" fill="#2A7FB8" stroke="${ink}" stroke-width="3" stroke-linejoin="round"/>
       <path d="M54 62 h52 v8 h-52 Z" fill="#fff" stroke="${ink}" stroke-width="3" stroke-linejoin="round"/><path d="M62 52 l6 -4 M72 48 l6 -2 M86 48 l6 2" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
       <circle cx="80" cy="42" r="7" fill="#fff" stroke="${ink}" stroke-width="3"/></g>` : ''}
-    ${range(0.6, 0.72) ? `<g><rect x="63" y="74" width="15" height="10" rx="4" fill="${ink}"/><rect x="82" y="74" width="15" height="10" rx="4" fill="${ink}"/>
+    ${range(0.6, 0.72) ? `<g${panting ? ' transform="translate(0 -14)"' : ''}><rect x="63" y="74" width="15" height="10" rx="4" fill="${ink}"/><rect x="82" y="74" width="15" height="10" rx="4" fill="${ink}"/>
       <path d="M78 78 h4 M63 77 l-5 -2 M97 77 l5 -2" stroke="${ink}" stroke-width="2.5" stroke-linecap="round"/><path d="M66 77 l4 -2" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity=".7"/></g>` : ''}
-    ${range(0.72, 0.97) ? `<path class="te-sweat" d="M104 62 q5 8 0 12 q-5 -4 0 -12 Z" fill="#8FD3FF" stroke="${ink}" stroke-width="2"/>` : ''}
+    ${veryWarm ? `<g stroke="#F7A541" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7">
+      <path class="te-shimmer" d="M44 36 q4 -6 0 -12 t0 -12"/><path class="te-shimmer" style="animation-delay:.4s" d="M116 36 q4 -6 0 -12 t0 -12"/>
+      ${panting ? '<path class="te-shimmer" style="animation-delay:.8s" d="M80 30 q4 -6 0 -12 t0 -12"/>' : ''}</g>` : ''}
+    ${panting ? `<path class="te-sweat" style="animation-delay:.6s" d="M56 60 q5 8 0 12 q-5 -4 0 -12 Z" fill="#8FD3FF" stroke="${ink}" stroke-width="2"/>` : ''}
+    ${range(0.66, 0.97) ? `<path class="te-sweat" d="M104 62 q5 8 0 12 q-5 -4 0 -12 Z" fill="#8FD3FF" stroke="${ink}" stroke-width="2"/>` : ''}
     ${nFlakes ? `<g>${FLAKES.slice(0, nFlakes).map(flake).join('')}</g>` : ''}
     ${f < 0.22 ? `<g class="te-brr"><path d="M104 96 q10 -6 18 0 q6 -8 14 -2 q6 8 -4 12 q-12 6 -22 0 q-8 0 -6 -10 Z" fill="#fff" stroke="#7FB8E8" stroke-width="2"/>
       <text x="120" y="104" text-anchor="middle" font-family="Fredoka, Nunito, sans-serif" font-weight="700" font-size="10" fill="#4F9FE0">brrr</text></g>` : ''}

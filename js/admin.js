@@ -591,11 +591,13 @@ function wireAvatarEditor(box, state, onChange) {
 async function raadkaartAdmin() {
   frame('raadkaart', '<div class="card muted">Laden…</div>');
   const val = async (p) => (await get(ref(db, p))).val();
-  const [secret, config, reveal, guesses, members] = await Promise.all(
-    ['raadkaart/secret', 'raadkaart/config', 'raadkaart/reveal', 'raadkaart/guesses', 'members'].map(val));
+  const [secret, config, reveal, guesses, members, excl] = await Promise.all(
+    ['raadkaart/secret', 'raadkaart/config', 'raadkaart/reveal', 'raadkaart/guesses', 'members', 'raadkaart/excluded'].map(val));
   const all = guesses || {};
   const mem = members || {};
   let spot = secret ? { lat: secret.lat, lng: secret.lng } : null;
+  // Weekendgangers die niet meetellen voor winst en ranking (alleen leesbaar voor de admin).
+  const excluded = { ...(excl || {}) };
   const count = Object.values(all).reduce((n, g) => n + Object.keys(g).length, 0);
   const testCount = Object.values(all).reduce((n, g) => n + Object.values(g).filter((x) => x.test).length, 0);
 
@@ -622,7 +624,14 @@ async function raadkaartAdmin() {
         <div class="card">
           <h3 style="margin-top:0">Gokken (${count})</h3>
           <ol class="rk-rank">${best().map((b) => `<li>${av({ member: true }, b.uid)}<b>${esc(b.name)}</b>
+            ${excluded[b.uid] ? '<span class="pill" style="font-size:.7rem;background:var(--muted)">🚫 telt niet mee</span>' : ''}
             <span class="muted">${b.n}×</span>${b.km != null ? `<span class="rk-km" style="background:${tColor(b.t)}">${fmtKm(b.km)}</span>` : ''}</li>`).join('') || '<li class="muted">Nog niemand heeft gegokt.</li>'}</ol>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0">🚫 Uitsluiten van de wedstrijd</h3>
+          <p class="muted" style="margin:0 0 10px;font-size:.9rem">Wie hier aangevinkt staat, mag nog gokken voor de fun, maar telt niet mee voor de winst of de ranking. Zelf zien ze dat niet.</p>
+          <div class="rk-exclude">${Object.entries(mem).sort((a, b) => a[1].name.localeCompare(b[1].name)).map(([id, m]) => `
+            <label class="check-row"><input type="checkbox" data-excl="${esc(id)}" ${excluded[id] ? 'checked' : ''}>${av({ member: true }, id)} ${esc(m.name)}</label>`).join('') || '<p class="muted">Nog geen weekendgangers.</p>'}</div>
         </div>
         <div class="card stack">
           ${reveal ? `<p style="margin:0">✅ Onthuld: <b>${esc(reveal.name)}</b>. Winnaar: <b>${esc(reveal.results?.[0]?.name || '–')}</b></p>
@@ -663,13 +672,25 @@ async function raadkaartAdmin() {
   $('#rkreveal')?.addEventListener('click', async () => {
     if (!spot || !secret) return toast('Sla eerst een locatie op', 'bad');
     if (!confirm('De locatie voor iedereen onthullen? Daarna kan niemand nog raden.')) return;
-    const results = best().filter((b) => b.km != null).map((b) => ({ uid: b.uid, name: b.name, lat: b.lat, lng: b.lng, km: +b.km.toFixed(2) }));
+    const all = best().filter((b) => b.km != null).map((b) => ({ uid: b.uid, name: b.name, lat: b.lat, lng: b.lng, km: +b.km.toFixed(2) }));
+    const results = all.filter((b) => !excluded[b.uid]); // telt mee voor winst en ranking
+    const others = all.filter((b) => excluded[b.uid]); // buiten competitie: enkel op de kaart
     await set(ref(db, 'raadkaart/reveal'), {
       lat: secret.lat, lng: secret.lng, name: secret.name || $('#rkname').value.trim(), at: Date.now(),
-      winner: results[0]?.uid || null, results,
+      winner: results[0]?.uid || null, results, others,
     });
     toast('Onthuld! 🥚💥', 'ok');
     raadkaartAdmin();
+  });
+  $$('[data-excl]').forEach((cb) => {
+    cb.onchange = async () => {
+      const id = cb.dataset.excl;
+      if (cb.checked) excluded[id] = true;
+      else delete excluded[id];
+      await set(ref(db, `raadkaart/excluded/${id}`), cb.checked || null);
+      toast(cb.checked ? `${mem[id]?.name} telt niet meer mee 🚫` : `${mem[id]?.name} telt weer mee ✔`, 'ok');
+      if (reveal) toast('Let op: de onthulling is al gebeurd. Trek ze in en onthul opnieuw om de ranking bij te werken.');
+    };
   });
   $('#rkunreveal')?.addEventListener('click', async () => {
     if (!confirm('Onthulling intrekken? De locatie wordt weer geheim.')) return;

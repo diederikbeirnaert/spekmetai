@@ -711,3 +711,6 @@ body.raadkaart main { max-width: 1280px; }
 @keyframes teShimmer { 0%, 100% { opacity: .2; translate: 0 4px; } 50% { opacity: .9; translate: 2px -4px; } }
 .temp-egg .te-tongue { animation: teTongue .5s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 0; }
 @keyframes teTongue { to { transform: scaleY(1.25); } }
+.rk-exclude { display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow: auto; }
+.rk-exclude .av-pic { font-size: 1.5rem; }
+.rk-outside { filter: grayscale(1); opacity: .65; }

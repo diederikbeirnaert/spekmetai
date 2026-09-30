@@ -182,6 +182,13 @@ function renderReveal() {
     L.marker([r.lat, r.lng], { icon: avatarPin(L, av({ member: true }, r.uid), `${i + 1}. ${r.name} · ${fmtKm(r.km)}`), zIndexOffset: 500 - i }).addTo(guessLayer);
     bounds.push([r.lat, r.lng]);
   });
+  // Buiten competitie: grijs op de kaart, niet in de ranking.
+  (reveal.others || []).forEach((r) => {
+    L.polyline([[r.lat, r.lng], goal], { color: '#9A8C7E', weight: 3, dashArray: '4 8', opacity: 0.7 }).addTo(guessLayer);
+    L.marker([r.lat, r.lng], { icon: avatarPin(L, av({ member: true }, r.uid), `${r.name} · ${fmtKm(r.km)} · buiten competitie`), zIndexOffset: -100 }).addTo(guessLayer)
+      .getElement()?.classList.add('rk-outside');
+    bounds.push([r.lat, r.lng]);
+  });
   map.fitBounds(bounds, { padding: [60, 60], maxZoom: 11 });
   const winner = results[0];
   $('#status').innerHTML = `<div class="rk-crack pop-in">${tempEgg(STEPS - 1)}</div>

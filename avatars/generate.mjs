@@ -117,6 +117,10 @@ const CLOTHES = {
     <path d="M134 259 Q160 300 186 259 Q160 270 134 259 Z" fill="#FBF8F3" ${stroke(3.5)}/>
     <path d="M124 258 Q134 292 158 320 M196 258 Q186 292 162 320" ${stroke(4)} fill="none"/>
     <path d="M124 258 Q116 276 128 288 M196 258 Q204 276 192 288" stroke="${shade(c, 0.8)}" stroke-width="4" fill="none" stroke-linecap="round"/>`,
+  knit: (c) => `<path d="${BODY}" fill="${c}" ${stroke()}/>
+    <g stroke="${shade(c, 0.86)}" stroke-width="3" stroke-linecap="round">${[70, 88, 106, 214, 232, 250].map((x) => `<path d="M${x} ${x < 160 ? 300 - (x - 70) * 0.6 : 300 - (250 - x) * 0.6} L${x} 318"/>`).join('')}</g>
+    <path d="M130 262 Q160 282 190 262" stroke="${shade(c, 0.8)}" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <path d="M130 262 Q160 282 190 262" ${stroke(3.5)} fill="none"/>`,
   collar: (c) => `<path d="${BODY}" fill="${c}" ${stroke()}/>
     <path d="M124 258 Q126 282 146 282 Q156 278 160 264 Q164 278 174 282 Q194 282 196 258" fill="${shade(c, 1.25)}" ${stroke(4)}/>`,
 };
@@ -134,6 +138,7 @@ const sunglasses = `<g transform="rotate(-6 160 74)">
     <path d="M98 76 Q160 60 222 76" ${stroke(5)} fill="none"/>
     <rect x="102" y="60" width="48" height="28" rx="13" fill="#6B4A2E" ${stroke(4)}/><rect x="170" y="60" width="48" height="28" rx="13" fill="#6B4A2E" ${stroke(4)}/>
     <path d="M110 67 L124 66 M178 67 L192 66" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".6"/></g>`;
+const noseRing = `<circle cx="169" cy="188" r="4.2" fill="none" stroke="#E0B34A" stroke-width="2.4"/><circle cx="167" cy="185" r="1" fill="#fff" opacity=".8"/>`;
 const hoops = `<g fill="none" stroke="#E0B34A" stroke-width="4.5"><circle cx="80" cy="196" r="11"/><circle cx="240" cy="196" r="11"/></g>`;
 const studs = `<g fill="#F2C94C" ${stroke(1.5)}><circle cx="80" cy="186" r="4.5"/><circle cx="240" cy="186" r="4.5"/></g>`;
 const necklace = `<g fill="none" stroke="#E0B34A" stroke-width="3" stroke-linecap="round">
@@ -167,6 +172,7 @@ function avatar(p) {
       ${brows(p)}
       <path d="M157 170 Q151 186 160 189 Q167 190 170 185" ${stroke(3.5)} fill="none"/>
       ${MOUTH[p.mouth || 'smile']}
+      ${p.noseRing ? noseRing : ''}
       ${long ? topMiddle(p.hair) : ''}
       ${bob ? mirror(topSide(p.hair), p.flip) : ''}
       ${HAIR[p.hairStyle] ? HAIR[p.hairStyle](p.hair) : ''}
@@ -188,6 +194,7 @@ const PEOPLE = {
   diederik: { face: 'round', hair: '#2A1C14', hairStyle: 'messy', skin: '#F1C6A6', eyes: '#7C8A4A', mouth: 'smile', thickBrows: true, beard: '#4A3A30', shirt: '#26262E', tilt: -3, delay: 0.6 },
   tom: { face: 'round', hair: '#8A6445', hairStyle: 'swept', skin: '#F0C3A2', eyes: '#7A8B55', mouth: 'grin', beard: '#7A5A40', shirt: '#26262E', tilt: 4, delay: 1.7 },
   simon: { face: 'oval', hair: '#B8956A', hairStyle: 'quiff', skin: '#F6CFB2', eyes: '#6B4A2E', mouth: 'smirk', shirt: '#2F8F9D', tilt: -4, delay: 2.8 },
+  linde: { face: 'oval', hair: '#7B5033', hairStyle: 'long', len: 296, wave: true, skin: '#F7D6BE', eyes: '#7C97A8', lashes: true, mouth: 'grin', noseRing: true, clothes: 'knit', shirt: '#EDE4D3', tilt: -3, delay: 4.6 },
   karel: { face: 'round', hair: '#5A3A24', hairStyle: 'neat', skin: '#F3C7A8', eyes: '#6E8797', mouth: 'grin', glasses: '#2A1C14', rectGlasses: true, beard: '#5A3A24', fullBeard: true, clothes: 'collar', shirt: '#5B6770', tilt: 3, delay: 3.9 },
 };
 

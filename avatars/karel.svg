@@ -40,6 +40,7 @@
     <path d="M149 224 Q160 230 171 224" stroke="#E27B7B" stroke-width="6" fill="none" stroke-linecap="round"/>
       
       
+      
       <path d="M84 148 C78 94 114 62 160 62 C206 62 242 94 236 148 C232 122 222 112 212 106 C190 114 150 112 110 108 C98 118 90 132 84 148 Z" fill="#5A3A24" stroke="#3A2618" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
     <g stroke="#412a1a" stroke-width="3" fill="none" stroke-linecap="round"><path d="M126 108 C130 98 134 92 138 86"/><path d="M158 110 C162 100 166 94 168 86"/><path d="M190 110 C194 102 198 96 202 90"/></g><path d="M116 80 Q140 68 168 68" stroke="#835434" stroke-width="7" fill="none" stroke-linecap="round" opacity=".75"/>
       <rect x="103" y="137" width="50" height="40" rx="8" fill="rgba(255,255,255,.2)" stroke="#2A1C14" stroke-width="6"/>

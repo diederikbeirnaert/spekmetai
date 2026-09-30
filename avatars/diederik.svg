@@ -39,6 +39,7 @@
     <path d="M136 203 L140 207 M184 203 L180 207" stroke="#3A2618" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
       
       
+      
       <path d="M82 152 C74 118 82 88 102 72 C98 58 110 46 124 46 C128 34 146 28 160 36 C170 26 192 26 202 38 C218 34 236 44 238 60 C252 70 254 96 244 112 C246 126 244 140 240 152 C234 132 222 118 208 112 C204 122 196 126 186 124 C190 116 188 108 182 104 C170 112 150 112 138 106 C128 116 108 120 96 132 C90 138 86 144 82 152 Z" fill="#2A1C14" stroke="#3A2618" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
     <g stroke="#5b3c2b" stroke-width="3" fill="none" stroke-linecap="round"><path d="M112 100 C118 84 128 72 142 64"/><path d="M146 94 C154 76 168 62 186 56"/><path d="M188 98 C200 84 214 76 230 76"/></g>
     <g stroke="#3A2618" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" fill="none"><path d="M156 34 C160 22 172 16 184 18"/><path d="M238 60 C248 52 258 52 266 58"/><path d="M102 72 C92 66 84 66 78 70"/></g>

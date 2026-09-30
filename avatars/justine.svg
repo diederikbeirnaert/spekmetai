@@ -40,6 +40,7 @@
     <path d="M139 204 Q160 211 181 204 L179 211 Q160 217 141 211 Z" fill="#fff"/>
     <path d="M149 224 Q160 230 171 224" stroke="#E27B7B" stroke-width="6" fill="none" stroke-linecap="round"/>
       
+      
       <g transform="translate(320 0) scale(-1 1)"><path d="M160 52 C110 52 74 90 74 150 C74 168 78 184 86 196 C88 162 94 136 106 120 C132 114 162 106 190 98 C208 108 224 126 232 148 C236 164 236 180 236 196 C242 184 246 168 246 150 C246 90 210 52 160 52 Z" fill="#C0602F" stroke="#3A2618" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
   <path d="M110 130 C136 124 164 116 190 108" stroke="#6a351a" stroke-width="6" fill="none" opacity=".2" stroke-linecap="round"/>
   <g stroke="#8a4522" stroke-width="3" fill="none" stroke-linecap="round"><path d="M198 58 C196 74 194 88 190 98"/><path d="M150 66 C136 84 120 100 106 116"/><path d="M176 64 C168 80 158 94 146 108"/></g>

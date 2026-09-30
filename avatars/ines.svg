@@ -41,6 +41,7 @@
       <path d="M157 170 Q151 186 160 189 Q167 190 170 185" stroke="#3A2618" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
       <path d="M140 206 Q160 222 180 206" stroke="#3A2618" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
     <path d="M136 203 L140 207 M184 203 L180 207" stroke="#3A2618" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
+      
       <path d="M160 52 C110 52 74 90 74 150 C74 168 78 184 86 196 C86 162 92 132 108 112 C124 94 142 84 156 80 L160 88 L164 80 C178 84 196 94 212 112 C228 132 234 162 234 196 C242 184 246 168 246 150 C246 90 210 52 160 52 Z" fill="#94401F" stroke="#3A2618" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
   <g stroke="#6b2e16" stroke-width="3" fill="none" stroke-linecap="round"><path d="M160 56 L160 84"/><path d="M116 88 C104 104 96 124 92 150"/><path d="M204 88 C216 104 224 124 228 150"/></g>
   <path d="M114 76 Q132 62 152 60" stroke="#d75d2d" stroke-width="7" fill="none" stroke-linecap="round" opacity=".75"/><path d="M170 60 Q190 64 206 76" stroke="#d75d2d" stroke-width="7" fill="none" stroke-linecap="round" opacity=".75"/>

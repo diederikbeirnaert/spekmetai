@@ -1,10 +1,11 @@
 // Gedeelde stukken voor de raadkaart: Leaflet laden, temperaturen, eierpinnen en afstanden.
 import { esc } from './common.js';
 
-// 40 temperaturen, van t = 0 (bevroren, verder dan 200 km) tot t = 39 (raak, dichter dan 50 m).
-// De stappen worden fijner naarmate je dichterbij komt, zodat het op het einde op meters aankomt.
-export const EDGES = [200, 170, 145, 125, 105, 90, 75, 63, 53, 45, 38, 32, 27, 23, 19, 16, 13.5, 11.5, 9.5, 8,
-  6.5, 5.4, 4.4, 3.6, 2.9, 2.3, 1.8, 1.4, 1.1, 0.85, 0.65, 0.5, 0.38, 0.28, 0.2, 0.14, 0.1, 0.07, 0.05];
+// 40 temperaturen over 300 km, van t = 0 (bevroren, verder dan 300 km) tot t = 39 (raak, dichter dan 50 m).
+// Tot 50 km zakt het in stapjes van ±10% (bevroren → koud), vanaf 50 km wordt het lauw en warm,
+// en hoe dichter je komt, hoe fijner de stappen: op het einde komt het op tientallen meters aan.
+export const EDGES = [300, 270, 243, 219, 197, 177, 160, 144, 129, 116, 105, 94, 85, 76, 69, 62, 56, 50,
+  36, 26, 18.7, 13.4, 9.7, 7, 5, 3.6, 2.6, 1.9, 1.35, 0.97, 0.7, 0.5, 0.36, 0.26, 0.19, 0.135, 0.097, 0.07, 0.05];
 export const STEPS = EDGES.length + 1;
 export const tempFor = (km) => { let t = 0; while (t < EDGES.length && km < EDGES[t]) t++; return t; };
 export const tempKey = (t) => `t${t}`;

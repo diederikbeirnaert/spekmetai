@@ -137,11 +137,11 @@ Weekendgangers raden waar het weekend doorgaat.
 
 **Zo werkt het:**
 - Je moet ingelogd zijn en mag **1× per dag** een speldje op de kaart prikken.
-- Het **temperatuur-ei** toont hoe dicht je zit. Er zijn 12 stappen van ongeveer 17 km, tussen 0 en 200 km. Het ei gaat van een bevroren blauw ei met sneeuw tot een gloeiend rood ei met vlammen.
+- Het **temperatuur-ei** toont hoe dicht je zit. Er zijn 40 stappen over 300 km: vanaf ±50 km wordt het lauw, en hoe dichterbij, hoe fijner de stappen (tot < 50 m). Het ei gaat van een bevroren ei in een ijsblok tot een gloeiend ei met vlammen en een gouden kroontje.
 - De echte locatie is niet uit de website te lezen. De database controleert zelf welke temperatuur klopt.
 
 **Admin → 🗺️ Raadkaart:**
-- Prik de geheime locatie, geef ze een naam en zet de kaart open.
+- Prik de geheime locatie, geef ze een naam en zet de kaart open. Klik altijd op **Opslaan**: dat stuurt ook de tabel met de 40 temperatuurgrenzen mee.
 - Met **🧪 Testmodus** mag je onbeperkt raden, ook als admin. Achteraf wis je de testgokken met één knop.
 - **🥚 Onthul** toont de locatie aan iedereen. Alle avatars verschijnen op hun beste gok, met de afstand erbij. Wie het dichtst zat, wint.
 

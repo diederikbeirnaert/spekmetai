@@ -141,6 +141,19 @@ const sunglasses = `<g transform="rotate(-6 160 74)">
 // Neuspiercing: subtiel, dun ringetje dat door de linkerneusvleugel prikt (rechts voor de kijker).
 const noseRing = `<path d="M170.4 186.6 A2.3 2.3 0 1 1 169.4 189.8" stroke="#B8902E" stroke-width="1.9" fill="none" stroke-linecap="round"/>
   <path d="M170.4 186.6 A2.3 2.3 0 1 1 169.4 189.8" stroke="#F2C94C" stroke-width="1" fill="none" stroke-linecap="round"/>`;
+// Babymeisje in de armen: roze dekentje, strikje, slaapoogjes; wiegt zachtjes (.baby-animatie)
+const baby = (skin) => `<g class="baby">
+    <path d="M110 302 C106 272 128 256 160 258 C198 260 224 276 222 302 C220 320 196 328 164 326 C130 326 112 318 110 302 Z" fill="#F7B7C8" ${stroke(4)}/>
+    <path d="M152 264 C170 278 192 284 216 286 M126 312 C150 318 180 318 206 312" stroke="#E68AA5" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <circle cx="140" cy="277" r="20" fill="#F9DCC8" ${stroke(4)}/>
+    <path d="M136 258 q7 -7 9 2" stroke="${INK}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <g fill="#F28BAA" ${stroke(2.5)}><path d="M140 262 l-11 -6 l0 12 Z"/><path d="M140 262 l11 -6 l0 12 Z"/><circle cx="140" cy="262" r="3.2"/></g>
+    <path d="M130 277 q4 3.5 8 0 M142 277 q4 3.5 8 0" stroke="${INK}" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    <ellipse cx="129" cy="285" rx="4.5" ry="3" fill="#F28C6B" opacity=".5"/><ellipse cx="151" cy="285" rx="4.5" ry="3" fill="#F28C6B" opacity=".5"/>
+    <path d="M137 287 q3 3 6 0" stroke="${INK}" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <ellipse cx="116" cy="300" rx="11" ry="9" fill="${skin}" ${stroke(3.5)}/><path d="M110 296 l6 2 M109 301 l6 1" stroke="${INK}" stroke-width="2" stroke-linecap="round"/>
+    <ellipse cx="214" cy="294" rx="11" ry="9" fill="${skin}" ${stroke(3.5)}/><path d="M220 290 l-6 2 M221 295 l-6 1" stroke="${INK}" stroke-width="2" stroke-linecap="round"/>
+  </g>`;
 const hoops = `<g fill="none" stroke="#E0B34A" stroke-width="4.5"><circle cx="80" cy="196" r="11"/><circle cx="240" cy="196" r="11"/></g>`;
 const studs = `<g fill="#F2C94C" ${stroke(1.5)}><circle cx="80" cy="186" r="4.5"/><circle cx="240" cy="186" r="4.5"/></g>`;
 const necklace = `<g fill="none" stroke="#E0B34A" stroke-width="3" stroke-linecap="round">
@@ -156,7 +169,9 @@ function avatar(p) {
     .blink { transform-box: fill-box; transform-origin: center; animation: blink 5s infinite; animation-delay: -${p.delay || 0}s; }
     @keyframes bob { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(${p.tilt > 0 ? 2 : -2}deg) translateY(-2px); } }
     @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
-    @media (prefers-reduced-motion: reduce) { .bob, .blink { animation: none; } }
+    .baby { transform-origin: 166px 300px; animation: rock 3.2s ease-in-out infinite; }
+    @keyframes rock { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+    @media (prefers-reduced-motion: reduce) { .bob, .blink, .baby { animation: none; } }
   </style>
   ${CLOTHES[p.clothes || 'tee'](p.shirt)}
   ${p.necklace ? necklace : ''}
@@ -182,6 +197,7 @@ function avatar(p) {
       ${p.sunglasses ? sunglasses : ''}
       ${p.hoops ? hoops : ''}${p.studs ? studs : ''}
     </g>
+    ${p.baby ? baby(p.skin) : ''}
   </g></g>
 </svg>
 `;
@@ -196,7 +212,7 @@ const PEOPLE = {
   diederik: { face: 'round', hair: '#2A1C14', hairStyle: 'messy', skin: '#F1C6A6', eyes: '#7C8A4A', mouth: 'smile', thickBrows: true, beard: '#4A3A30', shirt: '#26262E', tilt: -3, delay: 0.6 },
   tom: { face: 'round', hair: '#8A6445', hairStyle: 'swept', skin: '#F0C3A2', eyes: '#7A8B55', mouth: 'grin', beard: '#7A5A40', shirt: '#26262E', tilt: 4, delay: 1.7 },
   simon: { face: 'oval', hair: '#B8956A', hairStyle: 'quiff', skin: '#F6CFB2', eyes: '#6B4A2E', mouth: 'smirk', shirt: '#2F8F9D', tilt: -4, delay: 2.8 },
-  linde: { face: 'oval', hair: '#7B5033', hairStyle: 'long', len: 296, wave: true, skin: '#F7D6BE', eyes: '#7C97A8', lashes: true, mouth: 'grin', noseRing: true, clothes: 'knit', shirt: '#EDE4D3', tilt: -3, delay: 4.6 },
+  linde: { face: 'oval', hair: '#7B5033', hairStyle: 'long', len: 296, wave: true, skin: '#F7D6BE', eyes: '#7C97A8', lashes: true, mouth: 'grin', noseRing: true, baby: true, clothes: 'knit', shirt: '#EDE4D3', tilt: -3, delay: 4.6 },
   karel: { face: 'round', hair: '#5A3A24', hairStyle: 'neat', skin: '#F3C7A8', eyes: '#6E8797', mouth: 'grin', glasses: '#2A1C14', rectGlasses: true, beard: '#5A3A24', fullBeard: true, clothes: 'collar', shirt: '#5B6770', tilt: 3, delay: 3.9 },
 };
 

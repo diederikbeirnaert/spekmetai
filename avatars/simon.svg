@@ -4,7 +4,9 @@
     .blink { transform-box: fill-box; transform-origin: center; animation: blink 5s infinite; animation-delay: -2.8s; }
     @keyframes bob { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-2deg) translateY(-2px); } }
     @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
-    @media (prefers-reduced-motion: reduce) { .bob, .blink { animation: none; } }
+    .baby { transform-origin: 166px 300px; animation: rock 3.2s ease-in-out infinite; }
+    @keyframes rock { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+    @media (prefers-reduced-motion: reduce) { .bob, .blink, .baby { animation: none; } }
   </style>
   <path d="M44 320 C48 282 84 262 126 258 Q160 270 194 258 C236 262 272 282 276 320 Z" fill="#2F8F9D" stroke="#3A2618" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/><path d="M132 260 Q160 280 188 260" stroke="#3A2618" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
     <path d="M78 290 Q86 300 90 320 M242 290 Q234 300 230 320" stroke="#26727e" stroke-width="4" fill="none" stroke-linecap="round"/>
@@ -43,5 +45,6 @@
       
       
     </g>
+    
   </g></g>
 </svg>

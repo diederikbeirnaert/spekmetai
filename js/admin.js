@@ -1,7 +1,8 @@
 // Admin: inloggen, quizzen maken, weekendbrieven schrijven, instellingen.
 import { $, $$, ART, esc, shell, toast, uid, parseMediaUrl, mediaHtml, compressImage, md, fmtDate, setSessionHint, AVATAR_BGS, avatarPreview, av, setAvatars } from './common.js';
 import { renderTwister, LIMBS } from './twister.js';
-import { makeMap, eggPin, goalPin, tColor, distanceKm, fmtKm, dayLabel, edgesTable } from './mapkit.js';
+import { makeMap, eggPin, goalPin, tColor, distanceKm, fmtKm, dayLabel, edgesTable, dayIndex } from './mapkit.js';
+import { flatGuesses, addGuessPins, focusPins, mountGuessBoard } from './guessboard.js';
 import {
   configured, db, ref, get, set, update, remove, push, useAuth, currentUser, isAdmin, notConfiguredHtml,
   signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential,
@@ -628,6 +629,7 @@ async function raadkaartAdmin() {
   const excluded = { ...(excl || {}) };
   const count = Object.values(all).reduce((n, g) => n + Object.keys(g).length, 0);
   const testCount = Object.values(all).reduce((n, g) => n + Object.values(g).filter((x) => x.test).length, 0);
+  const locked = count > 0; // zodra er gegokt is, ligt de locatie vast (anders kloppen de eitjes niet meer)
 
   // Beste gok per weekendganger (echte afstand tot de geheime locatie)
   const best = () => Object.entries(all).map(([uid, g]) => {
@@ -642,19 +644,14 @@ async function raadkaartAdmin() {
       <aside class="rk-side">
         <div class="card stack">
           <h3 style="margin:0">📍 Geheime locatie</h3>
-          <p class="muted" style="margin:0">Klik op de kaart om de weekendlocatie te prikken. Niemand anders kan die lezen.</p>
+          ${locked ? `<p class="notice" style="margin:0;font-size:.9rem">🔒 Er ${count === 1 ? 'is al 1 gok' : `zijn al ${count} gokken`}: de locatie ligt vast. Wis alle gokken om ze te verplaatsen.</p>`
+            : '<p class="muted" style="margin:0">Klik op de kaart om de weekendlocatie te prikken. Niemand anders kan die lezen.</p>'}
           <div class="field" style="margin:0"><label>Naam (bij de onthulling)</label><input class="input" id="rkname" value="${esc(secret?.name || '')}" placeholder="bv. Durbuy"></div>
           <label class="check-row"><input type="checkbox" id="rkopen" ${config?.open ? 'checked' : ''}> De kaart is open om te raden</label>
           <label class="check-row"><input type="checkbox" id="rktest" ${config?.test ? 'checked' : ''}> 🧪 Testmodus: onbeperkt raden, ook voor jou als admin</label>
           <button class="btn ok" id="rksave">Opslaan</button>
-          ${count && secret ? '<p class="muted" style="margin:0;font-size:.85rem">⚠️ Er zijn al gokken. Verschuif je de locatie, dan kloppen hun eerdere temperaturen niet meer.</p>' : ''}
         </div>
-        <div class="card">
-          <h3 style="margin-top:0">Gokken (${count})</h3>
-          <ol class="rk-rank">${best().map((b) => `<li>${av({ member: true }, b.uid)}<b>${esc(b.name)}</b>
-            ${excluded[b.uid] ? '<span class="pill" style="font-size:.7rem;background:var(--muted)">🚫 telt niet mee</span>' : ''}
-            <span class="muted">${b.n}×</span>${b.km != null ? `<span class="rk-km" style="background:${tColor(b.t)}">${fmtKm(b.km)}</span>` : ''}</li>`).join('') || '<li class="muted">Nog niemand heeft gegokt.</li>'}</ol>
-        </div>
+        <div class="card" id="rkboard"></div>
         <div class="card">
           <h3 style="margin-top:0">🚫 Uitsluiten van de wedstrijd</h3>
           <p class="muted" style="margin:0 0 10px;font-size:.9rem">Wie hier aangevinkt staat, mag nog gokken voor de fun, maar telt niet mee voor de winst of de ranking. Zelf zien ze dat niet.</p>
@@ -675,12 +672,23 @@ async function raadkaartAdmin() {
   const map = await makeMap($('#amap'), spot ? { center: [spot.lat, spot.lng], zoom: 8 } : {});
   const L = window.L;
   let goal = spot ? L.marker([spot.lat, spot.lng], { icon: goalPin(L) }).addTo(map) : null;
-  for (const [uid, g] of Object.entries(all)) {
-    for (const x of Object.values(g)) {
-      L.marker([x.lat, x.lng], { icon: eggPin(L, tColor(x.t), `${x.test ? '🧪 ' : ''}${mem[uid]?.name || 'Chef-kok'} · ${dayLabel(x.day)}`) }).addTo(map);
-    }
-  }
+  const list = flatGuesses(all, mem, spot);
+  const pins = addGuessPins(L, map, list, spot);
+  mountGuessBoard($('#rkboard'), {
+    list, spot, excluded,
+    onFocus: (uid) => focusPins(map, pins, uid),
+    onDelete: async (g) => {
+      if (!confirm(`Gok van ${g.name} (${fmtTime(g.at)}) wissen?`)) return;
+      const upd = { [`guesses/${g.uid}/${g.key}`]: null };
+      // Gok van vandaag gewist → die persoon mag vandaag opnieuw raden.
+      if (g.day === dayIndex(Date.now())) upd[`last/${g.uid}`] = null;
+      await update(ref(db, 'raadkaart'), upd);
+      toast('Gok gewist 🗑', 'ok');
+      raadkaartAdmin();
+    },
+  });
   map.on('click', (e) => {
+    if (locked) return toast('🔒 Er is al gegokt: de locatie ligt vast', 'bad');
     spot = { lat: +e.latlng.lat.toFixed(5), lng: +e.latlng.lng.toFixed(5) };
     goal?.remove();
     goal = L.marker([spot.lat, spot.lng], { icon: goalPin(L) }).addTo(map);
@@ -781,35 +789,23 @@ async function raadkaartLight() {
   frame('raadkaart', '<div class="card muted">Laden…</div>');
   const val = async (p) => (await get(ref(db, p)).catch(() => null))?.val();
   const [guesses, roster, config, reveal] = await Promise.all(['raadkaart/guesses', 'roster', 'raadkaart/config', 'raadkaart/reveal'].map(val));
-  const all = guesses || {};
-  const names = roster || {};
-  const people = Object.entries(all).map(([uid, g]) => {
-    const list = Object.values(g).filter((x) => !x.test);
-    return { uid, name: names[uid]?.name || '?', n: list.length, warmest: list.reduce((m, x) => Math.max(m, x.t), -1) };
-  }).filter((p) => p.n).sort((a, b) => b.warmest - a.warmest);
+  const list = flatGuesses(guesses || {}, roster || {}, null).filter((g) => !g.test);
   $('#view').innerHTML = `
     <div class="rk-grid">
       <div class="card rk-mapcard"><div id="amap" class="rk-map"></div></div>
       <aside class="rk-side">
         <div class="card stack">
-          <p style="margin:0">👀 Je ziet alle gokken en hoe warm ze zitten, maar niet de geheime locatie.</p>
+          <p style="margin:0">👀 Je ziet alle gokken en hoe warm ze zitten, maar niet de geheime locatie. Afstanden zijn daarom de band van het eitje.</p>
           <p class="muted" style="margin:0">Kaart: <b>${config?.open ? 'open' : 'dicht'}</b>${reveal ? ` · onthuld: <b>${esc(reveal.name || '')}</b>` : ''}</p>
           <a class="btn pan" href="raadkaart.html">🗺️ Zelf raden</a>
         </div>
-        <div class="card"><h3 style="margin-top:0">Warmste gok per persoon</h3>
-          <ol class="rk-rank">${people.map((p) => `<li>${av({ member: true }, p.uid)}<b>${esc(p.name)}</b>
-            <span class="muted">${p.n}×</span><span class="rk-dot" style="background:${tColor(p.warmest)}"></span></li>`).join('') || '<li class="muted">Nog niemand heeft gegokt.</li>'}</ol></div>
+        <div class="card" id="rkboard"></div>
       </aside>
     </div>`;
   watchAvatars(setAvatars);
   const map = await makeMap($('#amap'));
-  const L = window.L;
-  for (const [uid, g] of Object.entries(all)) {
-    for (const x of Object.values(g)) {
-      if (x.test) continue;
-      L.marker([x.lat, x.lng], { icon: eggPin(L, tColor(x.t), `${names[uid]?.name || '?'} · ${dayLabel(x.day)}`) }).addTo(map);
-    }
-  }
+  const pins = addGuessPins(window.L, map, list, null);
+  mountGuessBoard($('#rkboard'), { list, spot: null, onFocus: (uid) => focusPins(map, pins, uid) });
 }
 
 /* ---------- Instellingen ---------- */

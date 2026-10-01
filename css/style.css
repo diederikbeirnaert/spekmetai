@@ -714,3 +714,15 @@ body.raadkaart main { max-width: 1280px; }
 .rk-exclude { display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow: auto; }
 .rk-exclude .av-pic { font-size: 1.5rem; }
 .rk-outside { filter: grayscale(1); opacity: .65; }
+/* Raadkaart-admin: ranking met uitklapbare gokken */
+.rk-board li { flex-direction: column; align-items: stretch; padding: 0; }
+.rk-person { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 10px; border: 0; background: none; cursor: pointer; text-align: left; font: inherit; color: inherit; border-radius: 14px; }
+.rk-person:hover { background: var(--yolk-soft); }
+.rk-board li.open { outline: 3px solid var(--yolk); }
+.rk-person b { flex: 1; }
+.rk-detail { padding: 4px 12px 10px 52px; display: flex; flex-direction: column; gap: 6px; }
+.rk-guess { display: flex; align-items: center; gap: 10px; background: #fff; border: 2px solid var(--shell); border-radius: 12px; padding: 6px 8px; font-weight: 700; font-size: .9rem; line-height: 1.3; }
+.rk-guess .rk-dot { width: 18px; height: 18px; }
+.rk-pop { font-family: var(--font-body); font-size: .95rem; line-height: 1.5; }
+.rk-pop .rk-dot { width: 14px; height: 14px; display: inline-block; vertical-align: middle; border-width: 2px; }
+.rk-flash svg { animation: popIn .6s cubic-bezier(.3,1.7,.5,1) 2; }

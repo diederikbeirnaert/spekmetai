@@ -726,3 +726,14 @@ body.raadkaart main { max-width: 1280px; }
 .rk-pop { font-family: var(--font-body); font-size: .95rem; line-height: 1.5; }
 .rk-pop .rk-dot { width: 14px; height: 14px; display: inline-block; vertical-align: middle; border-width: 2px; }
 .rk-flash svg { animation: popIn .6s cubic-bezier(.3,1.7,.5,1) 2; }
+/* Raadkaart: eigen gokken (ranking & historiek) */
+.rk-tabs { display: flex; gap: 6px; margin: 4px 0 10px; }
+.rk-tabs button { flex: 1; border: 2px solid var(--shell); background: #fff; border-radius: 999px; padding: 6px 10px; font-weight: 800; cursor: pointer; }
+.rk-tabs button.active { background: var(--yolk); border-color: var(--yolk-deep); }
+.rk-mine { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; max-height: 360px; overflow: auto; }
+.rk-mine li { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 14px; background: #fffaf0; cursor: pointer; transition: background .15s; }
+.rk-mine li:hover, .rk-mine li.hl, .rk-mine li:focus { background: var(--yolk-soft); outline: none; }
+.rk-mine .temp-egg.rk-mini { width: 44px; height: 44px; flex: none; margin: 0; }
+.rk-when { display: block; color: var(--muted); font-weight: 700; max-height: 0; overflow: hidden; transition: max-height .2s; }
+.rk-mine li:hover .rk-when, .rk-mine li.hl .rk-when, .rk-mine li:focus .rk-when { max-height: 20px; }
+.rk-tip { font-family: var(--font-body); font-weight: 800; border: 2px solid var(--ink); border-radius: 10px; }

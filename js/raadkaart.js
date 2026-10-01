@@ -6,7 +6,7 @@ import {
   configured, db, ref, get, update, onValue, serverTimestamp, useAuth, currentUser, serverNow, notConfiguredHtml, watchAvatars, isAdmin,
 } from './fb.js';
 import {
-  makeMap, eggPin, avatarPin, goalPin, tempEgg, tColor, tempFor, tempKey, fmtKm, dayIndex, dayLabel, TEMPS_HOT_FIRST, STEPS,
+  makeMap, eggPin, avatarPin, goalPin, tempEgg, tColor, tempFor, tempKey, tProgress, fmtKm, dayIndex, dayLabel, TEMPS_HOT_FIRST, STEPS,
 } from './mapkit.js';
 
 shell('raadkaart');
@@ -154,16 +154,56 @@ async function submitGuess() {
   if (hit >= STEPS - 4) confetti(hit === STEPS - 1 ? 80 : 30);
 }
 
+// Wanneer een gok gedaan werd, bv. "wo 1 okt om 14:03"
+const whenText = (g) => {
+  const d = new Date(g.at || g.day * 86400000);
+  return `${d.toLocaleDateString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short' })} om ${d.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}`;
+};
+let histTab = 'rank'; // 'rank' (warm → koud) of 'history' (nieuw → oud)
+let myPins = {};
+
 function renderGuesses() {
   if (!guessLayer || reveal) return;
   guessLayer.clearLayers();
-  const mine = myList();
-  mine.forEach((g) => L.marker([g.lat, g.lng], { icon: eggPin(L, tColor(g.t), `${g.test ? '🧪 ' : ''}${dayLabel(g.day)}`) }).addTo(guessLayer));
+  myPins = {};
+  const mine = myList().map((g, i) => ({ ...g, id: i }));
+  mine.forEach((g) => {
+    myPins[g.id] = L.marker([g.lat, g.lng], { icon: eggPin(L, tColor(g.t), `${g.test ? '🧪 ' : ''}${dayLabel(g.day)}`) })
+      .bindTooltip(`Gegokt op ${esc(whenText(g))}`, { direction: 'top', offset: [0, -44], className: 'rk-tip' })
+      .addTo(guessLayer);
+  });
+  // Ranking: warmste eitje eerst (bij gelijke temperatuur: wie het eerst gokte). Nooit afstanden tonen.
+  const ranked = [...mine].sort((a, b) => b.t - a.t || (a.at || 0) - (b.at || 0));
+  const history = [...mine].reverse();
+  const rows = histTab === 'rank' ? ranked : history;
   const hist = $('#hist');
   hist.innerHTML = `<h3>Mijn gokken</h3>
-    <div class="rk-scale"><span>🧊</span><div class="rk-bar">${mine.map((g) => `<i style="left:${(g.t / (STEPS - 1)) * 100}%;background:${tColor(g.t)}"></i>`).join('')}</div><span>🔥</span></div>
-    ${mine.length ? `<ol class="rk-list">${[...mine].reverse().map((g) => `<li><span class="rk-dot" style="background:${tColor(g.t)}"></span>${esc(dayLabel(g.day))}${g.test ? ' <span class="pill" style="font-size:.7rem">🧪 test</span>' : ''}</li>`).join('')}</ol>`
+    <div class="rk-scale"><span>🧊</span><div class="rk-bar">${mine.map((g) => `<i style="left:${tProgress(g.t) * 100}%;background:${tColor(g.t)}"></i>`).join('')}</div><span>🔥</span></div>
+    ${mine.length ? `
+      <div class="rk-tabs">
+        <button class="${histTab === 'rank' ? 'active' : ''}" data-tab="rank">🔥 Ranking</button>
+        <button class="${histTab === 'history' ? 'active' : ''}" data-tab="history">🕒 Historiek</button>
+      </div>
+      <ol class="rk-mine">${rows.map((g) => `
+        <li data-g="${g.id}" title="Gegokt op ${esc(whenText(g))}" tabindex="0">
+          ${histTab === 'rank' ? `<span class="rk-pos">${ranked.indexOf(g) === 0 ? '🏆' : ranked.indexOf(g) + 1}</span>` : ''}
+          ${tempEgg(g.t, 'rk-mini')}
+          <span class="grow"><b>${esc(dayLabel(g.day))}</b>${g.test ? ' <span class="pill" style="font-size:.7rem">🧪 test</span>' : ''}
+            <small class="rk-when">🕒 ${esc(whenText(g))}</small></span>
+        </li>`).join('')}</ol>`
       : '<p class="muted">Nog geen gokken.</p>'}`;
+  hist.querySelectorAll('[data-tab]').forEach((b) => { b.onclick = () => { histTab = b.dataset.tab; renderGuesses(); }; });
+  // Over een gok bewegen (of erop tikken): de pin op de kaart licht op en toont wanneer.
+  hist.querySelectorAll('[data-g]').forEach((li) => {
+    const pin = myPins[li.dataset.g];
+    const on = () => { pin?.openTooltip(); pin?.getElement()?.classList.add('rk-flash'); li.classList.add('hl'); };
+    const off = () => { pin?.closeTooltip(); pin?.getElement()?.classList.remove('rk-flash'); li.classList.remove('hl'); };
+    li.addEventListener('mouseenter', on);
+    li.addEventListener('mouseleave', off);
+    li.addEventListener('focus', on);
+    li.addEventListener('blur', off);
+    li.addEventListener('click', () => { if (pin) map.panTo(pin.getLatLng()); on(); setTimeout(off, 2000); });
+  });
   if (mine.length && !draft) map.setView([mine.at(-1).lat, mine.at(-1).lng], Math.max(map.getZoom(), 6));
   renderStatus();
 }

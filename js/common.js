@@ -188,6 +188,7 @@ export function shell(active = '') {
     ['brief.html', 'Weekendbrief', 'brief'],
     ['portaal.html', 'Mijn opdracht', 'portaal'],
     ['raadkaart.html', 'Raadkaart', 'raadkaart'],
+    ['playlist.html', 'Playlist', 'playlist'],
   ];
   const hint = getSessionHint();
   const acct = hint
@@ -265,6 +266,7 @@ export function parseMediaUrl(url) {
   }
   m = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?.*?id=)([\w-]{20,})/);
   if (m) return { kind: 'drive', src: m[1] };
+  if (/\.(m4a|mp3|aac|ogg|wav)(\?|$)/i.test(url) || url.includes('audio-ssl.itunes.apple.com')) return { kind: 'audio', src: url };
   return { kind: 'image', src: url };
 }
 
@@ -276,6 +278,12 @@ export function mediaHtml(media, { autoplay = false, resolved } = {}) {
   }
   if (media.kind === 'drive') {
     return `<iframe class="embed" src="https://drive.google.com/file/d/${esc(media.src)}/preview" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+  }
+  // Geluidsfragment (bv. uit de weekendplaylist): hoes, titel en een speler die blijft herhalen.
+  if (media.kind === 'audio') {
+    return `<div class="audio-card">${media.cover ? `<img src="${esc(media.cover)}" alt="">` : '<span class="audio-note">🎵</span>'}
+      <div class="audio-meta">${media.title ? `<b>${esc(media.title)}</b>` : ''}${media.artist ? `<span>${esc(media.artist)}</span>` : ''}
+        <audio src="${esc(media.src)}" controls loop ${autoplay ? 'autoplay' : ''}></audio></div></div>`;
   }
   const src = resolved || media.src;
   return src ? `<img src="${esc(src)}" alt="" decoding="async">` : '';

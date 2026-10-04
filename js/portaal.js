@@ -68,7 +68,8 @@ function renderPan() {
     </div>
     ${has ? '<p class="flip-hint float" id="hint">👆 Tik op het ei om het te flippen!</p>' : ''}
     <div id="mission"></div>
-    <a class="btn pan" href="raadkaart.html">🗺️ Raad waar we heen gaan</a>
+    <div class="row" style="justify-content:center"><a class="btn pan" href="raadkaart.html">🗺️ Raad waar we heen gaan</a>
+      <a class="btn" href="playlist.html">🎵 Weekendplaylist</a></div>
     <button class="btn ghost small" id="lo">Uitloggen</button>
   </div>`;
   $('#lo').onclick = () => signOut(useAuth()).then(() => { setSessionHint(null); location.href = 'index.html'; });

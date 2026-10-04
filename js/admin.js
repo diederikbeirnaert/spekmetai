@@ -3,6 +3,8 @@ import { $, $$, ART, esc, shell, toast, uid, parseMediaUrl, mediaHtml, compressI
 import { renderTwister, LIMBS } from './twister.js';
 import { makeMap, eggPin, goalPin, tColor, distanceKm, fmtKm, dayLabel, edgesTable, dayIndex } from './mapkit.js';
 import { flatGuesses, addGuessPins, focusPins, mountGuessBoard } from './guessboard.js';
+import { mountPlaylistAdmin } from './playlistadmin.js';
+import { handleCallback as spotifyCallback } from './spotify.js';
 import {
   configured, db, ref, get, set, update, remove, push, useAuth, currentUser, isAdmin, notConfiguredHtml,
   signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential,
@@ -39,6 +41,8 @@ async function init() {
     return renderNotAdmin();
   }
   setSessionHint({ role: 'admin', name: 'Chef-kok', email: user.email });
+  // Terug van Spotify na het koppelen?
+  try { if (await spotifyCallback()) toast('Spotify is gekoppeld 🎧', 'ok'); } catch (e) { toast(`Spotify koppelen mislukte: ${e.message}`, 'bad'); }
   route();
 }
 
@@ -68,7 +72,11 @@ function route() {
   dirty = false;
   const [page, id] = location.hash.slice(1).split('/').map(decodeURIComponent);
   // Admin light ziet de weekendbrief en de instellingen niet.
-  if (light && ['letter', 'letters', 'settings'].includes(page)) return listQuizzes();
+  if (light && ['letter', 'letters', 'settings', 'playlist'].includes(page)) return listQuizzes();
+  if (page === 'playlist') {
+    frame('playlist', '<div id="pla"><div class="card muted">Laden…</div></div>');
+    return mountPlaylistAdmin($('#pla'));
+  }
   if (light && page === 'members') return missionsLight();
   if (light && page === 'raadkaart') return raadkaartLight();
   if (page === 'quiz') return editQuiz(id);
@@ -90,6 +98,7 @@ function frame(active, html) {
     !light && ['letters', '✉️ Weekendbrief'],
     ['members', light ? '🤫 Opdrachten' : '🤫 Weekendgangers'],
     ['raadkaart', '🗺️ Raadkaart'],
+    !light && ['playlist', '🎵 Playlist'],
     ['twister', '🌀 Twister'],
     !light && ['settings', '⚙️ Instellingen'],
   ].filter(Boolean);

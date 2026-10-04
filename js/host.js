@@ -361,7 +361,9 @@ async function goQuestion(i) {
 function renderQuestion() {
   const q = cur();
   const i = state.index;
-  const isVideo = q.media && q.media.kind !== 'image';
+  // Een video wacht tot de host de antwoorden opent; een geluidsfragment speelt gewoon door tijdens de vraag.
+  const isVideo = q.media && (q.media.kind === 'youtube' || q.media.kind === 'drive');
+  const keepMedia = isVideo || q.media?.kind === 'audio'; // blijft staan bij de onthulling
   const tw = twQ(q);
   app.innerHTML = `<div class="host-stage">
     <div class="host-bar">
@@ -379,7 +381,7 @@ function renderQuestion() {
     ${tw ? '<div id="jury"></div>' : ''}
     ${!isVideo && q.type !== 'info' ? '<div class="timer-bar" id="introbar"><div></div></div>' : ''}
   </div>`;
-  if (isVideo) $('#media').dataset.video = '1';
+  if (keepMedia) $('#media').dataset.video = '1';
   if (tw) $('#qtext').classList.add('hidden');
 }
 
@@ -436,7 +438,7 @@ function armIntro(fresh) {
     $('#status').textContent = `${LIMBS[state.limb]?.icon || ''} ${LIMBS[state.limb]?.name || ''}!`;
     return setPrimary('Antwoorden openen 🍳', openAnswers);
   }
-  if (q.media && q.media.kind !== 'image') {
+  if (q.media && (q.media.kind === 'youtube' || q.media.kind === 'drive')) {
     $('#status').textContent = 'Eerst kijken…';
     return setPrimary('Antwoorden openen 🍳', openAnswers);
   }

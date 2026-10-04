@@ -28,6 +28,7 @@ async function init() {
       <div><span class="muted">${admin ? 'E-mail' : 'Gebruikersnaam'}</span><br><b>${esc(admin ? me.email : me.username)}</b></div>
       <a class="btn big ${admin ? 'pan' : 'bacon'}" style="width:100%" href="${admin ? 'admin.html' : 'portaal.html'}">${admin ? '🍳 Naar de keuken' : '🥚 Mijn geheime opdracht'}</a>
       ${admin ? '' : '<a class="btn big pan" style="width:100%" href="raadkaart.html">🗺️ Raad waar we heen gaan</a>'}
+      ${admin ? '' : '<a class="btn big" style="width:100%" href="playlist.html">🎵 Weekendplaylist</a>'}
       ${me.mod ? '<a class="btn big" style="width:100%" href="admin.html">🛡️ Naar de keuken (admin light)</a>' : ''}
     </div>
     <form class="card" id="pwf" style="margin-top:16px;text-align:left">

@@ -13,6 +13,7 @@ Het is gewone HTML, CSS en JavaScript: er is geen build-stap en geen framework. 
 | `login.html` / `account.html` | Eén login voor iedereen (gebruikersnaam of e-mail), account en wachtwoord wijzigen |
 | `jury.html` | Jury-gsm voor de Twister-quiz |
 | `raadkaart.html` | Raad de locatie van het weekend (weekendgangers) |
+| `playlist.html` | De weekendplaylist: liedjes toevoegen en stemmen |
 | `portaal.html` | Weekendgangers: flip het ei in de pan en onthul je geheime opdracht 🤫 |
 
 ---
@@ -159,6 +160,37 @@ Weekendgangers raden waar het weekend doorgaat.
 
 **Quizbonus:** zet in een quiz **🗺️ Raadkaart-bonus** aan. Dan krijgt de winnaar ×1,2 op al haar punten in die quiz.
 
+## 🎵 Weekendplaylist
+
+Op **Playlist** bouwen de weekendgangers samen de playlist van het weekend.
+
+- **Zoeken en toevoegen**: maximaal 15 liedjes per persoon. Dubbels worden geweigerd.
+- **🥓 Spekjes** geven aan liedjes van anderen, en maximaal 5 liedjes laten **🔥 aanbranden**. De ranking is spekjes min aangebrand.
+- Iedereen ziet wie een spekje gaf. Er is ook een **DJ-klassement**.
+- Tik op een hoes voor een fragment van 30 seconden.
+
+Het zoeken gebruikt de gratis iTunes-catalogus. Daarom is er voor de weekendgangers geen Spotify-login nodig.
+
+### Spotify koppelen (eenmalig, alleen de admin)
+
+Voor de koppeling heb je **Spotify Premium** nodig. Dat is een eis van Spotify voor zulke apps.
+
+1. Ga naar <https://developer.spotify.com/dashboard> en maak een app aan. Kies bij de API's **Web API**.
+2. Vul bij **Redirect URIs** deze twee adressen in:
+   - `https://spekmetai.tech/admin.html`
+   - `http://127.0.0.1:8080/admin.html` (om lokaal te testen; `localhost` aanvaardt Spotify niet)
+3. Maak in Spotify een lege playlist en kopieer de link (Delen → Link kopiëren).
+4. Ga naar **Admin → 🎵 Playlist**. Plak de **Client ID** van je app en de **link van de playlist**, klik op **Opslaan** en dan op **Koppel met Spotify**.
+5. Klik op **🎵 Sync naar Spotify**. De site zoekt elk liedje op in Spotify en zet de playlist in de volgorde van de ranking. De bestaande inhoud van die playlist wordt vervangen.
+
+Vindt de site een verkeerd nummer, of niets? Klik bij dat liedje op **🔗 Kies nummer** en plak de juiste Spotify-link.
+
+De sync loopt alleen wanneer jij klikt, of om de 5 minuten zolang het admin-tabblad open staat en je dat aanvinkt.
+
+### Quiz "Wie voegde dit toe?"
+
+In hetzelfde tabblad maak je met één klik een quiz met fragmenten uit de playlist. Vink eventueel **Verberg wie welk liedje toevoegde** aan, zodat niemand vooraf kan spieken op de playlistpagina.
+
 ## Twister 🌀
 
 In **Admin → 🌀 Twister** vind je een draaischijf in spiegelei-stijl. Klik op het ei of op **Draai!**.
@@ -175,6 +207,7 @@ games/     lopende spellen (worden na 24 uur opgeruimd)
 members/   weekendgangers (alleen de admin en de persoon zelf)
 missions/  geheime opdrachten (alleen de admin en de persoon zelf)
 avatars/   avatar + achtergrond van weekendgangers
+playlist/  liedjes, stemmen en de Spotify-instellingen
 admins/    wie admin is
 ```
 

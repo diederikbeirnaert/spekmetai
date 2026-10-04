@@ -91,6 +91,60 @@
         }
       }
     },
+    "playlist": {
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      "songs": {
+        ".read": true,
+        "$song": {
+          ".write": "auth != null && ((!data.exists() && newData.exists() && root.child('members').child(auth.uid).exists()) || (data.exists() && !newData.exists() && data.child('by').val() === auth.uid))",
+          ".validate": "newData.hasChildren(['title', 'artist', 'by', 'byName', 'slot', 'at']) && newData.child('by').val() === auth.uid && newData.child('byName').val() === root.child('members').child(auth.uid).child('name').val() && newData.child('at').val() === now && newData.child('title').isString() && newData.child('title').val().length <= 200 && newData.child('artist').isString() && newData.child('artist').val().length <= 200 && newData.child('slot').isString() && newData.parent().parent().child('mine').child(auth.uid).child(newData.child('slot').val()).val() === $song"
+        }
+      },
+      "mine": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          "$slot": {
+            ".write": "auth != null && auth.uid === $uid && $slot.matches(/^s[0-9a-e]$/) && (!data.exists() || data.val() === newData.val() || newData.parent().parent().parent().child('songs').child(data.val()).child('by').val() !== $uid)",
+            ".validate": "newData.isString() && newData.parent().parent().parent().child('songs').child(newData.val()).child('by').val() === $uid && newData.parent().parent().parent().child('songs').child(newData.val()).child('slot').val() === $slot"
+          }
+        }
+      },
+      "votes": {
+        ".read": true,
+        "$song": {
+          ".write": "auth != null && !newData.exists() && root.child('playlist/songs').child($song).child('by').val() === auth.uid",
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && root.child('members').child($uid).exists()",
+            ".validate": "newData.parent().parent().parent().child('songs').child($song).exists() && newData.parent().parent().parent().child('songs').child($song).child('by').val() !== $uid && (newData.val() === 'up' || (newData.isString() && newData.val().matches(/^d[0-4]$/) && newData.parent().parent().parent().child('downs').child($uid).child(newData.val()).val() === $song))"
+          }
+        }
+      },
+      "downs": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          "$slot": {
+            ".write": "auth != null && auth.uid === $uid && $slot.matches(/^d[0-4]$/) && (!data.exists() || data.val() === newData.val() || newData.parent().parent().parent().child('votes').child(data.val()).child($uid).val() !== $slot)",
+            ".validate": "newData.isString() && newData.parent().parent().parent().child('votes').child(newData.val()).child($uid).val() === $slot"
+          }
+        }
+      },
+      "names": {
+        ".read": "auth != null",
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.val() === root.child('members').child($uid).child('name').val()"
+        }
+      },
+      "config": {
+        ".read": true
+      },
+      "admin": {
+        ".read": "auth != null && root.child('admins').child(auth.uid).val() === true"
+      },
+      "spotify": {
+        ".read": "auth != null && root.child('admins').child(auth.uid).val() === true"
+      }
+    },
     "juryPins": {
       ".read": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
       ".write": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)"

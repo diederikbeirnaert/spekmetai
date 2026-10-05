@@ -22,11 +22,36 @@ export function songKey({ artist, title, tid }) {
 }
 
 // Zoeken in de gratis iTunes-catalogus (geen login nodig): titel, artiest, hoes en een fragment van 30 s.
+// Let op: géén `media=music` meesturen. Daarmee stuurt Apple iPhones door naar de Muziek-app
+// (musics://…) in plaats van resultaten te geven; `entity=song` volstaat.
+const searchUrl = (term) => `https://itunes.apple.com/search?${new URLSearchParams({ term, entity: 'song', limit: '15', country: 'be' })}`;
+
+// Reserveweg als de gewone aanvraag geblokkeerd wordt: via een script-tag (JSONP).
+function searchJsonp(term) {
+  return new Promise((res, rej) => {
+    const cb = `__smaiSongs${Date.now()}${Math.floor(Math.random() * 1e4)}`;
+    const el = document.createElement('script');
+    const done = (fn, v) => { clearTimeout(timer); delete window[cb]; el.remove(); fn(v); };
+    const timer = setTimeout(() => done(rej, new Error('Zoeken duurt te lang')), 8000);
+    window[cb] = (data) => done(res, data);
+    el.onerror = () => done(rej, new Error('Zoeken lukt even niet'));
+    el.src = `${searchUrl(term)}&callback=${cb}`;
+    document.head.append(el);
+  });
+}
+
 export async function searchSongs(term, signal) {
-  const q = new URLSearchParams({ term, media: 'music', entity: 'song', limit: '15', country: 'be' });
-  const res = await fetch(`https://itunes.apple.com/search?${q}`, { signal });
-  if (!res.ok) throw new Error(res.status === 403 || res.status === 429 ? 'Even te veel gezocht. Wacht een paar seconden.' : 'Zoeken lukt even niet');
-  const { results = [] } = await res.json();
+  let data;
+  try {
+    const res = await fetch(searchUrl(term), { signal });
+    if (!res.ok) throw new Error(`status ${res.status}`);
+    data = await res.json();
+  } catch (err) {
+    if (err.name === 'AbortError') throw err;
+    if (typeof document === 'undefined') throw new Error('Zoeken lukt even niet');
+    data = await searchJsonp(term);
+  }
+  const results = (data.results || []).filter((r) => !r.kind || r.kind === 'song');
   const seen = new Set();
   return results
     .filter((r) => r.trackName && r.artistName)

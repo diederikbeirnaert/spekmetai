@@ -10,7 +10,7 @@ shell('playlist');
 const app = $('#app');
 let user, member = null, admin = false;
 let songs = {}, votes = {}, mine = {}, downs = {}, config = {}, names = {};
-let results = null, searchCtl = null, searchTimer = null, searching = false;
+let results = null, searchCtl = null, searchTimer = null, searching = false, searchError = '';
 let queued = false, firstRender = true;
 
 // Eén gedeelde speler voor de fragmenten van 30 seconden.
@@ -117,6 +117,7 @@ function renderShell() {
     const term = e.target.value.trim();
     clearTimeout(searchTimer);
     searchCtl?.abort();
+    searchError = '';
     if (term.length < 2) { results = null; searching = false; return renderResults(); }
     searching = true;
     renderResults();
@@ -165,12 +166,13 @@ function renderCounters() {
 /* ---------- Zoeken ---------- */
 async function runSearch(term) {
   searchCtl = new AbortController();
+  searchError = '';
   try {
     results = await searchSongs(term, searchCtl.signal);
   } catch (err) {
     if (err.name === 'AbortError') return;
-    results = [];
-    toast(err.message, 'bad');
+    results = null;
+    searchError = err.message || 'Zoeken lukt even niet';
   }
   searching = false;
   renderResults();
@@ -184,6 +186,7 @@ function renderResults() {
   const el = $('#results');
   if (!el) return;
   if (searching && !results) return void (el.innerHTML = '<p class="muted pl-hint">Zoeken…</p>');
+  if (searchError) return void (el.innerHTML = `<p class="pl-hint" style="color:var(--bad);font-weight:800">⚠️ ${esc(searchError)}. Probeer het zo meteen opnieuw.</p>`);
   if (!results) return void (el.innerHTML = '');
   if (!results.length) return void (el.innerHTML = '<p class="muted pl-hint">Niets gevonden. Probeer een andere titel of artiest.</p>');
   const full = mySongCount() >= MAX_SONGS;

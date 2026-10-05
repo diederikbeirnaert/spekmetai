@@ -1,7 +1,7 @@
 import { $, ART, shell, esc, fmtDate } from './common.js';
 import { fetchLetters } from './letters.js';
 import { firebaseConfig } from './firebase-config.js';
-import { rankSongs } from './songs.js';
+import { rankSongs } from './songs.js?v=3';
 
 shell('home');
 

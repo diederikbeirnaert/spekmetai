@@ -4,7 +4,7 @@ import { $, $$, ART, esc, shell, toast, av, setAvatars, setSessionHint } from '.
 import {
   configured, db, ref, get, set, update, onValue, serverTimestamp, useAuth, currentUser, notConfiguredHtml, watchAvatars, isAdmin,
 } from './fb.js';
-import { MAX_SONGS, MAX_DOWNS, SONG_SLOTS, DOWN_SLOTS, searchSongs, rankSongs, djRanking } from './songs.js';
+import { MAX_SONGS, MAX_DOWNS, SONG_SLOTS, DOWN_SLOTS, searchSongs, rankSongs, djRanking } from './songs.js?v=3';
 
 shell('playlist');
 const app = $('#app');

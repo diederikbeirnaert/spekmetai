@@ -2,7 +2,7 @@
 // en de quiz "Wie voegde dit toe?" maken.
 import { $, $$, esc, toast, uid, av, setAvatars } from './common.js';
 import { db, ref, get, set, update, onValue, watchAvatars } from './fb.js';
-import { rankSongs, djRanking, buildWhoAddedQuiz } from './songs.js';
+import { rankSongs, djRanking, buildWhoAddedQuiz } from './songs.js?v=3';
 import * as spotify from './spotify.js';
 
 const AUTO_MS = 5 * 60 * 1000;

@@ -406,7 +406,7 @@ async function saveQuiz() {
 async function listLetters() {
   frame('letters', '<div class="card muted">Laden…</div>');
   const all = (await get(ref(db, 'letters'))).val() || {};
-  const list = Object.entries(all).sort((a, b) => String(b[1].date).localeCompare(String(a[1].date)));
+  const list = Object.entries(all).filter(([k]) => k !== '_media').sort((a, b) => String(b[1].date).localeCompare(String(a[1].date)));
   $('#view').innerHTML = `
     <div class="row" style="margin-bottom:16px"><button class="btn bacon" id="new">+ Nieuwe brief</button></div>
     <div class="list">${list.map(([id, l]) => `
@@ -419,15 +419,22 @@ async function listLetters() {
 
 async function editLetter(id) {
   frame('letters', '<div class="card muted">Laden…</div>');
-  const existing = (await get(ref(db, `letters/${id}`))).val();
+  const [existing, media] = await Promise.all([`letters/${id}`, `letters/_media/${id}`].map(async (p) => (await get(ref(db, p))).val()));
   letter = existing || { title: '', date: new Date().toISOString().slice(0, 10), body: '', published: true };
+  const images = media || {}; // { fotoId: dataURL }
   $('#view').innerHTML = `
     <a href="#letters" class="btn ghost small">← Alle brieven</a>
     <div class="card stack" style="margin-top:14px">
       <div class="row"><div class="field grow"><label>Titel</label><input class="input" id="lt" value="${esc(letter.title)}"></div>
         <div class="field"><label>Datum</label><input class="input" type="date" id="ld" value="${esc(letter.date)}"></div></div>
-      <div class="field"><label>Tekst <span class="muted"># titel, **vet**, *schuin*, - lijstje, [link](https://…), ![foto](https://…)</span></label>
+      <div class="field"><label>Tekst <span class="muted"># titel, **vet**, *schuin*, - lijstje, [link](https://…)</span></label>
         <textarea class="input" id="lb" rows="14">${esc(letter.body)}</textarea></div>
+      <div class="row">
+        <button class="btn" type="button" id="limg">📷 Afbeelding toevoegen</button>
+        <input type="file" id="lfile" accept="image/*" multiple hidden>
+        <span class="muted" style="font-size:.9rem">De foto komt op de plek van je cursor in de tekst.</span>
+      </div>
+      <div class="letter-thumbs" id="lthumbs"></div>
       <label class="row" style="gap:8px;font-weight:800"><input type="checkbox" id="lp" ${letter.published !== false ? 'checked' : ''}> Gepubliceerd</label>
     </div>
     <h3 style="margin-top:20px">Voorbeeld</h3>
@@ -435,11 +442,64 @@ async function editLetter(id) {
     <div class="savebar"><span class="status" id="savestate">${existing ? '✔ Opgeslagen' : '● Nieuw'}</span>
       ${existing ? '<button class="btn small ghost" id="ldel">🗑 Verwijderen</button>' : ''}
       <button class="btn ok" id="lsave">Opslaan</button></div>`;
-  const preview = () => { $('#lprev').innerHTML = `<h1>${esc($('#lt').value)}</h1>${md($('#lb').value)}`; };
+  const body = $('#lb');
+  const used = (imgId) => body.value.includes(`](img:${imgId})`);
+  const preview = () => { $('#lprev').innerHTML = `<h1>${esc($('#lt').value)}</h1>${md(body.value, images)}`; };
+  const thumbs = () => {
+    $('#lthumbs').innerHTML = Object.entries(images).map(([k, src]) => `<figure class="${used(k) ? '' : 'unused'}" data-img="${esc(k)}">
+      <img src="${src}" alt=""><figcaption>${used(k) ? 'in de tekst' : 'niet gebruikt'}</figcaption>
+      <button type="button" class="btn small ghost icon" data-ins title="Opnieuw in de tekst zetten">↩</button>
+      <button type="button" class="btn small ghost icon" data-rm title="Foto verwijderen">🗑</button></figure>`).join('');
+    $$('#lthumbs figure').forEach((f) => {
+      const k = f.dataset.img;
+      $('[data-ins]', f).onclick = () => insert(k);
+      $('[data-rm]', f).onclick = async () => {
+        if (!confirm('Deze foto verwijderen?')) return;
+        delete images[k];
+        body.value = body.value.replace(new RegExp(`!\\[[^\\]]*\\]\\(img:${k}\\)\\n?`, 'g'), ''); // ook uit de tekst halen
+        await remove(ref(db, `letters/_media/${id}/${k}`));
+        markDirty();
+        preview();
+        thumbs();
+      };
+    });
+  };
+  // Zet de verwijzing naar de foto op een eigen regel, op de plek van de cursor.
+  const insert = (k) => {
+    const pos = body.selectionStart ?? body.value.length;
+    const before = body.value.slice(0, pos);
+    const after = body.value.slice(body.selectionEnd ?? pos);
+    const tag = `${before && !before.endsWith('\n') ? '\n\n' : ''}![foto](img:${k})${after.startsWith('\n') ? '' : '\n\n'}`;
+    body.value = before + tag + after;
+    body.selectionStart = body.selectionEnd = (before + tag).length;
+    markDirty();
+    preview();
+    thumbs();
+  };
   preview();
-  $('#view').oninput = () => { preview(); markDirty(); };
+  thumbs();
+  $('#view').oninput = () => { preview(); thumbs(); markDirty(); };
+  $('#limg').onclick = () => $('#lfile').click();
+  $('#lfile').onchange = async (e) => {
+    for (const file of [...e.target.files]) {
+      try {
+        toast('Foto aan het bakken…');
+        let data = await compressImage(file, 1400);
+        if (data.length > 900000) data = await compressImage(file, 1000); // nog te zwaar: kleiner maken
+        if (data.length > 1500000) { toast(`"${file.name}" is te groot`, 'bad'); continue; }
+        const k = uid();
+        await set(ref(db, `letters/_media/${id}/${k}`), data);
+        images[k] = data;
+        insert(k);
+        toast('Foto toegevoegd 📷', 'ok');
+      } catch (err) {
+        toast(`Uploaden mislukt: ${err.message}`, 'bad');
+      }
+    }
+    e.target.value = '';
+  };
   $('#lsave').onclick = async () => {
-    const data = { title: $('#lt').value.trim(), date: $('#ld').value, body: $('#lb').value, published: $('#lp').checked, updatedAt: Date.now() };
+    const data = { title: $('#lt').value.trim(), date: $('#ld').value, body: body.value, published: $('#lp').checked, updatedAt: Date.now() };
     if (!data.title) return toast('Geef de brief een titel', 'bad');
     await set(ref(db, `letters/${id}`), data);
     dirty = false;
@@ -447,8 +507,8 @@ async function editLetter(id) {
     toast('Weekendbrief opgeslagen ✉️', 'ok');
   };
   $('#ldel')?.addEventListener('click', async () => {
-    if (!confirm('Deze brief verwijderen?')) return;
-    await remove(ref(db, `letters/${id}`));
+    if (!confirm('Deze brief en zijn foto\'s verwijderen?')) return;
+    await update(ref(db, 'letters'), { [id]: null, [`_media/${id}`]: null });
     dirty = false;
     location.hash = 'letters';
   });

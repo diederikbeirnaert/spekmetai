@@ -845,3 +845,11 @@ body.playlist main { max-width: 1180px; }
 .pl-match.bad { color: var(--bad); }
 .home-top .pl-song { box-shadow: none; padding: 6px 10px; }
 .home-top .pl-cover { width: 46px; height: 46px; }
+/* Weekendbrief: geüploade foto's in de editor */
+.letter-thumbs { display: flex; flex-wrap: wrap; gap: 10px; }
+.letter-thumbs:empty { display: none; }
+.letter-thumbs figure { margin: 0; position: relative; width: 120px; border: 2px solid var(--shell); border-radius: 14px; padding: 6px; background: #fffaf0; text-align: center; }
+.letter-thumbs figure.unused { border-style: dashed; opacity: .75; }
+.letter-thumbs img { width: 100%; height: 76px; object-fit: cover; border-radius: 8px; display: block; }
+.letter-thumbs figcaption { font-size: .75rem; font-weight: 800; color: var(--muted); margin: 4px 0; }
+.prose img { max-width: 100%; height: auto; display: block; margin: 12px auto; }

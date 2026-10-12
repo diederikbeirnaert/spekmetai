@@ -1,5 +1,5 @@
 import { $, ART, shell, esc, fmtDate } from './common.js';
-import { fetchLetters } from './letters.js';
+import { fetchLetters, letterExcerpt } from './letters.js?v=4';
 import { firebaseConfig } from './firebase-config.js';
 import { rankSongs } from './songs.js?v=3';
 
@@ -41,7 +41,7 @@ fetchLetters().then(([l]) => {
     ? `<a class="card letter-item paper" href="brief.html?id=${encodeURIComponent(l.id)}">
         <span class="letter-date">${esc(fmtDate(l.date))}</span>
         <h3 style="margin-top:10px">${esc(l.title)}</h3>
-        <p class="muted">${esc(String(l.body || '').replace(/[#*_>\[\]()!]/g, '').slice(0, 180))}…</p>
+        <p class="muted">${esc(letterExcerpt(l.body))}…</p>
         <span class="btn small">Lees verder →</span></a>`
     : `<div class="card muted">Nog geen weekendbrief gebakken. Kom snel terug!</div>`;
 }).catch(() => { $('#letter').innerHTML = `<div class="card muted">Kon de weekendbrief niet laden.</div>`; });

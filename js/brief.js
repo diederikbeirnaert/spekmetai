@@ -1,20 +1,21 @@
 import { $, ART, shell, esc, md, fmtDate } from './common.js';
-import { fetchLetters } from './letters.js';
+import { fetchLetters, fetchLetterImages } from './letters.js?v=4';
 
 shell('brief');
 const id = new URLSearchParams(location.search).get('id');
 $('#app').innerHTML = `<div class="card muted">Even opwarmen…</div>`;
 
-fetchLetters().then((letters) => {
+fetchLetters().then(async (letters) => {
   const l = id && letters.find((x) => x.id === id);
   if (l) {
+    const images = l.body?.includes('](img:') ? await fetchLetterImages(l.id).catch(() => ({})) : {};
     document.title = `${l.title} · SpekmetAI`;
     $('#app').innerHTML = `
       <a href="brief.html" class="btn ghost small">← Alle brieven</a>
       <article class="card paper prose slide-up" style="margin-top:16px">
         <span class="letter-date">${esc(fmtDate(l.date))}</span>
         <h1 style="margin-top:12px">${esc(l.title)}</h1>
-        ${md(l.body)}
+        ${md(l.body, images)}
       </article>`;
     return;
   }

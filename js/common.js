@@ -306,8 +306,9 @@ export async function compressImage(file, max = 1400, keepAlpha = false) {
 }
 
 /* ---------- Mini-markdown voor de weekendbrief ---------- */
-export function md(text) {
-  const safeUrl = (u) => (/^(https?:|mailto:|data:image\/)/i.test(u) ? u : '#');
+// `images` zijn de geüploade foto's van een weekendbrief: ![tekst](img:ID) verwijst ernaar.
+export function md(text, images = {}) {
+  const safeUrl = (u) => (u.startsWith('img:') ? images[u.slice(4)] || '' : /^(https?:|mailto:|data:image\/)/i.test(u) ? u : '#');
   const inline = (s) => esc(s)
     .replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_, a, u) => `<img src="${safeUrl(u)}" alt="${a}" loading="lazy">`)
     .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, t, u) => `<a href="${safeUrl(u)}" target="_blank" rel="noopener">${t}</a>`)

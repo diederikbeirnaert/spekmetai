@@ -96,7 +96,9 @@ Bij een vraag met een video start de timer pas als je op **Antwoorden openen** k
 3. Klik op **📋 Login kopiëren** en stuur het bericht door via WhatsApp of een ander kanaal.
 4. De weekendganger logt in, tikt op het ei in de pan en ziet de opdracht verschijnen. In de admin zie je wie zijn ei al geflipt heeft.
 
-Wijzig je een opdracht? Dan moet die persoon het ei opnieuw flippen.
+Wat je typt, is eerst een **📝 concept**, en de weekendganger ziet het nog niet. Met **📤 Nu delen** deel je één opdracht, met **📤 Deel alle opdrachten** alle concepten tegelijk. Met **🙈 Verbergen** haal je een gedeelde opdracht weer weg; de tekst blijft dan als concept bewaard.
+
+Wijzig je een opdracht die al gedeeld was? Dan moet die persoon het ei opnieuw flippen.
 
 **Avatars:** kies bij elke weekendganger een getekende avatar uit het rijtje; die staan als SVG in [`avatars/`](avatars/). Je kan ook op de cirkel klikken en een eigen PNG zonder achtergrond kiezen. Met de bolletjes ernaast kies je de achtergrond: eigeel, spekreepjes, pan, toast, ontbijtbord, AI-circuit, avocado of bosbes. Een ingelogde weekendganger die meedoet aan een quiz, vult alleen de code in. Naam en avatar worden dan automatisch gebruikt.
 

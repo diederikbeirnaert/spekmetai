@@ -4,6 +4,7 @@ import { renderTwister, LIMBS } from './twister.js';
 import { makeMap, eggPin, goalPin, tColor, distanceKm, fmtKm, dayLabel, edgesTable, dayIndex } from './mapkit.js';
 import { flatGuesses, addGuessPins, focusPins, mountGuessBoard } from './guessboard.js';
 import { mountPlaylistAdmin } from './playlistadmin.js';
+import { loadMissions, missionsToolbar, missionField, wireMissions } from './missions.js';
 import { handleCallback as spotifyCallback } from './spotify.js';
 import {
   configured, db, ref, get, set, update, remove, push, useAuth, currentUser, isAdmin, notConfiguredHtml,
@@ -522,7 +523,8 @@ const fmtTime = (t) => new Date(t).toLocaleString('nl-BE', { weekday: 'short', d
 
 async function listMembers() {
   frame('members', '<div class="card muted">Laden…</div>');
-  const [members, missions, avatars, roster, mods] = await Promise.all(['members', 'missions', 'avatars', 'roster', 'moderators'].map(async (k) => (await get(ref(db, k))).val() || {}));
+  const [members, avatars, roster, mods] = await Promise.all(['members', 'avatars', 'roster', 'moderators'].map(async (k) => (await get(ref(db, k))).val() || {}));
+  const mstate = await loadMissions();
   // Namenlijst zonder wachtwoorden bijhouden, zodat admin light de weekendgangers kan zien.
   const rosterUpd = {};
   for (const [id, m] of Object.entries(members)) {
@@ -533,9 +535,6 @@ async function listMembers() {
   const newAvatar = { bg: 'yolk', img: null };
   repoAvatars = await fetch('avatars/index.json', { cache: 'no-store' }).then((r) => r.json()).catch(() => []);
   const list = Object.entries(members).sort((a, b) => a[1].name.localeCompare(b[1].name));
-  const opened = list.filter(([id]) => missions[id]?.revealedAt).length;
-  const status = (ms) => (ms?.revealedAt ? `<span class="pill" style="background:var(--ok)">✅ Geopend ${esc(fmtTime(ms.revealedAt))}</span>`
-    : ms?.text ? '<span class="pill yolk">🥚 Nog niet geopend</span>' : '<span class="pill" style="background:var(--muted)">Nog geen opdracht</span>');
 
   $('#view').innerHTML = `
     <div class="card"><h3>Nieuwe weekendganger</h3>
@@ -546,8 +545,8 @@ async function listMembers() {
         <button class="btn bacon">+ Toevoegen</button>
       </form>
       <div id="newav" style="margin-top:12px">${avatarEditor(newAvatar)}</div></div>
-    <div class="row" style="margin:18px 0 12px"><span class="pill yolk">🍳 ${opened}/${list.length} opdrachten onthuld</span>
-      <a class="btn small ghost" href="portaal.html" target="_blank">👀 Portaal bekijken</a></div>
+    ${missionsToolbar(list.map(([id]) => id), mstate)}
+    <div class="row" style="margin:0 0 12px"><a class="btn small ghost" href="portaal.html" target="_blank">👀 Portaal bekijken</a></div>
     <div class="list">${list.map(([id, m]) => `
       <div class="card member-card" data-id="${esc(id)}">
         <div class="list-item">
@@ -555,14 +554,10 @@ async function listMembers() {
           <div class="grow"><h3>${esc(m.name)} ${mods[id] ? '<span class="pill yolk" style="font-size:.7rem">🛡️ admin light</span>' : ''}</h3>
             <span class="cred">👤 ${esc(m.username)}</span> <span class="cred">🔑 ${esc(m.password || '?')}</span>
             <label class="check-row" style="margin-top:8px;font-size:.9rem"><input type="checkbox" data-mod ${mods[id] ? 'checked' : ''}> 🛡️ Admin light (quizzen, hosten, opdrachten, raadkaart bekijken)</label></div>
-          ${status(missions[id])}
           <button class="btn small" data-copy>📋 Login kopiëren</button>
           <button class="btn small ghost icon" data-del title="Verwijderen">🗑</button>
         </div>
-        <div class="field" style="margin:14px 0 8px"><label>Geheime opdracht</label>
-          <textarea class="input" data-mission placeholder="bv. Laat iemand anders onopgemerkt 3x 'spek' zeggen…">${esc(missions[id]?.text || '')}</textarea></div>
-        <div class="row"><button class="btn small ok" data-save disabled>Opslaan</button>
-          <span class="muted" style="font-size:.85rem">Na een wijziging moet ${esc(m.name)} het ei opnieuw flippen.</span></div>
+        ${missionField(id, mstate)}
       </div>`).join('') || `<div class="card center"><div class="float" style="width:110px;margin:auto">${ART.egg()}</div><p>Nog geen weekendgangers.</p></div>`}
     </div>`;
 
@@ -598,6 +593,7 @@ async function listMembers() {
   // Avatar bij het aanmaken: enkel lokaal bijhouden tot "Toevoegen".
   wireAvatarEditor($('#newav'), newAvatar, async (a) => { Object.assign(newAvatar, a); });
 
+  wireMissions($('#view'), list.map(([id]) => id), mstate, Object.fromEntries(list.map(([id, m]) => [id, m.name])), listMembers);
   $$('.member-card').forEach((card) => {
     const id = card.dataset.id;
     const m = members[id];
@@ -608,15 +604,6 @@ async function listMembers() {
       await set(ref(db, `avatars/${id}`), cur.img ? cur : { bg: cur.bg });
       toast(`Avatar van ${m.name} opgeslagen`, 'ok');
     });
-    const ta = $('[data-mission]', card);
-    const save = $('[data-save]', card);
-    ta.oninput = () => { save.disabled = ta.value.trim() === (missions[id]?.text || ''); };
-    save.onclick = async () => {
-      const text = ta.value.trim();
-      await (text ? set(ref(db, `missions/${id}`), { text, updatedAt: Date.now() }) : remove(ref(db, `missions/${id}`)));
-      toast(`Opdracht voor ${m.name} opgeslagen 🤫`, 'ok');
-      listMembers();
-    };
     $('[data-mod]', card).onchange = async (e) => {
       await set(ref(db, `moderators/${id}`), e.target.checked || null);
       toast(e.target.checked ? `${m.name} is nu admin light 🛡️` : `${m.name} is geen admin light meer`, 'ok');
@@ -630,7 +617,7 @@ async function listMembers() {
     $('[data-del]', card).onclick = async () => {
       if (!confirm(`${m.name} en de opdracht verwijderen?`)) return;
       try { await deleteMemberAccount(m.username, m.password); } catch { /* account bestond al niet meer */ }
-      await update(ref(db), { [`members/${id}`]: null, [`missions/${id}`]: null, [`avatars/${id}`]: null, [`roster/${id}`]: null, [`moderators/${id}`]: null });
+      await update(ref(db), { [`members/${id}`]: null, [`missions/${id}`]: null, [`missionDrafts/${id}`]: null, [`avatars/${id}`]: null, [`roster/${id}`]: null, [`moderators/${id}`]: null });
       toast(`${m.name} verwijderd`);
       listMembers();
     };
@@ -827,30 +814,17 @@ async function raadkaartAdmin() {
 /* ---------- Admin light: opdrachten geven ---------- */
 async function missionsLight() {
   frame('members', '<div class="card muted">Laden…</div>');
-  const [roster, missions] = await Promise.all(['roster', 'missions'].map(async (k) => (await get(ref(db, k))).val() || {}));
+  const roster = (await get(ref(db, 'roster'))).val() || {};
+  const mstate = await loadMissions();
   const list = Object.entries(roster).sort((a, b) => a[1].name.localeCompare(b[1].name));
-  const status = (ms) => (ms?.revealedAt ? `<span class="pill" style="background:var(--ok)">✅ Geopend ${esc(fmtTime(ms.revealedAt))}</span>`
-    : ms?.text ? '<span class="pill yolk">🥚 Nog niet geopend</span>' : '<span class="pill" style="background:var(--muted)">Nog geen opdracht</span>');
-  $('#view').innerHTML = `<div class="list">${list.map(([id, m]) => `
+  const ids = list.map(([id]) => id);
+  $('#view').innerHTML = `${missionsToolbar(ids, mstate)}<div class="list">${list.map(([id, m]) => `
     <div class="card member-card" data-id="${esc(id)}">
-      <div class="list-item">${av({ member: true }, id)}<div class="grow"><h3>${esc(m.name)}</h3></div>${status(missions[id])}</div>
-      <div class="field" style="margin:14px 0 8px"><label>Geheime opdracht</label>
-        <textarea class="input" data-mission>${esc(missions[id]?.text || '')}</textarea></div>
-      <button class="btn small ok" data-save disabled>Opslaan</button>
+      <div class="list-item">${av({ member: true }, id)}<div class="grow"><h3>${esc(m.name)}</h3></div></div>
+      ${missionField(id, mstate)}
     </div>`).join('') || '<div class="card muted">Nog geen weekendgangers.</div>'}</div>`;
   watchAvatars(setAvatars);
-  $$('.member-card').forEach((card) => {
-    const id = card.dataset.id;
-    const ta = $('[data-mission]', card);
-    const save = $('[data-save]', card);
-    ta.oninput = () => { save.disabled = ta.value.trim() === (missions[id]?.text || ''); };
-    save.onclick = async () => {
-      const text = ta.value.trim();
-      await (text ? set(ref(db, `missions/${id}`), { text, updatedAt: Date.now() }) : remove(ref(db, `missions/${id}`)));
-      toast(`Opdracht voor ${roster[id].name} opgeslagen 🤫`, 'ok');
-      missionsLight();
-    };
-  });
+  wireMissions($('#view'), ids, mstate, Object.fromEntries(list.map(([id, m]) => [id, m.name])), missionsLight);
 }
 
 /* ---------- Admin light: raadkaart bekijken (zonder geheime locatie) ---------- */
@@ -904,8 +878,8 @@ function settings() {
     }
   };
   $('#exp').onclick = async () => {
-    const [quizzes, letters, media, members, missions] = await Promise.all(['quizzes', 'letters', 'media', 'members', 'missions'].map(async (k) => (await get(ref(db, k))).val() || {}));
-    const blob = new Blob([JSON.stringify({ quizzes, letters, media, members, missions }, null, 2)], { type: 'application/json' });
+    const [quizzes, letters, media, members, missions, missionDrafts] = await Promise.all(['quizzes', 'letters', 'media', 'members', 'missions', 'missionDrafts'].map(async (k) => (await get(ref(db, k))).val() || {}));
+    const blob = new Blob([JSON.stringify({ quizzes, letters, media, members, missions, missionDrafts }, null, 2)], { type: 'application/json' });
     const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'db.json' });
     a.click();
     URL.revokeObjectURL(a.href);
@@ -915,7 +889,7 @@ function settings() {
     try {
       const data = JSON.parse(await e.target.files[0].text());
       const upd = {};
-      for (const k of ['quizzes', 'letters', 'media', 'members', 'missions']) for (const [id, v] of Object.entries(data[k] || {})) upd[`${k}/${id}`] = v;
+      for (const k of ['quizzes', 'letters', 'media', 'members', 'missions', 'missionDrafts']) for (const [id, v] of Object.entries(data[k] || {})) upd[`${k}/${id}`] = v;
       if (!confirm(`${Object.keys(upd).length} items importeren? Items met hetzelfde id worden overschreven.`)) return;
       await update(ref(db), upd);
       toast('Geïmporteerd ✔', 'ok');

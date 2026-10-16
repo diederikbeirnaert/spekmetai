@@ -1,7 +1,7 @@
 // Tekent de avatars van de weekendgangers als geanimeerde SVG's in de SpekmetAI-stijl:
 // dikke donkerbruine lijnen, platte kleuren, grote glimoogjes, blosjes, knipperen en zacht wiebelen.
 // Uitvoeren: node avatars/generate.mjs — per persoon pas je alles aan in PEOPLE onderaan.
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const INK = '#3A2618';
@@ -101,6 +101,64 @@ const brows = (p) => {
     <path d="M116 ${y} Q128 ${y - 7} 141 ${y - 3}"/><path d="M179 ${y - 3} Q192 ${y - 7} 204 ${y}"/></g>`;
 };
 
+// Vier gezichtsuitdrukkingen voor de volledige poppetjes (de pagina kiest er één met .mood-*).
+function expressions(p) {
+  const y = p.browY || 134;
+  const browC = shade(p.hair, 0.85);
+  const bw = p.thickBrows ? 6.5 : 4.5;
+  const browsAt = (dl, dr) => `<g stroke="${browC}" stroke-width="${bw}" fill="none" stroke-linecap="round">
+    <path d="M116 ${y + dl[0]} Q128 ${y - 7 + dl[1]} 141 ${y - 3 + dl[2]}"/><path d="M179 ${y - 3 + dr[0]} Q192 ${y - 7 + dr[1]} 204 ${y + dr[2]}"/></g>`;
+  const happy = `${eyes(p)}${brows(p)}${MOUTH[p.mouth || 'smile']}`;
+  // Trots: dichtgeknepen lachogen, wenkbrauwen omhoog, brede grijns
+  const proud = `<g stroke="${INK}" stroke-width="5.5" fill="none" stroke-linecap="round"><path d="M115 162 Q128 147 141 162"/><path d="M179 162 Q192 147 205 162"/></g>
+    ${browsAt([-8, -8, -8], [-8, -8, -8])}${MOUTH.grin}`;
+  // Geschrokken: grote ogen met kleine pupillen, hoge wenkbrauwen, o-mond
+  const shock = `<g><circle cx="128" cy="157" r="14" fill="#fff" ${stroke(3.5)}/><circle cx="192" cy="157" r="14" fill="#fff" ${stroke(3.5)}/>
+      <circle cx="128" cy="158" r="4.5" fill="${INK}"/><circle cx="192" cy="158" r="4.5" fill="${INK}"/></g>
+    ${browsAt([-14, -14, -14], [-14, -14, -14])}<ellipse cx="160" cy="214" rx="10" ry="13" fill="#7A2E2E" ${stroke(4)}/>`;
+  // Verdrietig: bezorgde wenkbrauwen, mondhoeken omlaag, traantje
+  const sad = `${eyes(p)}${browsAt([2, -2, -9], [-9, -2, 2])}
+    <path d="M140 216 Q160 200 180 216" ${stroke()} fill="none"/>
+    <path class="fig-tear" d="M114 172 q6 10 0 14 q-6 -4 0 -14 Z" fill="#8FD3FF" ${stroke(2)}/>`;
+  // Knipoog: één oog dicht, scheve grijns met tongetje
+  const wink = `<g><ellipse cx="128" cy="157" rx="10.5" ry="12.5" fill="${INK}"/><ellipse cx="128" cy="160" rx="7" ry="8" fill="${p.eyes}" opacity=".9"/>
+      <ellipse cx="128" cy="160" rx="4" ry="5" fill="${INK}"/><circle cx="124.5" cy="152" r="4" fill="#fff"/></g>
+    <path d="M179 160 Q192 150 205 160" ${stroke(5.5)} fill="none"/>
+    ${browsAt([0, 0, 0], [-6, -6, -6])}
+    <path d="M138 204 Q162 222 184 200" ${stroke()} fill="none"/><path d="M160 212 q8 14 16 2 Z" fill="#E27B7B" ${stroke(2.5)}/>`;
+  // Verliefd: hartjesogen, grote blosjes
+  const heart = (x) => `<path d="M${x} 168 C${x - 18} 156 ${x - 14} 140 ${x - 6} 143 C${x - 2} 144 ${x} 148 ${x} 150 C${x} 148 ${x + 2} 144 ${x + 6} 143 C${x + 14} 140 ${x + 18} 156 ${x} 168 Z" fill="#E63946" ${stroke(3)}/>
+    <circle cx="${x - 7}" cy="149" r="2.5" fill="#fff" opacity=".8"/>`;
+  const love = `${heart(128)}${heart(192)}${brows(p)}
+    <ellipse cx="108" cy="192" rx="17" ry="11" fill="#F25C78" opacity=".45"/><ellipse cx="212" cy="192" rx="17" ry="11" fill="#F25C78" opacity=".45"/>${MOUTH.grin}`;
+  // Vastberaden: wenkbrauwen schuin naar beneden, tanden op elkaar
+  const angry = `${eyes(p)}${browsAt([-6, 2, 10], [10, 2, -6])}
+    <rect x="140" y="204" width="40" height="16" rx="6" fill="#fff" ${stroke(4)}/><path d="M150 205 v14 M160 205 v14 M170 205 v14 M141 212 h38" stroke="${INK}" stroke-width="2"/>`;
+  // Duizelig: spiraaltjes als ogen, golvende mond
+  const spiral = (x) => `<path class="fig-spiral" d="M${x} 157 m-2 0 a2 2 0 1 1 4 0 a4 4 0 1 1 -8 0 a6 6 0 1 1 12 0 a8 8 0 1 1 -16 0 a10 10 0 1 1 20 0" ${stroke(3)} fill="none"/>`;
+  const dizzy = `${spiral(128)}${spiral(192)}${browsAt([-4, -6, -2], [-2, -6, -4])}
+    <path d="M140 210 q5 -6 10 0 t10 0 t10 0 t10 0" ${stroke(4)} fill="none"/>`;
+  // Verward: één wenkbrauw hoog, scheef mondje, vraagteken
+  const confused = `<g><ellipse cx="128" cy="159" rx="9" ry="10" fill="${INK}"/><circle cx="125" cy="155" r="3" fill="#fff"/>
+      <ellipse cx="192" cy="155" rx="11" ry="13" fill="${INK}"/><circle cx="188.5" cy="150" r="4" fill="#fff"/></g>
+    ${browsAt([2, 2, 2], [-14, -16, -12])}
+    <path d="M142 212 q6 -6 12 0 t12 0 t12 -6" ${stroke(4)} fill="none"/>
+    <text x="236" y="70" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="54" fill="#FB8500" stroke="${INK}" stroke-width="2.5">?</text>`;
+  // Beschaamd: ogen naar opzij, grote blosjes, klein wiebelmondje
+  const shy = `<g>${[128, 192].map((x) => `<ellipse cx="${x}" cy="159" rx="10" ry="11" fill="${INK}"/><ellipse cx="${x + 4}" cy="162" rx="5" ry="6" fill="${p.eyes}"/><circle cx="${x - 3}" cy="154" r="3.5" fill="#fff"/>`).join('')}</g>
+    ${browsAt([2, -3, -7], [-7, -3, 2])}
+    <ellipse cx="108" cy="190" rx="22" ry="13" fill="#F25C78" opacity=".6"/><ellipse cx="212" cy="190" rx="22" ry="13" fill="#F25C78" opacity=".6"/>
+    <path d="M108 186 l8 -6 M116 192 l8 -6 M200 186 l8 -6 M208 192 l8 -6" stroke="#E63946" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M148 212 q4 -4 8 0 t8 0 t8 0" ${stroke(3.5)} fill="none"/>`;
+  // Uitgeput: halfgesloten ogen, hijgend met tong, zweetdruppel
+  const tired = `<g>${[128, 192].map((x) => `<path d="M${x - 13} 156 q13 12 26 0 Z" fill="${INK}"/><path d="M${x - 14} 156 h28" ${stroke(4)}/>`).join('')}</g>
+    ${browsAt([4, 2, 0], [0, 2, 4])}
+    <ellipse cx="160" cy="214" rx="15" ry="13" fill="#7A2E2E" ${stroke(4)}/><path class="fig-tongue" d="M152 218 q8 18 16 0 Z" fill="#E27B7B" ${stroke(2.5)}/>
+    <path class="fig-tear" d="M220 120 q6 10 0 14 q-6 -4 0 -14 Z" fill="#8FD3FF" ${stroke(2)}/>`;
+  return [['happy', happy], ['proud', proud], ['shock', shock], ['sad', sad], ['wink', wink], ['love', love], ['angry', angry], ['dizzy', dizzy], ['confused', confused], ['shy', shy], ['tired', tired]]
+    .map(([k, v]) => `<g class="ex ex-${k}">${v}</g>`).join('');
+}
+
 const beard = (c, full) => `<path d="M84 166 C88 212 116 248 160 250 C204 248 232 212 236 166 C228 196 206 210 192 210 Q160 228 128 210 C114 210 92 196 84 166 Z"
     fill="${c}" opacity="${full ? 1 : 0.22}" ${full ? stroke(4) : ''}/>
   <path d="M140 198 Q160 190 180 198 Q160 204 140 198 Z" fill="${c}" opacity="${full ? 1 : 0.35}"/>`;
@@ -160,9 +218,38 @@ const necklace = `<g fill="none" stroke="#E0B34A" stroke-width="3" stroke-lineca
   <path d="M140 266 Q160 284 180 266"/><path d="M136 270 Q160 296 184 270" stroke-dasharray="5 4"/></g>`;
 
 /* ---------- Samenstellen ---------- */
-function avatar(p) {
+// Haar achter het hoofd (lange en halflange kapsels).
+function headBack(p) {
   const long = p.hairStyle === 'long';
   const bob = p.hairStyle === 'bob';
+  return long || bob ? `<g transform="translate(160 160) scale(1.06) translate(-160 -160)">${mirror(sides(p.hair, p.len || (long ? 300 : 250), p.flare ?? (long ? 10 : 4), p.wave), p.flip)}</g>` : '';
+}
+
+// Hals + gezicht + kapsel + accessoires. `face` is de gezichtsuitdrukking (gewoon, of alle vier).
+function headFront(p, face) {
+  const long = p.hairStyle === 'long';
+  const bob = p.hairStyle === 'bob';
+  return `<path d="M140 214 L140 262 Q160 276 180 262 L180 214 Z" fill="${p.skin}" ${stroke()}/>
+    <path d="M140 232 Q160 246 180 232 L180 220 L140 220 Z" fill="${shade(p.skin, 0.88)}"/>
+    <g transform="translate(160 160) scale(1.06) translate(-160 -160)">
+      ${long || bob ? '' : `<ellipse cx="82" cy="164" rx="12" ry="17" fill="${p.skin}" ${stroke()}/><ellipse cx="238" cy="164" rx="12" ry="17" fill="${p.skin}" ${stroke()}/>`}
+      <path d="${FACE[p.face || 'round']}" fill="${p.skin}" ${stroke()}/>
+      ${p.beard ? beard(p.beard, p.fullBeard) : ''}
+      <ellipse cx="110" cy="190" rx="15" ry="10" fill="#F28C6B" opacity=".4"/><ellipse cx="210" cy="190" rx="15" ry="10" fill="#F28C6B" opacity=".4"/>
+      ${p.freckles ? freckles : ''}
+      ${face}
+      <path d="M157 170 Q151 186 160 189 Q167 190 170 185" ${stroke(3.5)} fill="none"/>
+      ${p.noseRing ? noseRing : ''}
+      ${long ? topMiddle(p.hair) : ''}
+      ${bob ? mirror(topSide(p.hair), p.flip) : ''}
+      ${HAIR[p.hairStyle] ? HAIR[p.hairStyle](p.hair) : ''}
+      ${p.glasses ? glasses(p.glasses, p.rectGlasses) : ''}
+      ${p.sunglasses ? sunglasses : ''}
+      ${p.hoops ? hoops : ''}${p.studs ? studs : ''}
+    </g>`;
+}
+
+function avatar(p) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" width="320" height="320">
   <style>
     .bob { transform-origin: 160px 250px; animation: bob 4.2s ease-in-out infinite; animation-delay: -${p.delay || 0}s; }
@@ -176,46 +263,85 @@ function avatar(p) {
   ${CLOTHES[p.clothes || 'tee'](p.shirt)}
   ${p.necklace ? necklace : ''}
   <g transform="rotate(${p.tilt || 0} 160 250)"><g class="bob">
-    ${long || bob ? `<g transform="translate(160 160) scale(1.06) translate(-160 -160)">${mirror(sides(p.hair, p.len || (long ? 300 : 250), p.flare ?? (long ? 10 : 4), p.wave), p.flip)}</g>` : ''}
-    <path d="M140 214 L140 262 Q160 276 180 262 L180 214 Z" fill="${p.skin}" ${stroke()}/>
-    <path d="M140 232 Q160 246 180 232 L180 220 L140 220 Z" fill="${shade(p.skin, 0.88)}"/>
-    <g transform="translate(160 160) scale(1.06) translate(-160 -160)">
-      ${long || bob ? '' : `<ellipse cx="82" cy="164" rx="12" ry="17" fill="${p.skin}" ${stroke()}/><ellipse cx="238" cy="164" rx="12" ry="17" fill="${p.skin}" ${stroke()}/>`}
-      <path d="${FACE[p.face || 'round']}" fill="${p.skin}" ${stroke()}/>
-      ${p.beard ? beard(p.beard, p.fullBeard) : ''}
-      <ellipse cx="110" cy="190" rx="15" ry="10" fill="#F28C6B" opacity=".4"/><ellipse cx="210" cy="190" rx="15" ry="10" fill="#F28C6B" opacity=".4"/>
-      ${p.freckles ? freckles : ''}
-      ${eyes(p)}
-      ${brows(p)}
-      <path d="M157 170 Q151 186 160 189 Q167 190 170 185" ${stroke(3.5)} fill="none"/>
-      ${MOUTH[p.mouth || 'smile']}
-      ${p.noseRing ? noseRing : ''}
-      ${long ? topMiddle(p.hair) : ''}
-      ${bob ? mirror(topSide(p.hair), p.flip) : ''}
-      ${HAIR[p.hairStyle] ? HAIR[p.hairStyle](p.hair) : ''}
-      ${p.glasses ? glasses(p.glasses, p.rectGlasses) : ''}
-      ${p.sunglasses ? sunglasses : ''}
-      ${p.hoops ? hoops : ''}${p.studs ? studs : ''}
-    </g>
+    ${headBack(p)}
+    ${headFront(p, `${eyes(p)}${brows(p)}${MOUTH[p.mouth || 'smile']}`)}
     ${p.baby ? baby(p.skin) : ''}
   </g></g>
 </svg>
 `;
 }
 
+/* ---------- Volledig poppetje (voor het scorebord) ---------- */
+// Losse groepen (.fig-arm-l, .fig-leg-r, .fig-head, …) zodat de pagina ze kan laten bewegen,
+// en vier gezichtsuitdrukkingen (.ex-happy/-proud/-shock/-sad) die de pagina aan- en uitzet.
+function figure(p) {
+  // Chibi-verhoudingen: groot hoofd (schaal HS), kort mollig lijfje. Alles rekent vanaf de nek (NY).
+  // De lengte (p.height) zit in het lijf: het hoofd blijft voor iedereen even groot.
+  const HS = 0.84;
+  const H = p.height || 1;
+  const HX = 160 - 160 * HS;
+  const NY = 262 * HS - 6; // onderkant van de hals
+  const TB = NY + Math.round(128 * (0.35 + 0.65 * H)); // onderkant van de romp
+  const LB = TB + Math.max(30, Math.round(78 * (1.9 * H - 0.9))); // onderkant van de benen (lengteverschil zit vooral hier)
+  const AL = Math.round(76 * (0.4 + 0.6 * H)); // armlengte
+  const shirt = p.shirt;
+  const sleeve = shade(shirt, 0.92);
+  const pants = p.pants || '#3E4C6E';
+  const shoe = p.shoes || '#3A2618';
+  const arm = (side) => {
+    const x = side < 0 ? 94 : 226;
+    return `<g class="fig-arm fig-arm-${side < 0 ? 'l' : 'r'}">
+      <path d="M${x - 16} ${NY + 16} Q${x} ${NY + 6} ${x + 16} ${NY + 16} L${x + 14} ${NY + 16 + AL} Q${x} ${NY + 24 + AL} ${x - 14} ${NY + 16 + AL} Z" fill="${sleeve}" ${stroke(4.5)}/>
+      <circle cx="${x}" cy="${NY + 28 + AL}" r="17" fill="${p.skin}" ${stroke(4.5)}/></g>`;
+  };
+  const leg = (side) => {
+    const x = side < 0 ? 136 : 184;
+    return `<g class="fig-leg fig-leg-${side < 0 ? 'l' : 'r'}">
+      <rect x="${x - 21}" y="${TB - 14}" width="42" height="${LB - TB + 8}" rx="18" fill="${pants}" ${stroke(4.5)}/>
+      <path d="M${x - 28 + side * 6} ${LB + 4} Q${x - 28 + side * 6} ${LB - 16} ${x + side * 6} ${LB - 16} Q${x + 32 + side * 6} ${LB - 16} ${x + 34 + side * 6} ${LB + 6} Q${x + 34 + side * 6} ${LB + 18} ${x + 22 + side * 6} ${LB + 18} L${x - 20 + side * 6} ${LB + 18} Q${x - 28 + side * 6} ${LB + 18} ${x - 28 + side * 6} ${LB + 4} Z" fill="${shoe}" ${stroke(4)}/></g>`;
+  };
+  const collar = { blazer: `<path d="M142 ${NY + 2} Q160 ${NY + 54} 178 ${NY + 2}" fill="#FBF8F3" ${stroke(3.5)}/>`,
+    collar: `<path d="M136 ${NY} Q140 ${NY + 24} 156 ${NY + 22} L160 ${NY + 8} L164 ${NY + 22} Q180 ${NY + 24} 184 ${NY}" fill="${shade(shirt, 1.25)}" ${stroke(3.5)}/>`,
+    knit: `<path d="M138 ${NY + 2} Q160 ${NY + 20} 182 ${NY + 2}" stroke="${shade(shirt, 0.8)}" stroke-width="7" fill="none" stroke-linecap="round"/>` }[p.clothes]
+    || `<path d="M138 ${NY + 2} Q160 ${NY + 20} 182 ${NY + 2}" ${stroke(4)} fill="none"/>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 ${LB + 26}" width="320" height="${LB + 26}" class="fig" data-height="${p.height || 1}">
+  <g class="fig-body-all">
+    ${leg(-1)}${leg(1)}
+    <g class="fig-headback" transform="translate(${HX} 0) scale(${HS})">${headBack(p)}</g>
+    <g class="fig-torso">
+      <path d="M110 ${NY} Q160 ${NY - 12} 210 ${NY} Q242 ${NY + 12} 240 ${NY + 46} L232 ${TB - 8} Q160 ${TB + 14} 88 ${TB - 8} L80 ${NY + 46} Q78 ${NY + 12} 110 ${NY} Z" fill="${shirt}" ${stroke(4.5)}/>
+      ${collar}
+      <path d="M96 ${TB - 18} Q160 ${TB - 2} 224 ${TB - 18}" stroke="${shade(shirt, 0.8)}" stroke-width="5" fill="none" stroke-linecap="round" opacity=".7"/>
+    </g>
+    ${p.baby ? `<g class="fig-baby" transform="translate(68 ${NY - 70}) scale(.6)">${baby(p.skin)}</g>` : ''}
+    ${arm(-1)}${arm(1)}
+    <g class="fig-head"><g transform="translate(${HX} 0) scale(${HS})">${headFront(p, expressions(p))}</g>
+      <g class="fig-crown" transform="translate(160 ${p.hairStyle === 'messy' || p.hairStyle === 'quiff' ? 4 : 18})">
+        <path d="M-34 0 L-38 -36 L-17 -16 L0 -44 L17 -16 L38 -36 L34 0 Z" fill="#FFD166" ${stroke(4)}/>
+        <circle cx="0" cy="-14" r="5" fill="#E63946" ${stroke(2)}/><circle cx="-22" cy="-8" r="3.5" fill="#2A7FB8"/><circle cx="22" cy="-8" r="3.5" fill="#2E9E5B"/>
+        <path d="M-26 -4 L-22 -24" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7"/></g></g>
+  </g>
+</svg>
+`;
+}
+
 /* ---------- De weekendgangers ---------- */
 const PEOPLE = {
-  femke: { face: 'round', hair: '#5E3A22', hairStyle: 'bob', len: 262, skin: '#F6CFB2', eyes: '#6B4226', lashes: true, mouth: 'grin', glasses: '#7A2430', hoops: true, shirt: '#3B3B4F', tilt: -4, delay: 0 },
-  charlotte: { face: 'oval', hair: '#C9A26B', hairStyle: 'long', len: 300, wave: true, skin: '#F7D3B8', eyes: '#7C97A8', lashes: true, mouth: 'grin', studs: true, shirt: '#6B1F2E', tilt: 3, delay: 1.1 },
-  justine: { face: 'round', hair: '#C0602F', hairStyle: 'bob', len: 256, flip: true, skin: '#F6CFB2', eyes: '#7A5A3A', lashes: true, mouth: 'grin', sunglasses: true, freckles: true, shirt: '#6D7A8C', tilt: -3, delay: 2.3 },
-  ines: { face: 'oval', hair: '#94401F', hairStyle: 'long', len: 312, skin: '#F7D6BE', eyes: '#4A3020', lashes: true, mouth: 'smile', freckles: true, clothes: 'blazer', shirt: '#D2BC9A', necklace: true, tilt: 3, delay: 3.4 },
-  diederik: { face: 'round', hair: '#2A1C14', hairStyle: 'messy', skin: '#F1C6A6', eyes: '#7C8A4A', mouth: 'smile', thickBrows: true, beard: '#4A3A30', shirt: '#26262E', tilt: -3, delay: 0.6 },
-  tom: { face: 'round', hair: '#8A6445', hairStyle: 'swept', skin: '#F0C3A2', eyes: '#7A8B55', mouth: 'grin', beard: '#7A5A40', shirt: '#26262E', tilt: 4, delay: 1.7 },
-  simon: { face: 'oval', hair: '#B8956A', hairStyle: 'quiff', skin: '#F6CFB2', eyes: '#6B4A2E', mouth: 'smirk', shirt: '#2F8F9D', tilt: -4, delay: 2.8 },
-  linde: { face: 'oval', hair: '#7B5033', hairStyle: 'long', len: 296, wave: true, skin: '#F7D6BE', eyes: '#7C97A8', lashes: true, mouth: 'grin', noseRing: true, baby: true, clothes: 'knit', shirt: '#EDE4D3', tilt: -3, delay: 4.6 },
-  karel: { face: 'round', hair: '#5A3A24', hairStyle: 'neat', skin: '#F3C7A8', eyes: '#6E8797', mouth: 'grin', glasses: '#2A1C14', rectGlasses: true, beard: '#5A3A24', fullBeard: true, clothes: 'collar', shirt: '#5B6770', tilt: 3, delay: 3.9 },
+  femke: { height: 0.9, face: 'round', hair: '#5E3A22', hairStyle: 'bob', len: 262, skin: '#F6CFB2', eyes: '#6B4226', lashes: true, mouth: 'grin', glasses: '#7A2430', hoops: true, shirt: '#3B3B4F', tilt: -4, delay: 0 },
+  charlotte: { height: 0.9, face: 'oval', hair: '#C9A26B', hairStyle: 'long', len: 300, wave: true, skin: '#F7D3B8', eyes: '#7C97A8', lashes: true, mouth: 'grin', studs: true, shirt: '#6B1F2E', tilt: 3, delay: 1.1 },
+  justine: { height: 1.0, face: 'round', hair: '#C0602F', hairStyle: 'bob', len: 256, flip: true, skin: '#F6CFB2', eyes: '#7A5A3A', lashes: true, mouth: 'grin', sunglasses: true, freckles: true, shirt: '#6D7A8C', tilt: -3, delay: 2.3 },
+  ines: { height: 0.72, face: 'oval', hair: '#94401F', hairStyle: 'long', len: 312, skin: '#F7D6BE', eyes: '#4A3020', lashes: true, mouth: 'smile', freckles: true, clothes: 'blazer', shirt: '#D2BC9A', necklace: true, tilt: 3, delay: 3.4 },
+  diederik: { height: 1.0, face: 'round', hair: '#2A1C14', hairStyle: 'messy', skin: '#F1C6A6', eyes: '#7C8A4A', mouth: 'smile', thickBrows: true, beard: '#4A3A30', shirt: '#26262E', tilt: -3, delay: 0.6 },
+  tom: { height: 0.72, face: 'round', hair: '#8A6445', hairStyle: 'swept', skin: '#F0C3A2', eyes: '#7A8B55', mouth: 'grin', beard: '#7A5A40', shirt: '#26262E', tilt: 4, delay: 1.7 },
+  simon: { height: 1.0, face: 'oval', hair: '#B8956A', hairStyle: 'quiff', skin: '#F6CFB2', eyes: '#6B4A2E', mouth: 'smirk', shirt: '#2F8F9D', tilt: -4, delay: 2.8 },
+  linde: { height: 1.0, face: 'oval', hair: '#7B5033', hairStyle: 'long', len: 296, wave: true, skin: '#F7D6BE', eyes: '#7C97A8', lashes: true, mouth: 'grin', noseRing: true, baby: true, clothes: 'knit', shirt: '#EDE4D3', tilt: -3, delay: 4.6 },
+  karel: { height: 1.3, face: 'round', hair: '#5A3A24', hairStyle: 'neat', skin: '#F3C7A8', eyes: '#6E8797', mouth: 'grin', glasses: '#2A1C14', rectGlasses: true, beard: '#5A3A24', fullBeard: true, clothes: 'collar', shirt: '#5B6770', tilt: 3, delay: 3.9 },
 };
 
-for (const [name, p] of Object.entries(PEOPLE)) writeFileSync(`${dir}${name}.svg`, avatar(p));
+mkdirSync(`${dir}full`, { recursive: true });
+for (const [name, p] of Object.entries(PEOPLE)) {
+  writeFileSync(`${dir}${name}.svg`, avatar(p));
+  writeFileSync(`${dir}full/${name}.svg`, figure(p));
+}
 writeFileSync(`${dir}index.json`, JSON.stringify(Object.keys(PEOPLE), null, 2) + '\n');
 console.log(`${Object.keys(PEOPLE).length} avatars getekend in ${dir}`);

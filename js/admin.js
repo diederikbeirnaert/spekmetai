@@ -5,6 +5,7 @@ import { makeMap, eggPin, goalPin, tColor, distanceKm, fmtKm, dayLabel, edgesTab
 import { flatGuesses, addGuessPins, focusPins, mountGuessBoard } from './guessboard.js';
 import { mountPlaylistAdmin } from './playlistadmin.js';
 import { loadMissions, missionsToolbar, missionField, wireMissions } from './missions.js';
+import { mountScoreAdmin } from './scoreadmin.js';
 import { handleCallback as spotifyCallback } from './spotify.js';
 import {
   configured, db, ref, get, set, update, remove, push, useAuth, currentUser, isAdmin, notConfiguredHtml,
@@ -86,6 +87,10 @@ function route() {
   if (page === 'settings') return settings();
   if (page === 'members') return listMembers();
   if (page === 'raadkaart') return raadkaartAdmin();
+  if (page === 'scores') {
+    frame('scores', '<div id="sba"><div class="card muted">Laden…</div></div>');
+    return mountScoreAdmin($('#sba'), { light });
+  }
   if (page === 'twister') {
     frame('twister', '<div id="tw"></div>');
     return renderTwister($('#tw'));
@@ -96,6 +101,7 @@ function route() {
 function frame(active, html) {
   const tabs = [
     ['quizzes', '🍳 Quizzen'],
+    ['scores', '🏆 Scorebord'],
     !light && ['letters', '✉️ Weekendbrief'],
     ['members', light ? '🤫 Opdrachten' : '🤫 Weekendgangers'],
     ['raadkaart', '🗺️ Raadkaart'],

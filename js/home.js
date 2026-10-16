@@ -1,15 +1,17 @@
-import { $, ART, shell, esc, fmtDate } from './common.js';
+import { $, ART, shell, esc, fmtDate, setAvatars } from './common.js';
 import { fetchLetters, letterExcerpt } from './letters.js?v=4';
 import { firebaseConfig } from './firebase-config.js';
 import { rankSongs } from './songs.js?v=3';
+import { totals, sortedEntries, standings, KIND_ICON, animateFigures } from './scoreboard.js';
 
 shell('home');
 
 $('#app').innerHTML = `
+  <section id="homescores" class="home-scores"></section>
   <section class="hero">
     <div class="slide-up">
-      <h1>Spekmet<span class="ai">AI</span><br><span style="font-size:.55em">de sappigste quiz van het weekend</span></h1>
-      <p class="lead">Pak je gsm, vul de code in en bak er iets van. Wie het snelst antwoordt, scoort het meeste spek!</p>
+      <h1>Spekmet<span class="ai">AI</span><br><span style="font-size:.55em">alles voor het sappigste weekend</span></h1>
+      <p class="lead">Quizzen, spelletjes, geheime opdrachten, de raadkaart en onze eigen playlist: hier gebeurt het allemaal. Doe je mee aan een quiz? Vul de code in!</p>
       <form class="join-box" id="join">
         <input class="input" id="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="123456" aria-label="Quizcode" autocomplete="off">
         <button class="btn bacon big" type="submit">Doe mee!</button>
@@ -17,12 +19,6 @@ $('#app').innerHTML = `
     </div>
     <div class="hero-art pop-in">${ART.pan}</div>
   </section>
-
-  <div class="features">
-    <div class="card feature slide-up" style="animation-delay:.1s"><div class="wobble">${ART.egg()}</div><h3>Code intikken</h3><p class="muted">Zes cijfers, meer niet. Geen account nodig.</p></div>
-    <div class="card feature slide-up" style="animation-delay:.2s"><div class="sizzle">${ART.bacon(true)}</div><h3>Snel antwoorden</h3><p class="muted">Tik op het juiste spiegelei. Hoe sneller, hoe meer punten.</p></div>
-    <div class="card feature slide-up" style="animation-delay:.3s"><div class="float">${ART.toast}</div><h3>Op het podium</h3><p class="muted">De top 3 wordt gebakken in eeuwige roem.</p></div>
-  </div>
 
   <div id="hometop"></div>
 
@@ -67,3 +63,43 @@ async function loadTopSongs() {
     </div>`;
 }
 loadTopSongs().catch(() => {});
+
+// Weekendscorebord bovenaan, ververst om de 30 seconden (alleen opnieuw tekenen als er iets veranderde).
+let lastScores = '';
+async function loadScores() {
+  if (String(firebaseConfig.apiKey).startsWith('VUL')) return;
+  const json = async (p) => (await (await fetch(`${firebaseConfig.databaseURL}/${p}.json`)).json()) || {};
+  const [entries, avatars, config] = await Promise.all([json('scoreboard/entries'), json('avatars').catch(() => ({})), json('scoreboard/config').catch(() => ({}))]);
+  const sig = JSON.stringify([entries, config]);
+  if (sig === lastScores) return;
+  lastScores = sig;
+  setAvatars(avatars);
+  const test = config.test === true;
+  const list = totals(entries, { includeTest: test });
+  const latest = sortedEntries(entries).filter((e) => test || !e.test)[0];
+  if (!list.length) return showLineup();
+  $('#homescores').innerHTML = list.length ? `
+    <div class="card home-board slide-up">
+      <div class="row" style="justify-content:space-between;align-items:baseline">
+        <h2 style="margin:0">🏆 Weekendscorebord</h2>
+        ${latest ? `<small class="muted">Laatste: ${KIND_ICON[latest.kind] || '🎲'} ${esc(latest.title)}</small>` : ''}
+      </div>
+      ${test ? '<p class="sb-testnote">🧪 Testmodus: deze punten zijn een test en tellen niet echt mee.</p>' : ''}
+      ${standings(list)}
+    </div>` : '';
+  animateFigures($('#homescores'));
+}
+loadScores().catch(() => {});
+setInterval(() => loadScores().catch(() => {}), 30000);
+
+// Nog geen punten: alle poppetjes naast elkaar (tik voor de signature move).
+async function showLineup() {
+  const names = await fetch('avatars/index.json').then((r) => r.json()).catch(() => []);
+  if (!names.length) return;
+  $('#homescores').innerHTML = `<div class="card home-board slide-up">
+    <h2 style="margin:0">🏆 Weekendscorebord</h2>
+    <p class="muted" style="margin:4px 0 0">Nog geen punten… de deelnemers warmen zich op! Tik op iemand. 👆</p>
+    <div class="sb-lineup">${names.map((n) => `<figure><span class="sb-fig" data-fig="${esc(n)}" data-anim="wave" data-mood="happy"></span>
+      <figcaption>${esc(n[0].toUpperCase() + n.slice(1))}</figcaption></figure>`).join('')}</div></div>`;
+  animateFigures($('#homescores'));
+}

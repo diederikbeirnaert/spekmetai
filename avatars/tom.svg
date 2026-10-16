@@ -33,13 +33,11 @@
     <ellipse cx="192" cy="160" rx="7" ry="8" fill="#7A8B55" opacity=".9"/>
     <ellipse cx="192" cy="160" rx="4" ry="5" fill="#3A2618"/>
     <circle cx="188.5" cy="152" r="4" fill="#fff"/><circle cx="195.5" cy="163" r="1.8" fill="#fff"/>
-    </g>
-      <g stroke="#75553b" stroke-width="4.5" fill="none" stroke-linecap="round">
-    <path d="M116 134 Q128 127 141 131"/><path d="M179 131 Q192 127 204 134"/></g>
-      <path d="M157 170 Q151 186 160 189 Q167 190 170 185" stroke="#3A2618" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
-      <path d="M134 202 Q160 236 186 202 Q160 210 134 202 Z" fill="#7A2E2E" stroke="#3A2618" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+    </g><g stroke="#75553b" stroke-width="4.5" fill="none" stroke-linecap="round">
+    <path d="M116 134 Q128 127 141 131"/><path d="M179 131 Q192 127 204 134"/></g><path d="M134 202 Q160 236 186 202 Q160 210 134 202 Z" fill="#7A2E2E" stroke="#3A2618" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
     <path d="M139 204 Q160 211 181 204 L179 211 Q160 217 141 211 Z" fill="#fff"/>
     <path d="M149 224 Q160 230 171 224" stroke="#E27B7B" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <path d="M157 170 Q151 186 160 189 Q167 190 170 185" stroke="#3A2618" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
       
       
       

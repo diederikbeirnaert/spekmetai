@@ -31,11 +31,9 @@
     <ellipse cx="192" cy="160" rx="7" ry="8" fill="#6B4A2E" opacity=".9"/>
     <ellipse cx="192" cy="160" rx="4" ry="5" fill="#3A2618"/>
     <circle cx="188.5" cy="152" r="4" fill="#fff"/><circle cx="195.5" cy="163" r="1.8" fill="#fff"/>
-    </g>
-      <g stroke="#9c7f5a" stroke-width="4.5" fill="none" stroke-linecap="round">
-    <path d="M116 134 Q128 127 141 131"/><path d="M179 131 Q192 127 204 134"/></g>
+    </g><g stroke="#9c7f5a" stroke-width="4.5" fill="none" stroke-linecap="round">
+    <path d="M116 134 Q128 127 141 131"/><path d="M179 131 Q192 127 204 134"/></g><path d="M142 210 Q164 218 184 202" stroke="#3A2618" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" fill="none"/><path d="M184 202 L187 199" stroke="#3A2618" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
       <path d="M157 170 Q151 186 160 189 Q167 190 170 185" stroke="#3A2618" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
-      <path d="M142 210 Q164 218 184 202" stroke="#3A2618" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" fill="none"/><path d="M184 202 L187 199" stroke="#3A2618" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
       
       
       

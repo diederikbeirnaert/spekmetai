@@ -857,3 +857,455 @@ body.playlist main { max-width: 1180px; }
 .mission-bar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 18px 0 12px; border-color: var(--yolk); }
 .mission-bar .grow { flex: 1; min-width: 240px; }
 .mission-field .pill { font-size: .8rem; }
+
+/* ---------- Weekendscorebord ---------- */
+.sb-tabs { display: flex; gap: 6px; }
+.sb-tabs button { flex: 1; border: 2px solid var(--shell); background: #fff; border-radius: 999px; padding: 7px 12px; font-weight: 800; cursor: pointer; }
+.sb-tabs button.active { background: var(--yolk); border-color: var(--yolk-deep); }
+.sb-people { display: flex; flex-wrap: wrap; gap: 8px; }
+.sb-person { position: relative; display: inline-flex; align-items: center; gap: 6px; border: 2px solid var(--shell); background: #fff; border-radius: 999px; padding: 4px 12px 4px 4px; font-weight: 800; cursor: pointer; transition: transform .12s; }
+.sb-person:active { transform: scale(.94); }
+.sb-person .av-pic { font-size: 1.7rem; }
+.sb-person.on { background: var(--yolk-soft); border-color: var(--yolk-deep); }
+.sb-person b { color: var(--ok); }
+.sb-badge { position: absolute; top: -8px; left: -6px; width: 22px; height: 22px; border-radius: 50%; background: var(--bacon); color: #fff; font-size: .8rem; display: grid; place-items: center; border: 2px solid #fff; }
+.sb-free { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.sb-freerow { display: flex; align-items: center; gap: 8px; font-weight: 800; }
+.sb-freerow .av-pic { font-size: 1.6rem; }
+.sb-freerow span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-freerow .input { width: 80px; padding: 6px 8px; }
+.sb-rounds { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.sb-rounds > li { background: #fff; border: 2px solid var(--shell); border-radius: 18px; padding: 10px 12px; }
+.sb-roundhead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sb-roundhead b { font-family: var(--font-title); font-weight: 600; font-size: 1.1rem; }
+.sb-actions { margin-left: auto; display: flex; gap: 4px; }
+.sb-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.sb-chip { display: inline-flex; align-items: center; gap: 5px; background: #fffaf0; border-radius: 999px; padding: 2px 10px 2px 3px; font-weight: 700; font-size: .9rem; }
+.sb-chip .av-pic { font-size: 1.2rem; }
+.sb-chip b { color: var(--ok); }
+
+/* De wedren */
+.sb-race { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.sb-lane { display: grid; grid-template-columns: 30px minmax(60px, 110px) 1fr 44px; align-items: center; gap: 8px; padding: 2px 0; }
+.sb-rank { font-family: var(--font-title); font-weight: 700; text-align: center; font-size: 1.1rem; }
+.sb-name { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-total { font-family: var(--font-title); font-size: 1.3rem; text-align: right; }
+.sb-track { position: relative; height: 54px; border-radius: 999px; background: repeating-linear-gradient(90deg, #fff6e2 0 14px, #fffdf7 14px 28px); border: 2px dashed var(--shell); }
+.sb-trail { position: absolute; left: 0; top: 50%; max-width: calc(100% - 23px); height: 12px; margin-top: -6px; border-radius: 99px; transform-origin: left;
+  background: repeating-linear-gradient(90deg, var(--bacon) 0 10px, var(--bacon-fat) 10px 14px, var(--bacon-dark) 14px 18px);
+  animation: grow 1.4s cubic-bezier(.2,1.1,.4,1) var(--d) both; }
+.sb-finish { position: absolute; right: -4px; top: 50%; transform: translateY(-50%); font-size: 1.1rem; opacity: .7; }
+/* De avatar blijft binnen de baan: van 23px (start) tot 23px voor het einde (finish). */
+.sb-runner { position: absolute; top: 50%; left: calc(23px + (100% - 46px) * var(--p)); width: 46px; height: 46px; margin: -23px 0 0 -23px;
+  animation: sbRun 1.4s cubic-bezier(.2,1.1,.4,1) var(--d) both; z-index: 1; }
+@keyframes sbRun { from { left: 23px; } to { left: calc(23px + (100% - 46px) * var(--p)); } }
+.sb-ava { display: block; width: 46px; height: 46px; transform-origin: 50% 90%; }
+.sb-ava .av-pic { font-size: 46px; width: 1em; height: 1em; border-width: 3px; box-shadow: 0 3px 0 rgba(58,38,24,.25); }
+.sb-lane.pack .sb-ava { animation: sbTrot .5s ease-in-out infinite alternate; animation-delay: var(--d); }
+@keyframes sbTrot { from { transform: translateY(0) rotate(-6deg); } to { transform: translateY(-5px) rotate(6deg); } }
+.sb-lane.lead .sb-ava { animation: sbFlip 2.6s cubic-bezier(.3,1.4,.5,1) infinite 1.6s; }
+@keyframes sbFlip { 0%, 55%, 100% { transform: translateY(0) rotate(0) scale(1); } 65% { transform: translateY(-22px) rotate(-180deg) scale(1.15); }
+  75% { transform: translateY(-26px) rotate(-360deg) scale(1.15); } 85% { transform: translateY(0) rotate(-360deg) scale(1.1, .9); } }
+.sb-lane.second .sb-ava { animation: sbBounce .7s cubic-bezier(.3,1.6,.5,1) infinite alternate; }
+@keyframes sbBounce { from { transform: translateY(0) scale(1.05, .95); } to { transform: translateY(-14px) scale(.96, 1.04); } }
+.sb-lane.third .sb-ava { animation: sbWiggle 1.1s ease-in-out infinite; }
+@keyframes sbWiggle { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-16deg); } 40% { transform: rotate(14deg); } 60% { transform: rotate(-8deg); } 80% { transform: rotate(5deg); } }
+.sb-lane.last .sb-ava { animation: sbShiver .12s linear infinite alternate; }
+@keyframes sbShiver { from { transform: translateX(-2px); } to { transform: translateX(2px); } }
+.sb-crown { position: absolute; left: 50%; top: -24px; font-size: 1.5rem; transform: translateX(-50%); animation: sbCrown 1.2s ease-in-out infinite alternate; z-index: 2; filter: drop-shadow(0 2px 0 rgba(58,38,24,.3)); }
+@keyframes sbCrown { from { transform: translateX(-50%) rotate(-12deg); } to { transform: translateX(-50%) rotate(12deg) translateY(-3px); } }
+.sb-spark { position: absolute; color: var(--yolk-deep); font-size: 1rem; animation: sbSpark 1.4s ease-in-out infinite; pointer-events: none; }
+.sb-spark.s1 { left: -14px; top: 4px; } .sb-spark.s2 { right: -14px; top: -2px; animation-delay: .45s; } .sb-spark.s3 { right: -6px; bottom: -10px; animation-delay: .9s; }
+@keyframes sbSpark { 0%, 100% { transform: scale(.3) rotate(0); opacity: 0; } 50% { transform: scale(1.3) rotate(90deg); opacity: 1; } }
+.sb-sweat { position: absolute; right: -10px; top: -6px; font-size: 1rem; animation: teDrip 1.4s ease-in infinite; }
+.sb-lane.lead .sb-name { color: var(--bacon); }
+/* Smal (gsm of de zijkolom in de admin): naam boven de racebaan */
+.sb-race { container-type: inline-size; }
+@container (max-width: 520px) {
+  .sb-lane { grid-template-columns: 24px 1fr 38px; grid-template-areas: 'rank name total' 'track track track'; row-gap: 2px; }
+  .sb-rank { grid-area: rank; } .sb-name { grid-area: name; } .sb-total { grid-area: total; } .sb-track { grid-area: track; height: 48px; margin: 0 6px 8px; }
+  .sb-lane.lead .sb-track { margin-top: 20px; } /* ruimte voor het kroontje, zodat de punten zichtbaar blijven */
+}
+@media (prefers-reduced-motion: reduce) { .sb-runner, .sb-trail { animation: none; } }
+body.host .sb-award { max-width: 760px; margin: 10px auto; }
+.home-scores { margin-bottom: 24px; }
+.home-board h2 { font-size: clamp(1.4rem, 4vw, 2rem); }
+.home-board .sb-race { margin-top: 14px; }
+.sb-testbar.on { border-color: #4F9FE0; background: #EEF6FF; }
+.sb-testnote { margin: 8px 0 0; padding: 6px 12px; border-radius: 12px; background: #E8F4FF; border: 2px dashed #4F9FE0; color: #2A5F8F; font-weight: 800; }
+
+/* ---------- Volledige poppetjes (scorebord) ---------- */
+/* Gezichtsuitdrukking: standaard blij, of wat de wrapper vraagt met data-mood="…". */
+.fig .ex { display: none; }
+.fig .ex-happy,
+[data-mood="happy"] .fig .ex-happy,
+[data-mood="proud"] .fig .ex-proud,
+[data-mood="shock"] .fig .ex-shock,
+[data-mood="sad"] .fig .ex-sad,
+[data-mood="wink"] .fig .ex-wink,
+[data-mood="love"] .fig .ex-love,
+[data-mood="angry"] .fig .ex-angry,
+[data-mood="dizzy"] .fig .ex-dizzy,
+[data-mood="confused"] .fig .ex-confused,
+[data-mood="shy"] .fig .ex-shy,
+[data-mood="tired"] .fig .ex-tired { display: inline; }
+[data-mood]:not([data-mood="happy"]) .fig .ex-happy { display: none; }
+.fig .fig-spiral { transform-box: fill-box; transform-origin: center; animation: figSpin 1.2s linear infinite; }
+@keyframes figSpin { to { transform: rotate(360deg); } }
+.fig { overflow: visible; }
+.fig .fig-arm-l, .fig .fig-arm-r, .fig .fig-leg-l, .fig .fig-leg-r { transform-box: fill-box; transform-origin: 50% 8%; }
+.fig .fig-head { transform-box: fill-box; transform-origin: 50% 92%; }
+.fig .fig-body-all { transform-box: fill-box; transform-origin: 50% 100%; }
+.fig .blink { transform-box: fill-box; transform-origin: center; animation: figBlink 4.5s infinite; }
+@keyframes figBlink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+.fig .fig-tear { animation: teDrip 1.6s ease-in infinite; }
+
+/* 8 animaties voor de poppetjes, gekozen met data-anim="…" op een omhullend element. */
+[data-anim] .fig * { animation-timing-function: ease-in-out; }
+/* 🏃 rennen */
+[data-anim="run"] .fig .fig-leg-l { animation: figLegA .36s infinite alternate; }
+[data-anim="run"] .fig .fig-leg-r { animation: figLegB .36s infinite alternate; }
+[data-anim="run"] .fig .fig-arm-l { animation: figArmA .36s infinite alternate; }
+[data-anim="run"] .fig .fig-arm-r { animation: figArmB .36s infinite alternate; }
+[data-anim="run"] .fig .fig-body-all { animation: figBob .18s infinite alternate; }
+@keyframes figLegA { from { transform: rotate(-26deg); } to { transform: rotate(26deg); } }
+@keyframes figLegB { from { transform: rotate(26deg); } to { transform: rotate(-26deg); } }
+@keyframes figArmA { from { transform: rotate(-38deg); } to { transform: rotate(38deg); } }
+@keyframes figArmB { from { transform: rotate(38deg); } to { transform: rotate(-38deg); } }
+@keyframes figBob { from { transform: translateY(0); } to { transform: translateY(-10px); } }
+/* 🙌 juichen: springen met de armen omhoog */
+[data-anim="cheer"] .fig .fig-body-all { animation: figJump .8s cubic-bezier(.3,1.5,.5,1) infinite; }
+[data-anim="cheer"] .fig .fig-arm-l { animation: figCheerL .4s infinite alternate; }
+[data-anim="cheer"] .fig .fig-arm-r { animation: figCheerR .4s infinite alternate; }
+[data-anim="cheer"] .fig .fig-leg-l { animation: figKickL .8s infinite; }
+[data-anim="cheer"] .fig .fig-leg-r { animation: figKickR .8s infinite; }
+@keyframes figJump { 0%, 100% { transform: translateY(0) scale(1.06, .94); } 45% { transform: translateY(-60px) scale(.97, 1.04); } }
+@keyframes figCheerL { from { transform: rotate(140deg); } to { transform: rotate(165deg); } }
+@keyframes figCheerR { from { transform: rotate(-140deg); } to { transform: rotate(-165deg); } }
+@keyframes figKickL { 0%, 100% { transform: rotate(0); } 45% { transform: rotate(18deg); } }
+@keyframes figKickR { 0%, 100% { transform: rotate(0); } 45% { transform: rotate(-18deg); } }
+/* 👋 zwaaien */
+[data-anim="wave"] .fig .fig-arm-r { animation: figWave .45s infinite alternate; }
+[data-anim="wave"] .fig .fig-body-all { animation: figSway 1.8s infinite alternate; }
+[data-anim="wave"] .fig .fig-head { animation: figNod 1.8s infinite alternate; }
+@keyframes figWave { from { transform: rotate(-125deg); } to { transform: rotate(-170deg); } }
+@keyframes figSway { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
+@keyframes figNod { from { transform: rotate(-6deg); } to { transform: rotate(6deg); } }
+/* 💃 dansen */
+[data-anim="dance"] .fig .fig-body-all { animation: figDance .9s infinite; }
+[data-anim="dance"] .fig .fig-arm-l { animation: figDanceL .9s infinite; }
+[data-anim="dance"] .fig .fig-arm-r { animation: figDanceR .9s infinite; }
+[data-anim="dance"] .fig .fig-leg-l { animation: figLegA .45s infinite alternate; }
+[data-anim="dance"] .fig .fig-head { animation: figNod .45s infinite alternate; }
+@keyframes figDance { 0%, 100% { transform: rotate(-9deg) translateY(0); } 50% { transform: rotate(9deg) translateY(-12px); } }
+@keyframes figDanceL { 0%, 100% { transform: rotate(150deg); } 50% { transform: rotate(40deg); } }
+@keyframes figDanceR { 0%, 100% { transform: rotate(-40deg); } 50% { transform: rotate(-150deg); } }
+/* 💪 spierballen */
+[data-anim="flex"] .fig .fig-arm-l { animation: figFlexL .7s infinite alternate; }
+[data-anim="flex"] .fig .fig-arm-r { animation: figFlexR .7s infinite alternate; }
+[data-anim="flex"] .fig .fig-body-all { animation: figSquat .7s infinite alternate; }
+@keyframes figFlexL { from { transform: rotate(80deg); } to { transform: rotate(125deg); } }
+@keyframes figFlexR { from { transform: rotate(-80deg); } to { transform: rotate(-125deg); } }
+@keyframes figSquat { from { transform: scale(1, 1); } to { transform: scale(1.08, .92); } }
+/* 🌀 pirouette */
+[data-anim="spin"] .fig .fig-body-all { animation: figPirouette 1.4s infinite; }
+[data-anim="spin"] .fig .fig-arm-l { transform: rotate(120deg); }
+[data-anim="spin"] .fig .fig-arm-r { transform: rotate(-120deg); }
+@keyframes figPirouette { 0% { transform: scaleX(1) translateY(0); } 25% { transform: scaleX(.1) translateY(-14px); } 50% { transform: scaleX(-1) translateY(-20px); } 75% { transform: scaleX(-.1) translateY(-14px); } 100% { transform: scaleX(1) translateY(0); } }
+/* 🐌 sloffen */
+[data-anim="trudge"] .fig .fig-body-all { animation: figTrudge 1.6s infinite; }
+[data-anim="trudge"] .fig .fig-head { transform: rotate(10deg) translateY(8px); }
+[data-anim="trudge"] .fig .fig-leg-l { animation: figLegA 1.6s infinite alternate; animation-name: figShuffleA; }
+[data-anim="trudge"] .fig .fig-leg-r { animation: figShuffleB 1.6s infinite alternate; }
+[data-anim="trudge"] .fig .fig-arm-l, [data-anim="trudge"] .fig .fig-arm-r { transform: rotate(4deg); }
+@keyframes figTrudge { 0%, 100% { transform: rotate(4deg) translateY(4px); } 50% { transform: rotate(7deg) translateY(8px); } }
+@keyframes figShuffleA { from { transform: rotate(-8deg); } to { transform: rotate(8deg); } }
+@keyframes figShuffleB { from { transform: rotate(8deg); } to { transform: rotate(-8deg); } }
+/* 🥴 waggelen */
+[data-anim="wobble"] .fig .fig-body-all { animation: figWobble 1.3s infinite; }
+[data-anim="wobble"] .fig .fig-head { animation: figHeadWobble .65s infinite alternate; }
+[data-anim="wobble"] .fig .fig-arm-l { animation: figArmA .65s infinite alternate; }
+[data-anim="wobble"] .fig .fig-arm-r { animation: figArmA .5s infinite alternate-reverse; }
+@keyframes figWobble { 0%, 100% { transform: rotate(-14deg); } 50% { transform: rotate(14deg); } }
+@keyframes figHeadWobble { from { transform: rotate(16deg); } to { transform: rotate(-16deg); } }
+@media (prefers-reduced-motion: reduce) { [data-anim] .fig * { animation: none !important; } }
+
+/* Volledige poppetjes op de racebaan */
+.sb-race .sb-lane:has(.sb-fig) .sb-track { height: 96px; }
+.sb-fig { position: absolute; left: 50%; bottom: -4px; width: 62px; transform: translateX(-50%); display: block; }
+.sb-fig .fig { width: 62px; height: auto; display: block; overflow: visible; }
+.sb-runner:has(.sb-fig) { height: 108px; margin-top: -54px; }
+.sb-runner:has(.sb-fig) .sb-crown { top: -34px; }
+.sb-lane:has(.sb-fig) .sb-runner { animation-name: sbRun; }
+@container (max-width: 520px) { .sb-race .sb-lane:has(.sb-fig) .sb-track { height: 88px; } .sb-lane.lead:has(.sb-fig) .sb-track { margin-top: 30px; } }
+.sb-lane:has(.sb-fig) .sb-trail { top: auto; bottom: 8px; margin-top: 0; }
+.sb-lane:has(.sb-fig) .sb-finish { top: auto; bottom: 2px; transform: none; }
+
+/* Lengte per persoon (data-height in het poppetje) en het kroontje op het hoofd van de leider */
+.sb-race .sb-lane:has(.sb-fig) .sb-track { height: 108px; }
+.fig .fig-crown { display: none; }
+.sb-fig.crowned .fig .fig-crown { display: inline; }
+.sb-runner:has(.sb-fig.crowned) > .sb-crown { display: none; }
+
+/* ---------- Signature moves (podium) ---------- */
+.sb-fig { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.sb-fig:hover { filter: drop-shadow(0 0 6px rgba(255,183,3,.9)); }
+.mv-stage { position: fixed; inset: 0; z-index: 120; display: grid; place-items: center; padding: 16px; background: rgba(43,45,66,.55); backdrop-filter: blur(3px); animation: mvFade .25s ease-out; }
+.mv-stage.closing { opacity: 0; transition: opacity .25s; }
+@keyframes mvFade { from { opacity: 0; } }
+.mv-box { width: min(560px, 100%); background: radial-gradient(circle at 50% 30%, #fffdf6, #FFF3D6); border: 4px solid var(--ink); border-radius: 28px; padding: 14px 14px 10px; box-shadow: 0 10px 0 var(--ink); text-align: center; }
+.mv-title { font-family: var(--font-title); font-weight: 700; font-size: clamp(1.3rem, 5vw, 1.8rem); }
+.mv-hint { font-size: .8rem; color: var(--muted); font-weight: 700; }
+.mv-scene { position: relative; }
+.mv-svg { width: 100%; height: auto; max-height: 62vh; display: block; overflow: visible; }
+.mv-scene .fig .ex { transition: none; }
+
+/* Rekwisieten verschijnen zodra de scène hun klasse krijgt */
+.mv { opacity: 0; transition: opacity .35s, transform .5s cubic-bezier(.3,1.4,.5,1); }
+.mv-scene.on-mv-coat .mv-coat,
+.mv-scene.on-mv-tube .mv-tube,
+.mv-scene.on-mv-boom .mv-boom,
+.mv-scene.on-mv-soot .mv-soot,
+.mv-scene.on-mv-smoke .mv-smoke,
+.mv-scene.on-mv-euroeyes .mv-euroeyes,
+.mv-scene.on-mv-bills .mv-bills,
+.mv-scene.on-mv-wad .mv-wad,
+.mv-scene.on-mv-ladder .mv-ladder,
+.mv-scene.on-mv-lamp .mv-lamp,
+.mv-scene.on-mv-bolts .mv-bolts,
+.mv-scene.on-mv-laptop .mv-laptop,
+.mv-scene.on-mv-error .mv-error,
+.mv-scene.on-mv-steam .mv-steam,
+.mv-scene.on-mv-redface .mv-redface,
+.mv-scene.on-mv-bar .mv-bar,
+.mv-scene.on-mv-choco .mv-choco,
+.mv-scene.on-mv-haha .mv-haha,
+.mv-scene.on-mv-wall .mv-wall,
+.mv-scene.on-mv-cracks .mv-cracks,
+.mv-scene.on-mv-hammer .mv-hammer,
+.mv-scene.on-mv-dust .mv-dust,
+.mv-scene.on-mv-fabric .mv-fabric,
+.mv-scene.on-mv-skirt .mv-skirt,
+.mv-scene.on-mv-bike .mv-bike,
+.mv-scene.on-mv-speed .mv-speed,
+.mv-scene.on-mv-sweat .mv-sweat { opacity: 1; }
+.mv-coat { transform: translateY(-40px); }
+.mv-scene.on-mv-coat .mv-coat { transform: none; }
+.mv-scene.on-mv-redface .mv-redface { opacity: .26; }
+.mv-scene.on-r1 .mv-redface { opacity: .15; } .mv-scene.on-r2 .mv-redface { opacity: .28; } .mv-scene.on-r3 .mv-redface { opacity: .42; }
+
+/* Karel: vullen, schudden, boem */
+.mv-liquid { transform-box: fill-box; transform-origin: 50% 0; transform: scaleY(.05); transition: transform 1.2s ease-in; }
+.mv-scene.on-fill .mv-liquid { transform: scaleY(1); }
+.mv-bubble { animation: teBubble 1s ease-in infinite; transform-box: fill-box; transform-origin: center; } .mv-bubble.b2 { animation-delay: .5s; }
+.mv-scene.on-shake .mv-tube { animation: sbShiver .07s linear infinite alternate; }
+.mv-boom { transform-box: fill-box; transform-origin: center; }
+.mv-scene.on-mv-boom .mv-boom { animation: mvBoom 1.5s ease-out forwards; }
+@keyframes mvBoom { 0% { transform: scale(.1) rotate(-20deg); opacity: 1; } 20% { transform: scale(1.7) rotate(10deg); opacity: 1; } 70% { transform: scale(1.4) rotate(0); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+.mv-scene.on-flash .mv-svg { animation: mvFlash .5s ease-out; }
+@keyframes mvFlash { 0%, 10% { filter: brightness(1.5); } 100% { filter: none; } }
+.mv-puff { animation: mvPuff 1.6s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes mvPuff { 0% { transform: translateY(10px) scale(.4); opacity: 0; } 30% { opacity: .9; } 100% { transform: translateY(-50px) scale(1.4); opacity: 0; } }
+
+/* Simon: biljetten de lucht in */
+.mv-bill { opacity: 0; }
+.mv-scene.on-mv-bills .mv-bill { animation: mvBill 2s cubic-bezier(.2,.8,.4,1) infinite; }
+@keyframes mvBill { 0% { transform: translate(0, 0) rotate(0); opacity: 1; } 40% { transform: translate(calc(var(--dx) * .6), calc(var(--up) * -1)) rotate(calc(var(--rot) * .5)); opacity: 1; }
+  100% { transform: translate(var(--dx), 120px) rotate(var(--rot)); opacity: 0; } }
+
+/* Tom: naar de ladder, omhoog, elektrocutie, vallen */
+.mv-figpos { transition: transform .9s cubic-bezier(.4,1.2,.5,1); }
+.mv-scene[data-pos="to-ladder"] .mv-figpos { transform: translateX(120px); }
+.mv-scene[data-pos="up-ladder"] .mv-figpos { transform: translate(120px, -170px); }
+.mv-scene[data-pos="fall"] .mv-figpos { transform: translate(60px, 0); transition: transform .45s cubic-bezier(.6,0,.9,.6); }
+.mv-bolt { animation: mvBolt .16s steps(2) infinite; }
+@keyframes mvBolt { 50% { opacity: .1; } }
+.mv-scene.on-zapped .mv-figpos { animation: mvZap .12s steps(2) infinite; }
+@keyframes mvZap { 50% { filter: invert(1) hue-rotate(180deg); } }
+
+/* Diederik: laptop gooien en kapotspringen */
+.mv-laptop { transform-box: view-box; }
+.mv-scene.on-thrown .mv-laptop { transform: translate(20px, var(--fall)) rotate(14deg); transition: transform .5s cubic-bezier(.6,0,.9,.6); }
+.mv-shards path { opacity: 0; }
+.mv-scene.on-smashed .mv-shards path { animation: mvShard .9s ease-out .15s forwards; }
+@keyframes mvShard { 0% { opacity: 1; transform: translate(0, 0); } 100% { opacity: 1; transform: translate(var(--sx), var(--sy)) rotate(var(--sr)); } }
+.mv-scene.on-smashed .mv-laptop { animation: mvSquash .3s ease-out 3; }
+@keyframes mvSquash { 50% { filter: brightness(.7); } }
+
+/* Ines: chocolade */
+.mv-blob { opacity: 0; transform-box: fill-box; transform-origin: center; }
+.mv-scene.on-mv-choco .mv-blob { animation: mvBlob .4s cubic-bezier(.3,1.6,.5,1) forwards; }
+@keyframes mvBlob { from { opacity: 1; transform: scale(0); } to { opacity: 1; transform: scale(1); } }
+.mv-barbody { transform-box: fill-box; transform-origin: 50% 0; transition: transform 2.2s steps(4); }
+.mv-scene.on-bite .mv-barbody { transform: scaleY(.15); }
+.mv-hahat { opacity: 0; }
+.mv-scene.on-mv-haha .mv-hahat { animation: mvHaha 1.1s ease-out infinite; }
+@keyframes mvHaha { 0% { opacity: 0; transform: translateY(20px) scale(.6); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(-40px) scale(1.2); } }
+
+/* Femke: muur stort in */
+.mv-scene.on-collapse .mv-brick { animation: mvBrick .9s cubic-bezier(.6,0,.9,.8) forwards; transform-box: fill-box; transform-origin: center; }
+@keyframes mvBrick { to { transform: translate(var(--bx), var(--by)) rotate(var(--br)); } }
+.mv-scene.on-collapse .mv-cracks { opacity: 0; }
+
+/* Justine: naaien en het rokje zakt af */
+.mv-needle { animation: mvSew .25s ease-in-out infinite alternate; }
+@keyframes mvSew { to { transform: translate(-10px, 14px); } }
+.mv-skirt { transform: translateY(-30px); }
+.mv-scene.on-mv-skirt .mv-skirt { transform: none; }
+.mv-scene.on-drop .mv-skirt { transform: translateY(var(--drop)) scaleX(.9); transition: transform .6s cubic-bezier(.6,0,.8,.5); }
+
+/* Charlotte: spinningfiets */
+.mv-scene .mv-wheel { animation: figSpin .5s linear infinite; }
+.mv-scene[data-anim="pedal-fast"] .mv-wheel { animation-duration: .15s; }
+.mv-line { animation: mvLine .5s linear infinite; }
+@keyframes mvLine { from { transform: translateX(40px); opacity: 0; } 50% { opacity: 1; } to { transform: translateX(-40px); opacity: 0; } }
+.mv-drop { animation: mvDrop 1s ease-out infinite; }
+@keyframes mvDrop { from { transform: translate(0, 0); opacity: 1; } to { transform: translate(var(--dx), 50px); opacity: 0; } }
+
+/* Extra bewegingen van het poppetje voor de scènes */
+[data-anim="hold"] .fig .fig-arm-r { transform: rotate(-150deg); transition: transform .5s; }
+[data-anim="zap"] .fig .fig-body-all { animation: sbShiver .05s linear infinite alternate; }
+[data-anim="zap"] .fig .fig-arm-l { transform: rotate(60deg); } [data-anim="zap"] .fig .fig-arm-r { transform: rotate(-60deg); }
+[data-anim="reach"] .fig .fig-arm-r { transform: rotate(-170deg); transition: transform .4s; }
+[data-anim="type"] .fig .fig-arm-l { animation: mvTypeL .12s linear infinite alternate; }
+[data-anim="type"] .fig .fig-arm-r { animation: mvTypeR .12s linear infinite alternate; }
+@keyframes mvTypeL { from { transform: rotate(-36deg); } to { transform: rotate(-44deg); } }
+@keyframes mvTypeR { from { transform: rotate(36deg); } to { transform: rotate(44deg); } }
+[data-anim="throw"] .fig .fig-arm-l { transform: rotate(-20deg); } [data-anim="throw"] .fig .fig-arm-r { transform: rotate(20deg); }
+[data-anim="throw"] .fig .fig-body-all { transform: rotate(6deg) translateY(6px); transition: transform .3s; }
+[data-anim="stomp"] .fig .fig-body-all { animation: mvStomp .45s cubic-bezier(.3,1.4,.5,1) infinite; }
+[data-anim="stomp"] .fig .fig-arm-l { transform: rotate(130deg); } [data-anim="stomp"] .fig .fig-arm-r { transform: rotate(-130deg); }
+@keyframes mvStomp { 0%, 100% { transform: translateY(0) scale(1.08, .92); } 50% { transform: translateY(-40px); } }
+[data-anim="eat"] .fig .fig-arm-r { animation: mvEat .7s ease-in-out infinite; }
+@keyframes mvEat { 0%, 100% { transform: rotate(110deg); } 50% { transform: rotate(150deg); } }
+[data-anim="laugh"] .fig .fig-body-all { animation: mvLaugh .18s linear infinite alternate; }
+[data-anim="laugh"] .fig .fig-head { transform: rotate(-10deg); }
+[data-anim="laugh"] .fig .fig-arm-l { transform: rotate(-25deg); } [data-anim="laugh"] .fig .fig-arm-r { transform: rotate(25deg); }
+@keyframes mvLaugh { from { transform: translateY(0) rotate(-2deg); } to { transform: translateY(-5px) rotate(2deg); } }
+[data-anim="hammer"] .fig .fig-arm-r { animation: mvHammer .45s cubic-bezier(.6,0,.4,1) infinite; }
+@keyframes mvHammer { 0%, 100% { transform: rotate(-150deg); } 55% { transform: rotate(-75deg); } }
+[data-anim="sew"] .fig .fig-arm-l { animation: mvTypeL .3s ease-in-out infinite alternate; }
+[data-anim="sew"] .fig .fig-arm-r { animation: mvTypeR .3s ease-in-out infinite alternate; }
+[data-anim="pedal"] .fig .fig-leg-l, [data-anim="pedal-fast"] .fig .fig-leg-l { animation: figLegA .5s linear infinite alternate; }
+[data-anim="pedal"] .fig .fig-leg-r, [data-anim="pedal-fast"] .fig .fig-leg-r { animation: figLegB .5s linear infinite alternate; }
+[data-anim="pedal-fast"] .fig .fig-leg-l, [data-anim="pedal-fast"] .fig .fig-leg-r { animation-duration: .16s; }
+[data-anim="pedal"] .fig .fig-arm-l, [data-anim="pedal-fast"] .fig .fig-arm-l { transform: rotate(-35deg); }
+[data-anim="pedal"] .fig .fig-arm-r, [data-anim="pedal-fast"] .fig .fig-arm-r { transform: rotate(35deg); }
+[data-anim="pedal-fast"] .fig .fig-body-all { animation: figBob .1s infinite alternate; }
+.fig .fig-tongue { animation: teTongue .4s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 0; }
+@media (prefers-reduced-motion: reduce) { .mv-scene * { animation: none !important; transition: none !important; } }
+.mv-box { overflow: hidden; }
+
+/* Signature moves v2 */
+.mv-scene.on-mv-cheeks .mv-cheeks,
+.mv-scene.on-mv-chocolaugh .mv-chocolaugh,
+.mv-scene.on-mv-stains .mv-stains,
+.mv-scene.on-mv-nom .mv-nom,
+.mv-scene.on-mv-nail .mv-nail,
+.mv-scene.on-mv-frame .mv-frame,
+.mv-scene.on-mv-tik .mv-tik,
+.mv-scene.on-mv-perfect .mv-perfect,
+.mv-scene.on-mv-krak .mv-krak,
+.mv-scene.on-mv-machine .mv-machine,
+.mv-scene.on-mv-rata .mv-rata,
+.mv-scene.on-mv-tadaa .mv-tadaa,
+.mv-scene.on-mv-oeps .mv-oeps,
+.mv-scene.on-mv-plof .mv-plof,
+.mv-scene.on-mv-coach .mv-coach,
+.mv-scene.on-mv-puddle .mv-puddle { opacity: 1; }
+.mv-figpos svg { overflow: visible; }
+.mv-box { padding: 10px; }
+/* Ines */
+.mv-cheek { transform-box: fill-box; transform-origin: center; animation: mvChew .35s ease-in-out infinite alternate; }
+@keyframes mvChew { to { transform: scale(1.15, .9); } }
+.mv-drips { transform-box: fill-box; transform-origin: 50% 0; transform: scaleY(0); }
+.mv-scene.on-mv-choco .mv-drips { animation: mvDrip 2.4s ease-in 1s forwards; }
+@keyframes mvDrip { to { transform: scaleY(1.4); } }
+.mv-scene.on-mv-chocolaugh .mv-chocolaugh { animation: mvLaughMouth .18s linear infinite alternate; transform-box: fill-box; transform-origin: 50% 0; }
+@keyframes mvLaughMouth { to { transform: scaleY(1.25); } }
+/* Femke */
+.mv-frameinner { transform-box: fill-box; transform-origin: 50% 0; transition: transform .5s cubic-bezier(.3,1.6,.5,1); }
+.mv-scene.on-crooked .mv-frameinner { transform: rotate(14deg); }
+.mv-scene.on-collapse .mv-frame { animation: mvFrameFall .9s cubic-bezier(.6,0,.9,.6) forwards; }
+@keyframes mvFrameFall { to { transform: translate(var(--fx), var(--fy)) rotate(-200deg); } }
+.mv-frame { transform-box: view-box; }
+.mv-crack { stroke-dasharray: 200; stroke-dashoffset: 200; }
+.mv-scene.on-mv-cracks .mv-crack { animation: mvCrack .7s ease-out forwards; }
+@keyframes mvCrack { to { stroke-dashoffset: 0; } }
+.mv-scene.on-mv-cracks .mv-wall { animation: sbShiver .08s linear infinite alternate; }
+.mv-scene.on-collapse .mv-cateye { transform-box: fill-box; transform-origin: center; transform: scale(1.8); }
+[data-anim="tap"] .fig .fig-arm-r { animation: mvTap .35s cubic-bezier(.6,0,.4,1) infinite; }
+@keyframes mvTap { 0%, 100% { transform: rotate(-125deg); } 55% { transform: rotate(-100deg); } }
+/* Justine */
+.mv-needlebar { animation: mvNeedle .09s linear infinite alternate; }
+@keyframes mvNeedle { to { transform: translateY(10px); } }
+.mv-spool { animation: figSpin .4s linear infinite; }
+.mv-fabric { animation: mvFabric 2.2s linear forwards; }
+@keyframes mvFabric { from { transform: translateX(60px); } to { transform: translateX(-60px); } }
+.mv-scene.on-mv-rata .mv-rata { animation: mvShake .1s linear infinite alternate; }
+@keyframes mvShake { to { transform: translate(2px, -2px); } }
+.mv-scene.on-trip .fig .fig-body-all { transform: rotate(82deg); transition: transform .5s cubic-bezier(.6,0,.9,.6); }
+.mv-scene.on-trip .mv-figpos { transform: translate(-190px, -50px); transition: transform .5s cubic-bezier(.6,0,.9,.6); }
+.mv-scene[data-pos="behind"] .mv-figpos { transform: translateY(-34px); }
+.mv-star { transform-box: fill-box; transform-origin: center; animation: sparkle .8s ease-in-out infinite; }
+/* Charlotte */
+.mv-scene[data-pos="sit"] .mv-figpos { transform: translateY(22px); transition: transform .4s; }
+[data-anim="pedal"] .fig .fig-leg-l, [data-anim="pedal-fast"] .fig .fig-leg-l { animation: mvPedal .5s ease-in-out infinite; }
+[data-anim="pedal"] .fig .fig-leg-r, [data-anim="pedal-fast"] .fig .fig-leg-r { animation: mvPedal .5s ease-in-out -.25s infinite; }
+[data-anim="pedal-fast"] .fig .fig-leg-l, [data-anim="pedal-fast"] .fig .fig-leg-r { animation-duration: .18s; }
+[data-anim="pedal-fast"] .fig .fig-leg-r { animation-delay: -.09s; }
+@keyframes mvPedal { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-26px); } }
+[data-anim="slump"] .fig .fig-head { transform: rotate(12deg) translateY(26px); transition: transform .6s; }
+[data-anim="slump"] .fig .fig-body-all { transform: translateY(10px) rotate(4deg); transition: transform .6s; }
+[data-anim="slump"] .fig .fig-arm-l { transform: rotate(-35deg); } [data-anim="slump"] .fig .fig-arm-r { transform: rotate(35deg); }
+.mv-flystripe { animation: mvFly .4s linear infinite; }
+.mv-scene[data-anim="pedal-fast"] .mv-flystripe { animation-duration: .1s; }
+@keyframes mvFly { from { transform: translateY(-14px); } to { transform: translateY(14px); } }
+.mv-k1, .mv-k2, .mv-k3, .mv-c1, .mv-c2 { opacity: 0; }
+.mv-scene.on-k1 .mv-k1, .mv-scene.on-k2 .mv-k2, .mv-scene.on-k3 .mv-k3, .mv-scene.on-c1 .mv-c1, .mv-scene.on-c2 .mv-c2 { opacity: 1; }
+.mv-scene.on-c2 .mv-c1 { opacity: 0; }
+.mv-scene.on-r3 .mv-redface { opacity: .55; }
+.mv-puddle { transform-box: fill-box; transform-origin: center; transform: scaleX(.1); transition: transform 1.2s ease-out, opacity .4s; }
+.mv-scene.on-mv-puddle .mv-puddle { transform: none; opacity: .7; }
+
+/* Ines v3: chocoladefontein */
+.mv-scene.on-mv-fountain .mv-fountain, .mv-scene.on-mv-berry .mv-berry, .mv-scene.on-mv-spray .mv-spray, .mv-scene.on-mv-wave .mv-wave, .mv-scene.on-mv-cherry .mv-cherry { opacity: 1; }
+.mv-dip { opacity: 0; transition: opacity .4s; }
+.mv-scene.on-dip .mv-dip { opacity: 1; }
+.mv-scene.on-fshake .mv-fshake { animation: sbShiver .06s linear infinite alternate; }
+.mv-glob { opacity: 0; }
+.mv-scene.on-mv-spray .mv-glob { animation: mvGlob 1.2s cubic-bezier(.2,.7,.5,1) infinite; }
+@keyframes mvGlob { 0% { opacity: 1; transform: translate(0, 0); } 60% { opacity: 1; transform: translate(var(--gx), var(--gy)); } 100% { opacity: 0; transform: translate(calc(var(--gx) * 1.1), calc(var(--gy) * -.2)); } }
+.mv-waveinner { transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(0); }
+.mv-scene.on-mv-wave .mv-waveinner { animation: mvWave 1s cubic-bezier(.3,1.3,.5,1) forwards; }
+@keyframes mvWave { 0% { transform: scaleY(0); } 70% { transform: scaleY(1.06); } 100% { transform: scaleY(1); } }
+.mv-sprinkle { opacity: 0; }
+.mv-scene.on-mv-wave .mv-sprinkle { animation: mvBlob .3s ease-out forwards; }
+.mv-cherryfall { transform: translateY(-260px); }
+.mv-scene.on-mv-cherry .mv-cherryfall { animation: mvCherry .8s cubic-bezier(.5,0,.7,1.5) forwards; }
+@keyframes mvCherry { 0% { transform: translateY(-260px); } 80% { transform: translateY(0) scale(1.1, .85); } 100% { transform: translateY(0); } }
+
+/* Linde: slang */
+.mv-scene.on-mv-snake .mv-snake, .mv-scene.on-mv-hearts .mv-hearts { opacity: 1; }
+.mv-snakewalk { transform: translateX(var(--sx)); }
+.mv-scene.on-mv-snake .mv-snakewalk { animation: mvSlither 1.9s ease-out forwards; }
+@keyframes mvSlither { to { transform: translateX(-20px); } }
+.mv-snakebody { animation: mvSnakeWave .35s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+.mv-scene.on-stop .mv-snakebody { animation-duration: 1.2s; }
+@keyframes mvSnakeWave { to { transform: scaleY(1.25) translateX(4px); } }
+.mv-tongue { animation: mvTongue .5s steps(2) infinite; }
+@keyframes mvTongue { 50% { opacity: 0; } }
+.mv-scene.on-mv-hearts .mv-snakehead { animation: mvNuzzle .6s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 30% 100%; }
+@keyframes mvNuzzle { to { transform: rotate(-14deg) translateY(-4px); } }
+.mv-heart { opacity: 0; }
+.mv-scene.on-mv-hearts .mv-heart { animation: mvHeart 1.6s ease-out infinite; }
+@keyframes mvHeart { 0% { opacity: 0; translate: 0 10px; } 30% { opacity: 1; } 100% { opacity: 0; translate: 0 -50px; } }
+[data-anim="pet"] .fig .fig-arm-l { animation: mvPet .5s ease-in-out infinite alternate; }
+[data-anim="pet"] .fig .fig-body-all { transform: rotate(-8deg); transition: transform .5s; }
+@keyframes mvPet { from { transform: rotate(28deg); } to { transform: rotate(40deg); } }
+
+/* Homepage: line-up zolang er nog geen punten zijn */
+.sb-lineup { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 10px 18px; margin-top: 14px; }
+.sb-lineup figure { margin: 0; text-align: center; font-weight: 800; font-size: .9rem; }
+.sb-lineup .sb-fig { position: static; transform: none; width: 72px; margin: 0 auto 4px; }
+.sb-lineup .sb-fig .fig { width: 72px; }

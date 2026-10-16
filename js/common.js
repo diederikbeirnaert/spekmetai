@@ -146,6 +146,9 @@ export function av(p, id, cls = '') {
   return `<span class="av-emoji ${cls}">${esc(p?.avatar || '')}</span>`;
 }
 
+// Avatargegevens van een weekendganger ({ img, bg }), bv. om het volledige poppetje te kiezen.
+export const avatarOf = (id) => avatarCache[id] || null;
+
 // Losse avatar-preview (admin), op basis van { img, bg }.
 export const avatarPreview = (a, cls = '') =>
   `<span class="av-pic avbg-${esc(a?.bg || 'yolk')} ${cls}">${a?.img ? `<img src="${a.img}" alt="">` : '<span class="av-empty">🥚</span>'}</span>`;

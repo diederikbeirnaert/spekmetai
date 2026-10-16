@@ -62,7 +62,7 @@
       ".write": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)"
     },
     "avatars": {
-      ".read": "auth != null",
+      ".read": true,
       ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
       "$uid": {
         ".validate": "newData.hasChildren(['bg']) && newData.child('bg').isString() && (!newData.child('img').exists() || (newData.child('img').isString() && newData.child('img').val().length < 400000))"
@@ -147,6 +147,16 @@
       },
       "spotify": {
         ".read": "auth != null && root.child('admins').child(auth.uid).val() === true"
+      }
+    },
+    "scoreboard": {
+      ".read": true,
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      "entries": {
+        "$id": {
+          ".write": "(auth != null && root.child('moderators').child(auth.uid).val() === true) && !data.exists() && newData.exists()",
+          ".validate": "newData.hasChildren(['title', 'kind', 'at', 'points']) && newData.child('title').isString() && newData.child('title').val().length <= 80"
+        }
       }
     },
     "juryPins": {

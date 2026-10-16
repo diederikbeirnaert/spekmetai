@@ -162,6 +162,15 @@ Weekendgangers raden waar het weekend doorgaat.
 
 **Quizbonus:** zet in een quiz **🗺️ Raadkaart-bonus** aan. Dan krijgt de winnaar ×1,2 op al haar punten in die quiz.
 
+## 🏆 Weekendscorebord
+
+Bovenaan de homepage staat het totaalklassement van het weekend: een wedren waarin elke avatar naar zijn puntentotaal rent. Het ververst om de 30 seconden.
+
+- **Quiz**: aan het einde van een quiz klik je op het hostscherm op **🏆 Punten naar het weekendscorebord**. Alleen ingelogde weekendgangers tellen mee: met 4 spelers krijgt de winnaar 4 punten en de laatste 1, en bij een gelijke stand krijgen beiden evenveel. Elke quiz telt maar één keer.
+- **Spelletjes**: in **Admin → 🏆 Scorebord** tik je de spelers aan in de volgorde waarin ze eindigden, of vul je vrije punten in (ook min, als straf).
+- **Aanpassen en verwijderen** kan alleen de hoofdadmin. Admin light kan punten toevoegen.
+- **🧪 Testmodus**: nieuwe punten worden testpunten. Ze tellen alleen mee zolang de testmodus aan staat en zijn met één knop te wissen.
+
 ## 🎵 Weekendplaylist
 
 Op **Playlist** bouwen de weekendgangers samen de playlist van het weekend.
@@ -213,7 +222,7 @@ playlist/  liedjes, stemmen en de Spotify-instellingen
 admins/    wie admin is
 ```
 
-De getekende avatars pas je aan in [`avatars/generate.mjs`](avatars/generate.mjs) (kapsel, kleuren, bril…) en maak je opnieuw met `node avatars/generate.mjs`.
+Voor het scorebord maakt dezelfde generator ook **volledige poppetjes** in `avatars/full/`, met 8 gezichtsuitdrukkingen en een lengte per persoon (`height` in `PEOPLE`). De getekende avatars pas je aan in [`avatars/generate.mjs`](avatars/generate.mjs) (kapsel, kleuren, bril…) en maak je opnieuw met `node avatars/generate.mjs`.
 
 In **Admin → Instellingen** kun je alles exporteren naar één `db.json` en weer importeren.
 [`data/db.json`](data/db.json) bevat de voorbeeldquiz in hetzelfde formaat.

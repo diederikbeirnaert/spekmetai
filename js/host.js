@@ -6,6 +6,7 @@ import {
   useAuth, currentUser, isStaff, serverNow, notConfiguredHtml, watchAvatars,
 } from './fb.js';
 import { LIMBS, COLORS, boardSvg, makeSpinner } from './twister.js';
+import { placementPoints } from './scoreboard.js';
 import { mountJuryPanel } from './jurypanel.js';
 
 shell('host');
@@ -747,8 +748,45 @@ function renderEnd() {
       <div class="score-row" style="font-size:1.1rem;padding:8px 16px"><span class="rank" style="width:34px;height:34px">${i + 4}</span>${av(p, p.id)} ${esc(p.name)}<span class="sc">${p.score || 0}</span></div>`).join('')}</div>` : ''}
     ${snapshots.length ? `<h2 class="center" style="margin-top:20px">📸 SpekVAR-bloopers</h2>
       <div class="bloopers">${snapshots.map((s, i) => `<figure class="var-shot pop-in" style="animation-delay:${3 + i * 0.3}s"><img src="${s.src}" alt=""><figcaption>Vraag ${s.q}</figcaption></figure>`).join('')}</div>` : ''}
+    <div class="card sb-award" id="award"></div>
     <div class="row" style="justify-content:center"><a class="btn ghost" href="admin.html">Terug naar admin</a><a class="btn" href="host.html">Nieuwe quiz</a></div>
   </div>`;
   setPrimary(null, null);
   setTimeout(() => confetti(70), 2400);
+  renderAward();
+}
+
+/* ---------- Punten naar het weekendscorebord ---------- */
+// Alleen weekendgangers tellen mee. Met n weekendgangers krijgt de winnaar n punten, de laatste 1.
+async function renderAward() {
+  const box = $('#award');
+  if (!box) return;
+  const members = Object.entries(players).filter(([, p]) => p.member).map(([id, p]) => ({ uid: id, name: p.name, score: p.score || 0 }));
+  const entryRef = ref(db, `scoreboard/entries/quiz-${code}`);
+  const done = (await get(entryRef).catch(() => null))?.exists();
+  if (!members.length) {
+    box.innerHTML = '<p class="muted" style="margin:0">🏆 Er speelden geen ingelogde weekendgangers mee, dus er gaan geen punten naar het weekendscorebord.</p>';
+    return;
+  }
+  const pts = placementPoints(members);
+  const rows = [...members].sort((a, b) => pts[b.uid] - pts[a.uid]);
+  box.innerHTML = `<h3 style="margin:0 0 6px">🏆 Weekendscorebord</h3>
+    <p class="muted" style="margin:0 0 10px">${members.length} weekendgangers speelden mee: de winnaar krijgt ${members.length} punten, de laatste 1.${Object.keys(players).length > members.length ? ' Gasten zonder account tellen niet mee.' : ''}</p>
+    <div class="sb-chips">${rows.map((m) => `<span class="sb-chip">${av({ member: true }, m.uid)} ${esc(m.name)} <b>+${pts[m.uid]}</b></span>`).join('')}</div>
+    <div class="row" style="margin-top:12px">${done ? '<span class="pill" style="background:var(--ok)">✔ Deze quiz telt al mee in het weekendscorebord</span>'
+      : '<button class="btn bacon" id="awardbtn">🏆 Punten naar het weekendscorebord</button>'}</div>`;
+  $('#awardbtn')?.addEventListener('click', async () => {
+    try {
+      const test = (await get(ref(db, 'scoreboard/config/test')).catch(() => null))?.val() === true;
+      await set(entryRef, {
+        title: quiz.title, kind: 'quiz', at: Date.now(), points: pts, ...(test ? { test: true } : {}),
+        names: Object.fromEntries(members.map((m) => [m.uid, m.name])),
+      });
+      toast('Punten staan op het weekendscorebord 🏆', 'ok');
+      confetti(40);
+    } catch {
+      toast('Dat lukte niet (staan deze punten er misschien al?)', 'bad');
+    }
+    renderAward();
+  });
 }

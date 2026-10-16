@@ -51,6 +51,16 @@ const SCENES = {
 
   simon: (g) => ({
     title: '💶 Simon de bankier',
+    coat: `<path class="mv mv-coat" d="M104 ${g.NY - 4} L216 ${g.NY - 4} L246 ${g.NY + 46} L240 ${g.TB + 6} L80 ${g.TB + 6} L74 ${g.NY + 46} Z" fill="#26324F" ${S(4.5)}/>
+      <path class="mv mv-coat" d="M138 ${g.NY - 2} L160 ${g.NY + 66} L182 ${g.NY - 2} Z" fill="#fff" ${S(3)}/>
+      <path class="mv mv-coat" d="M153 ${g.NY + 4} h14 l-3 8 l6 40 l-10 12 l-10 -12 l6 -40 Z" fill="#C8102E" ${S(2.5)}/>
+      <path class="mv mv-coat" d="M138 ${g.NY - 2} L126 ${g.NY + 40} L150 ${g.NY + 30} M182 ${g.NY - 2} L194 ${g.NY + 40} L170 ${g.NY + 30}" fill="none" stroke="#18213A" stroke-width="5" stroke-linejoin="round"/>
+      <circle class="mv mv-coat" cx="160" cy="${g.NY + 82}" r="4" fill="#C9A227"/><circle class="mv mv-coat" cx="160" cy="${g.NY + 100}" r="4" fill="#C9A227"/>
+      <path class="mv mv-coat" d="M190 ${g.NY + 40} l16 -4 l-2 10 Z" fill="#fff"/>`,
+    sleeves: `<path class="mv mv-coat" d="M210 ${g.NY + 16} Q226 ${g.NY + 6} 242 ${g.NY + 16} L240 ${g.NY + 16 + g.AL} Q226 ${g.NY + 24 + g.AL} 212 ${g.NY + 16 + g.AL} Z" fill="#26324F" ${S(4.5)}/>
+      <rect class="mv mv-coat" x="213" y="${g.NY + 8 + g.AL}" width="26" height="8" fill="#fff" ${S(2)}/>`,
+    sleevesL: `<path class="mv mv-coat" d="M78 ${g.NY + 16} Q94 ${g.NY + 6} 110 ${g.NY + 16} L108 ${g.NY + 16 + g.AL} Q94 ${g.NY + 24 + g.AL} 80 ${g.NY + 16 + g.AL} Z" fill="#26324F" ${S(4.5)}/>
+      <rect class="mv mv-coat" x="81" y="${g.NY + 8 + g.AL}" width="26" height="8" fill="#fff" ${S(2)}/>`,
     head: `<g class="mv mv-euroeyes">${g.eyes.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="17" fill="#fff" ${S(3)}/>
         <text x="${x}" y="${y + 11}" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="30" fill="#1E9E52">€</text>`).join('')}</g>`,
     front: `<g class="mv mv-bills">${many(22, (i) => `<g class="mv-bill" style="--dx:${rnd(-260, 260).toFixed(0)}px;--up:${rnd(220, 420).toFixed(0)}px;--rot:${rnd(-540, 540).toFixed(0)}deg;animation-delay:${(i % 11) * 0.12 + (i > 10 ? 1 : 0)}s">
@@ -58,8 +68,8 @@ const SCENES = {
         <circle cx="${0}" cy="0" r="0"/></g>`)}</g>`,
     handR: `<rect class="mv mv-wad" x="212" y="${g.hand - 4}" width="30" height="18" rx="3" fill="#7BC97F" ${S(2.5)}/>`,
     handL: `<rect class="mv mv-wad" x="80" y="${g.hand - 4}" width="30" height="18" rx="3" fill="#7BC97F" ${S(2.5)}/>`,
-    steps: [[0, { mood: 'happy', anim: 'none', on: ['mv-wad'] }], [600, { mood: 'shock', on: ['mv-euroeyes'] }],
-      [1300, { mood: 'proud', anim: 'cheer', on: ['mv-bills'], off: ['mv-wad'] }], [3600, { anim: 'dance' }], [4800, { anim: 'none', mood: 'wink', off: ['mv-euroeyes'] }]],
+    steps: [[0, { mood: 'happy', anim: 'none' }], [300, { on: ['mv-coat'], mood: 'proud' }], [900, { on: ['mv-wad'] }], [1300, { mood: 'shock', on: ['mv-euroeyes'] }],
+      [2000, { mood: 'proud', anim: 'cheer', on: ['mv-bills'], off: ['mv-wad'] }], [4000, { anim: 'dance' }], [5200, { anim: 'none', mood: 'wink', off: ['mv-euroeyes'] }]],
   }),
 
   tom: (g) => {
@@ -149,9 +159,46 @@ const SCENES = {
             <ellipse cx="104" cy="${y - 12}" rx="5" ry="3" fill="#F28C6B" opacity=".6"/>
             <path class="mv-tongue" d="M131 ${y - 12} h14 l5 -4 M145 ${y - 12} l5 4" stroke="#E63946" stroke-width="3" fill="none" stroke-linecap="round"/></g>
         </g></g>
+        <g class="mv mv-dog"><g class="mv-dogwalk"><g transform="translate(300 ${g.ground})">
+          <path class="mv-dogtail" d="M-34 -34 q-22 -6 -20 -30" stroke="${INK}" stroke-width="11" fill="none" stroke-linecap="round"/>
+          <path class="mv-dogtail" d="M-34 -34 q-22 -6 -20 -30" stroke="#8B6239" stroke-width="6" fill="none" stroke-linecap="round"/>
+          <rect x="-28" y="-26" width="11" height="26" rx="5" fill="#7A5232" ${S(3)}/><rect x="10" y="-26" width="11" height="26" rx="5" fill="#7A5232" ${S(3)}/>
+          <ellipse cx="-6" cy="-32" rx="34" ry="20" fill="#8B6239" ${S(3.5)}/>
+          <path d="M-26 -44 q4 10 0 22 M-12 -50 q5 12 0 26 M4 -50 q5 12 0 26" stroke="#4A3020" stroke-width="4" fill="none" stroke-linecap="round" opacity=".8"/>
+          <ellipse cx="-4" cy="-20" rx="16" ry="7" fill="#C9A77A"/>
+          <g class="mv-doghead" transform="translate(30 -56)">
+            <path d="M-16 -14 q-16 2 -14 22 q8 2 12 -10 Z M14 -16 q16 0 16 20 q-8 4 -12 -8 Z" fill="#4A3020" ${S(3)}/>
+            <circle cx="0" cy="0" r="20" fill="#8B6239" ${S(3.5)}/>
+            <path d="M-12 -10 q6 -4 10 2 M4 -12 q6 -2 10 4" stroke="#4A3020" stroke-width="3" fill="none" stroke-linecap="round"/>
+            <ellipse cx="2" cy="8" rx="12" ry="9" fill="#3A2618"/>
+            <ellipse cx="2" cy="15" rx="7" ry="4" fill="#E9E1D4"/>
+            <circle cx="2" cy="4" r="3.5" fill="#000"/>
+            <circle cx="-8" cy="-3" r="3.2" fill="#000"/><circle cx="10" cy="-3" r="3.2" fill="#000"/>
+            <circle cx="-7" cy="-4" r="1.1" fill="#fff"/><circle cx="11" cy="-4" r="1.1" fill="#fff"/>
+            <path class="mv-dogtongue" d="M0 15 q2 10 6 0 Z" fill="#E27B7B" ${S(1.5)}/></g>
+        </g></g></g>
+        <g class="mv mv-cat"><g class="mv-catwalk"><g transform="translate(-110 ${g.ground})">
+          <path class="mv-cattail" d="M22 -12 q34 -4 28 -40 q-2 -10 -10 -6" stroke="${INK}" stroke-width="11" fill="none" stroke-linecap="round"/>
+          <path class="mv-cattail" d="M22 -12 q34 -4 28 -40 q-2 -10 -10 -6" stroke="#9AA1AB" stroke-width="6" fill="none" stroke-linecap="round"/>
+          <path d="M-24 0 q-4 -44 24 -48 q28 4 24 48 Z" fill="#9AA1AB" ${S(3.5)}/>
+          <path d="M-12 -30 q4 8 0 16 M12 -30 q-4 8 0 16" stroke="#6B7280" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <g transform="translate(0 -58)"><path d="M-18 -6 l-2 -20 l14 10 Z M18 -6 l2 -20 l-14 10 Z" fill="#9AA1AB" ${S(3)}/>
+            <circle cx="0" cy="0" r="18" fill="#9AA1AB" ${S(3.5)}/>
+            <path d="M-11 -2 q4 -5 8 0 M3 -2 q4 -5 8 0" stroke="${INK}" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+            <path d="M-3 6 l3 3 l3 -3 Z" fill="#F28BAA"/><path d="M0 9 q-4 4 -7 1 M0 9 q4 4 7 1" stroke="${INK}" stroke-width="2" fill="none"/>
+            <path d="M-22 6 h12 M-22 10 h12 M10 6 h12 M10 10 h12" stroke="${INK}" stroke-width="1.3"/></g>
+        </g></g></g>
+        <g class="mv mv-spider"><g class="mv-spiderdrop"><path d="M250 -400 V${g.NY - 70}" stroke="#9AA1AB" stroke-width="2"/>
+          <g transform="translate(250 ${g.NY - 50})"><g class="mv-spiderlegs" stroke="${INK}" stroke-width="3.5" fill="none" stroke-linecap="round">
+            ${[-1, 1].map((d) => [-14, -5, 5, 14].map((y) => `<path d="M${d * 10} ${y * 0.6} q${d * 14} ${y - 10} ${d * 26} ${y + 6}"/>`).join('')).join('')}</g>
+            <circle cx="0" cy="-18" r="10" fill="#3A2618"/><ellipse cx="0" cy="2" rx="15" ry="17" fill="#3A2618"/>
+            <circle cx="-5" cy="-19" r="4.5" fill="#fff"/><circle cx="5" cy="-19" r="4.5" fill="#fff"/>
+            <circle cx="-4" cy="-18" r="2" fill="#000"/><circle cx="6" cy="-18" r="2" fill="#000"/>
+            <path d="M-4 -11 q4 3 8 0" stroke="#fff" stroke-width="1.6" fill="none"/></g></g></g>
         <g class="mv mv-hearts">${many(6, (k) => `<path class="mv-heart" style="animation-delay:${(k * 0.3).toFixed(1)}s" transform="translate(${[60, 0, 110, 30, 90, -20][k]} ${g.NY - 40 - (k % 3) * 30}) scale(${k % 2 ? 0.8 : 1.1})" d="M0 10 C-14 0 -12 -12 -5 -10 C-2 -9 0 -6 0 -4 C0 -6 2 -9 5 -10 C12 -12 14 0 0 10 Z" fill="#E63946" ${S(2)}/>`)}</g>`,
-      steps: [[0, { mood: 'happy', anim: 'none', on: ['mv-snake'] }], [1900, { mood: 'wink', on: ['stop'] }],
-        [2400, { anim: 'pet', mood: 'love', on: ['mv-hearts'] }], [4800, { anim: 'none' }]],
+      steps: [[0, { mood: 'happy', anim: 'none', on: ['mv-snake'] }], [1300, { on: ['mv-dog'] }], [1900, { mood: 'wink', on: ['stop'] }],
+        [2400, { on: ['mv-cat'] }], [3200, { on: ['mv-spider'], mood: 'happy' }],
+        [3800, { anim: 'pet', mood: 'love', on: ['mv-hearts'] }], [6200, { anim: 'none' }]],
     };
   },
 
@@ -304,8 +351,9 @@ export async function playMove(name, displayName = '') {
   const fig = box.querySelector('.fig');
   // Rekwisieten op het lijf en in de handen, zodat ze meebewegen met de armen.
   if (sc.coat) fig.querySelector('.fig-torso')?.insertAdjacentHTML('beforeend', sc.coat);
-  if (sc.sleeves) fig.querySelector('.fig-arm-r')?.insertAdjacentHTML('afterbegin', sc.sleeves);
-  if (sc.sleevesL) fig.querySelector('.fig-arm-l')?.insertAdjacentHTML('afterbegin', sc.sleevesL);
+  // Mouwen over de eigen mouw, maar onder de hand
+  if (sc.sleeves) fig.querySelector('.fig-arm-r > path')?.insertAdjacentHTML('afterend', sc.sleeves);
+  if (sc.sleevesL) fig.querySelector('.fig-arm-l > path')?.insertAdjacentHTML('afterend', sc.sleevesL);
   if (sc.handR) fig.querySelector('.fig-arm-r')?.insertAdjacentHTML('beforeend', sc.handR);
   if (sc.handL) fig.querySelector('.fig-arm-l')?.insertAdjacentHTML('beforeend', sc.handL);
   if (sc.head) fig.querySelector('.fig-head')?.insertAdjacentHTML('beforeend', sc.head);

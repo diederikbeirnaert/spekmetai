@@ -1309,3 +1309,23 @@ body.host .sb-award { max-width: 760px; margin: 10px auto; }
 .sb-lineup figure { margin: 0; text-align: center; font-weight: 800; font-size: .9rem; }
 .sb-lineup .sb-fig { position: static; transform: none; width: 72px; margin: 0 auto 4px; }
 .sb-lineup .sb-fig .fig { width: 72px; }
+
+/* Linde: hond, kat en spin */
+.mv-scene.on-mv-dog .mv-dog, .mv-scene.on-mv-cat .mv-cat, .mv-scene.on-mv-spider .mv-spider { opacity: 1; }
+.mv-dogwalk { transform: translateX(260px); }
+.mv-scene.on-mv-dog .mv-dogwalk { animation: mvDogIn 1s cubic-bezier(.3,1.2,.5,1) forwards; }
+@keyframes mvDogIn { 0% { transform: translateX(260px); } 60% { transform: translateX(-6px) translateY(-14px); } 100% { transform: none; } }
+.mv-dogtail, .mv-cattail { transform-box: fill-box; transform-origin: 100% 100%; animation: mvWag .18s ease-in-out infinite alternate; }
+.mv-cattail { animation-duration: .9s; transform-origin: 0 100%; }
+@keyframes mvWag { from { transform: rotate(-16deg); } to { transform: rotate(16deg); } }
+.mv-doghead { animation: mvTilt 1.4s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+@keyframes mvTilt { to { rotate: 14deg; } }
+.mv-dogtongue { animation: mvTongue .3s steps(2) infinite; }
+.mv-catwalk { transform: translateX(-260px); }
+.mv-scene.on-mv-cat .mv-catwalk { animation: mvCatIn 1.2s ease-out forwards; }
+@keyframes mvCatIn { to { transform: none; } }
+.mv-spiderdrop { transform: translateY(-420px); }
+.mv-scene.on-mv-spider .mv-spiderdrop { animation: mvSpider 1.4s cubic-bezier(.3,1.4,.5,1) forwards; }
+@keyframes mvSpider { to { transform: none; } }
+.mv-spiderlegs { animation: mvLegs .25s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+@keyframes mvLegs { to { transform: scaleY(.85) rotate(4deg); } }

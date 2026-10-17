@@ -63,6 +63,7 @@ export async function searchSongs(term, signal) {
         album: String(r.collectionName || '').slice(0, 200),
         cover: String(r.artworkUrl100 || '').replace('100x100bb', '300x300bb'),
         preview: r.previewUrl || '',
+        year: Number(String(r.releaseDate || '').slice(0, 4)) || null,
       };
       return { ...s, key: songKey(s) };
     })

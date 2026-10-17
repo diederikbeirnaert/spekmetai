@@ -159,6 +159,46 @@
         }
       }
     },
+    "hitster": {
+      ".read": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
+      ".write": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)"
+    },
+    "hgames": {
+      ".read": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
+      ".write": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
+      ".indexOn": [
+        "createdAt"
+      ],
+      "$code": {
+        ".read": "auth != null",
+        "players": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('hgames').child($code).child('state').exists()",
+            ".validate": "newData.hasChildren(['name', 'avatar'])",
+            "name": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 20"
+            },
+            "avatar": {
+              ".validate": "newData.isString() && newData.val().length <= 8"
+            },
+            "member": {
+              ".validate": "newData.val() === true && root.child('members').child($uid).exists()"
+            },
+            "online": {
+              ".write": "auth != null && auth.uid === $uid && data.parent().exists()",
+              ".validate": "newData.isBoolean()"
+            },
+            "cards": {
+              ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)"
+            }
+          }
+        },
+        "move": {
+          ".write": "auth != null && !data.exists() && root.child('hgames').child($code).child('state/phase').val() === 'play' && root.child('hgames').child($code).child('state/turn').val() === auth.uid",
+          ".validate": "newData.child('uid').val() === auth.uid && newData.child('slot').isNumber() && newData.child('round').val() === root.child('hgames').child($code).child('state/round').val()"
+        }
+      }
+    },
     "juryPins": {
       ".read": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
       ".write": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)"

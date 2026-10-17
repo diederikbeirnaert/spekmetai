@@ -6,6 +6,7 @@ import { flatGuesses, addGuessPins, focusPins, mountGuessBoard } from './guessbo
 import { mountPlaylistAdmin } from './playlistadmin.js';
 import { loadMissions, missionsToolbar, missionField, wireMissions } from './missions.js';
 import { mountScoreAdmin } from './scoreadmin.js';
+import { mountHitsterAdmin } from './hitsteradmin.js';
 import { handleCallback as spotifyCallback } from './spotify.js';
 import {
   configured, db, ref, get, set, update, remove, push, useAuth, currentUser, isAdmin, notConfiguredHtml,
@@ -87,6 +88,10 @@ function route() {
   if (page === 'settings') return settings();
   if (page === 'members') return listMembers();
   if (page === 'raadkaart') return raadkaartAdmin();
+  if (page === 'hitster') {
+    frame('hitster', '<div id="hsa"><div class="card muted">Laden…</div></div>');
+    return mountHitsterAdmin($('#hsa'), { light });
+  }
   if (page === 'scores') {
     frame('scores', '<div id="sba"><div class="card muted">Laden…</div></div>');
     return mountScoreAdmin($('#sba'), { light });
@@ -102,6 +107,7 @@ function frame(active, html) {
   const tabs = [
     ['quizzes', '🍳 Quizzen'],
     ['scores', '🏆 Scorebord'],
+    ['hitster', '🎵 Hitster'],
     !light && ['letters', '✉️ Weekendbrief'],
     ['members', light ? '🤫 Opdrachten' : '🤫 Weekendgangers'],
     ['raadkaart', '🗺️ Raadkaart'],

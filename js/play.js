@@ -85,6 +85,8 @@ function renderJoin(prefill) {
     if (!name) return shakeToast('Vul je naam in');
     $('#go').disabled = true;
     try {
+      // Is het een Hitster-code? Dan naar de Hitster-pagina.
+      if ((await get(ref(db, `hgames/${c}/state`)).catch(() => null))?.exists()) return void location.assign(`hitster.html?code=${c}`);
       const st = (await get(ref(db, `games/${c}/state`))).val();
       if (!st) throw new Error('Deze code bestaat niet 🥚');
       if (st.phase === 'end') throw new Error('Deze quiz is al afgelopen');

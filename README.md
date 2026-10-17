@@ -171,6 +171,15 @@ Bovenaan de homepage staat het totaalklassement van het weekend: een wedren waar
 - **Aanpassen en verwijderen** kan alleen de hoofdadmin. Admin light kan punten toevoegen.
 - **🧪 Testmodus**: nieuwe punten worden testpunten. Ze tellen alleen mee zolang de testmodus aan staat en zijn met één knop te wissen.
 
+## 🎵 Hitster
+
+In **Admin → 🎵 Hitster** laad je de standaarddecks (hits door de decennia, Belgische hits, feestklassiekers) of maak je een deck uit de weekendplaylist. Daarna klik je op **▶ Speel op groot scherm**.
+
+- Spelers doen mee met de code via `hitster.html`. De gewone "Doe mee"-knop stuurt een Hitster-code ook door.
+- Iedereen start met 1 kaartje. Om de beurt speelt er een fragment op het grote scherm, en de speler die aan de beurt is, legt het op zijn gsm in zijn tijdlijn (ouder of nieuwer).
+- Wie eerst het ingestelde aantal kaartjes heeft (standaard 10), wint. Daarna kun je de punten naar het weekendscorebord sturen.
+- **Jaartallen** zijn aanpasbaar per deck. Bij het deck uit de playlist komen ze uit de catalogus, en dat kan een remaster-jaar zijn (⚠️), dus kijk ze na.
+
 ## 🎵 Weekendplaylist
 
 Op **Playlist** bouwen de weekendgangers samen de playlist van het weekend.

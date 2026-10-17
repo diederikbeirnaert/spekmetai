@@ -16,10 +16,10 @@ export async function resolveSong(song) {
   if (song.preview) return song;
   const q = new URLSearchParams({ term: `${song.artist} ${song.title}`, entity: 'song', limit: '10', country: 'be' });
   const { results = [] } = await itunes(`search?${q}`);
-  const a = norm(song.artist).split(' ')[0];
+  const a = norm(song.artist).replace(/^the /, '').split(' ')[0];
   const t = norm(song.title).split(' ').slice(0, 2).join(' ');
-  const best = results.find((r) => r.previewUrl && norm(r.artistName).includes(a) && norm(r.trackName).includes(t))
-    || results.find((r) => r.previewUrl && norm(r.artistName).includes(a)) || results.find((r) => r.previewUrl);
+  // Alleen een fragment van precies dit liedje: liever geen fragment dan een verkeerd.
+  const best = results.find((r) => r.previewUrl && norm(r.artistName).includes(a) && norm(r.trackName).includes(t));
   return best ? { ...song, ...pick(best) } : song;
 }
 

@@ -4,7 +4,7 @@ import { $, $$, ART, esc, shell, toast, confetti, av, setAvatars } from './commo
 import {
   configured, db, ref, get, set, update, remove, onValue, serverTimestamp, useAuth, currentUser, isStaff, notConfiguredHtml, watchAvatars,
 } from './fb.js';
-import { resolveSong, isCorrect, sortCards, shuffle, cardHtml, timelineHtml, DEFAULT_TARGET } from './hitster.js';
+import { resolveSong, isCorrect, sortCards, shuffle, cardHtml, timelineHtml, DEFAULT_TARGET } from './hitster.js?v=2';
 import { placementPoints } from './scoreboard.js';
 
 shell('host');
@@ -123,6 +123,7 @@ async function startGame() {
   // Iedereen start met één kaartje.
   const upd = {};
   for (const id of ids) {
+    while (run.pos < run.queue.length - 1 && deck.songs[run.queue[run.pos]].nopreview) run.pos++;
     const s = deck.songs[run.queue[run.pos++]];
     upd[`players/${id}/cards`] = [{ title: s.title, artist: s.artist, year: s.year, cover: s.cover || '' }];
   }
@@ -131,19 +132,42 @@ async function startGame() {
   await turn(ids[0], 1);
 }
 
+// Volgend liedje mét fragment. Liedjes zonder fragment worden overgeslagen en in het deck gemarkeerd,
+// zodat ze ook in volgende spellen niet meer opduiken.
+async function nextPlayable() {
+  let fails = 0;
+  while (run.pos < run.queue.length) {
+    const idx = nextSongIdx();
+    const s = deck.songs[idx];
+    if (!s.nopreview) {
+      try {
+        const r = await resolveSong(s);
+        if (r.preview) {
+          if (!s.preview) update(ref(db, `hitster/decks/${run.deck}/songs/${idx}`), { preview: r.preview, cover: r.cover || '' }).catch(() => {});
+          return r;
+        }
+        deck.songs[idx] = { ...s, nopreview: true };
+        update(ref(db, `hitster/decks/${run.deck}/songs/${idx}`), { nopreview: true }).catch(() => {});
+      } catch {
+        // Catalogus even onbereikbaar: niet markeren, kort wachten en opnieuw proberen.
+        if (++fails < 3) { await new Promise((r) => setTimeout(r, 2000)); continue; }
+        fails = 0;
+      }
+    }
+    run.pos++;
+    await update(runRef(), { pos: run.pos });
+  }
+  return null;
+}
+
 async function turn(id, round) {
-  if (run.pos >= run.queue.length) return finish('Het deck is op!');
-  song = deck.songs[nextSongIdx()];
-  try {
-    song = await resolveSong(song);
-    if (song.preview) await update(ref(db, `hitster/decks/${run.deck}/songs/${nextSongIdx()}`), { preview: song.preview, cover: song.cover || '' }).catch(() => {});
-  } catch { /* zonder fragment: host kan overslaan */ }
+  song = await nextPlayable();
+  if (!song) return finish('Het deck is op!');
   audio.pause();
-  audio.src = song.preview || '';
+  audio.src = song.preview;
   await remove(g('move'));
   await setState({ phase: 'play', turn: id, round, reveal: null });
-  if (song.preview) audio.play().catch(() => {});
-  else toast('Geen fragment gevonden voor dit liedje: sla over of speel het zelf af', 'bad');
+  audio.play().catch(() => {});
   render();
 }
 

@@ -80,7 +80,8 @@ function render() {
   const p = players[id] || {};
   const rv = state.phase === 'reveal' ? state.reveal : null;
   app.innerHTML = `<div class="host-stage hs-stage">
-    <div class="host-bar"><span class="pill yolk">🎵 Hitster · ronde ${state.round}</span>
+    <div class="host-bar"><span class="pill yolk">🎵 Hitster · beurt ${state.round}</span>
+      ${state.lastRound ? '<span class="pill" style="background:var(--bacon);color:#fff">🏁 Laatste ronde!</span>' : ''}
       <span class="pill">${av(p, id)} ${esc(p.name || '')} is aan de beurt</span><button id="next" class="btn big"></button></div>
     <div class="hs-center">
       ${rv ? `<div class="hs-reveal pop-in ${rv.ok ? 'ok' : 'bad'}">${cardHtml(rv)}<div class="hs-verdict">${rv.ok ? '✔ Juist gelegd!' : '✘ Fout gelegd…'}</div></div>`
@@ -164,8 +165,15 @@ async function nextTurn() {
   audio.pause();
   if (state.phase === 'play') { run.pos++; await update(runRef(), { pos: run.pos }); } // overgeslagen liedje
   const ids = order();
-  if (ranked()[0]?.n >= state.target) return finish();
   const i = ids.indexOf(state.turn);
+  // Wie het doel haalt, wint pas als de ronde is uitgespeeld: iedereen krijgt evenveel beurten.
+  if (ranked()[0]?.n >= state.target) {
+    if (i === ids.length - 1 || i < 0) {
+      const r = ranked();
+      return finish(r[1]?.n === r[0].n ? 'Gelijkspel op kop! 🤝' : null);
+    }
+    if (!state.lastRound) await setState({ lastRound: true });
+  }
   const nextId = ids[(i + 1) % ids.length];
   await turn(nextId, state.round + 1);
 }

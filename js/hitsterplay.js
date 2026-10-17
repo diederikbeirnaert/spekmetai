@@ -81,6 +81,7 @@ const myCards = () => sortCards(me().cards || []);
 function render() {
   if (state.phase === 'gone') return void (app.innerHTML = '<div class="play-screen"><h2>Dit spel bestaat niet meer</h2><a class="btn" href="hitster.html">Andere code</a></div>');
   const top = `<div class="play-top"><span class="pill yolk">${av(me(), user.uid)} ${esc(me().name || '')}</span>
+    ${state.lastRound && state.phase !== 'end' ? '<span class="pill" style="background:var(--bacon);color:#fff">🏁 Laatste ronde</span>' : ''}
     <span class="pill">🃏 ${myCards().length}/${state.target || 10}</span></div>`;
   if (state.phase === 'lobby') {
     app.innerHTML = `${top}<div class="play-screen"><div class="big-avatar pop-in">${av(me(), user.uid)}</div><h1 style="margin:0">Je zit erin!</h1>

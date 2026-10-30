@@ -1,7 +1,7 @@
 // Geheime opdrachten met concepten: wat je typt is eerst een concept (missionDrafts/{uid}, onzichtbaar
 // voor de weekendganger). Pas bij "Delen" komt het in missions/{uid}, en dus in het portaal.
-import { $, $$, esc, toast } from './common.js';
-import { db, ref, get, set, update } from './fb.js';
+import { $, $$, esc, toast } from './common.js?v=w1';
+import { db, wref, ref, get, set, update } from './fb.js?v=w1';
 
 const fmtTime = (t) => new Date(t).toLocaleString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 const shared = (missions, id) => missions[id]?.text || '';
@@ -9,7 +9,7 @@ const shared = (missions, id) => missions[id]?.text || '';
 const draftOf = (missions, drafts, id) => (drafts[id] ? drafts[id].text || '' : shared(missions, id));
 
 export async function loadMissions() {
-  const [missions, drafts] = await Promise.all(['missions', 'missionDrafts'].map(async (k) => (await get(ref(db, k)).catch(() => null))?.val() || {}));
+  const [missions, drafts] = await Promise.all(['missions', 'missionDrafts'].map(async (k) => (await get(wref(k)).catch(() => null))?.val() || {}));
   return { missions, drafts };
 }
 
@@ -75,20 +75,20 @@ export function wireMissions(root, ids, state, names, refresh) {
     };
     save.onclick = async () => {
       const text = ta.value.trim();
-      await set(ref(db, `missionDrafts/${id}`), { text, updatedAt: Date.now() });
+      await set(wref(`missionDrafts/${id}`), { text, updatedAt: Date.now() });
       toast(`Concept voor ${names[id] || 'deze persoon'} bewaard 📝 (nog niet gedeeld)`, 'ok');
       refresh();
     };
     share.onclick = async () => {
       const text = ta.value.trim();
       if (!confirm(text ? `De opdracht nu delen met ${names[id] || 'deze persoon'}?` : `De opdracht van ${names[id] || 'deze persoon'} wissen?`)) return;
-      await update(ref(db), publish(id, text));
+      await update(wref(), publish(id, text));
       toast(text ? `Opdracht gedeeld met ${names[id] || 'deze persoon'} 📤` : 'Opdracht gewist', 'ok');
       refresh();
     };
     $('[data-munshare]', box)?.addEventListener('click', async () => {
       if (!confirm(`De opdracht weer verbergen voor ${names[id] || 'deze persoon'}? De tekst blijft als concept bewaard.`)) return;
-      await update(ref(db), { [`missions/${id}`]: null, [`missionDrafts/${id}`]: { text: shared(missions, id), updatedAt: Date.now() } });
+      await update(wref(), { [`missions/${id}`]: null, [`missionDrafts/${id}`]: { text: shared(missions, id), updatedAt: Date.now() } });
       toast('Opdracht verborgen 🙈', 'ok');
       refresh();
     });
@@ -100,7 +100,7 @@ export function wireMissions(root, ids, state, names, refresh) {
     const todo = ids.filter((id) => texts[id] !== shared(missions, id).trim() && (texts[id] || shared(missions, id)));
     if (!todo.length) return toast('Alles is al gedeeld');
     if (!confirm(`${todo.length} ${todo.length === 1 ? 'opdracht' : 'opdrachten'} nu delen? Iedereen kan zijn opdracht dan meteen openen in het portaal.`)) return;
-    await update(ref(db), Object.assign({}, ...todo.map((id) => publish(id, texts[id]))));
+    await update(wref(), Object.assign({}, ...todo.map((id) => publish(id, texts[id]))));
     toast(`${todo.length} ${todo.length === 1 ? 'opdracht' : 'opdrachten'} gedeeld 📤🎉`, 'ok');
     refresh();
   });

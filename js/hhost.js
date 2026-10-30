@@ -1,11 +1,11 @@
 // Hitster op het grote scherm: lobby, om de beurt een fragment afspelen, onthullen, winnaar.
 // Welk liedje er komt, staat alleen in hitster/runs/{code} (onleesbaar voor spelers).
-import { $, $$, ART, esc, shell, toast, confetti, av, setAvatars } from './common.js';
+import { $, $$, ART, esc, shell, toast, confetti, av, setAvatars } from './common.js?v=w1';
 import {
-  configured, db, ref, get, set, update, remove, onValue, serverTimestamp, useAuth, currentUser, isStaff, notConfiguredHtml, watchAvatars,
-} from './fb.js';
-import { resolveSong, isCorrect, sortCards, shuffle, cardHtml, timelineHtml, DEFAULT_TARGET } from './hitster.js?v=2';
-import { placementPoints } from './scoreboard.js';
+  configured, db, wref, ref, get, set, update, remove, onValue, serverTimestamp, useAuth, currentUser, isStaff, notConfiguredHtml, noWeekendHtml, watchAvatars, resolveCode, claimCode, weekendId,
+} from './fb.js?v=w1';
+import { resolveSong, isCorrect, sortCards, shuffle, cardHtml, timelineHtml, DEFAULT_TARGET } from './hitster.js?v=w1';
+import { placementPoints } from './scoreboard.js?v=w1';
 
 shell('host');
 const app = $('#app');
@@ -13,8 +13,8 @@ const params = new URLSearchParams(location.search);
 let code, deck, state = {}, players = {}, run = null, song = null;
 const audio = new Audio();
 audio.loop = true;
-const g = (p = '') => ref(db, `hgames/${code}${p ? `/${p}` : ''}`);
-const runRef = () => ref(db, `hitster/runs/${code}`);
+const g = (p = '') => wref(`hgames/${code}${p ? `/${p}` : ''}`);
+const runRef = () => wref(`hitster/runs/${code}`);
 const order = () => Object.entries(players).sort((a, b) => (a[1].joinedAt || 0) - (b[1].joinedAt || 0)).map(([id]) => id);
 const cardsOf = (id) => sortCards(players[id]?.cards || []);
 const ranked = () => order().map((id) => ({ id, ...players[id], n: cardsOf(id).length })).sort((a, b) => b.n - a.n);
@@ -24,6 +24,8 @@ init();
 async function init() {
   if (!configured) return void (app.innerHTML = notConfiguredHtml());
   useAuth('local');
+  if (params.get('game')) await resolveCode(params.get('game'));
+  if (!weekendId()) return void (app.innerHTML = noWeekendHtml());
   if (!(await isStaff(await currentUser()))) {
     app.innerHTML = `<div class="card center login-wrap"><h2>Alleen voor de chef-kok</h2><a class="btn" href="login.html?next=hhost.html">Inloggen</a></div>`;
     return;
@@ -39,12 +41,9 @@ async function init() {
 }
 
 async function create(deckId) {
-  deck = (await get(ref(db, `hitster/decks/${deckId}`))).val();
+  deck = (await get(wref(`hitster/decks/${deckId}`))).val();
   if (!deck?.songs?.length) return void (app.innerHTML = '<div class="card">Dit deck is leeg.</div>');
-  for (let i = 0; i < 20; i++) {
-    code = String(100000 + Math.floor(Math.random() * 900000));
-    if (!(await get(g('state'))).exists()) break;
-  }
+  code = await claimCode('hitster');
   state = { phase: 'lobby', target: DEFAULT_TARGET, round: 0, title: deck.title };
   await set(g(), { createdAt: serverTimestamp(), deck: deckId, state });
   run = { deck: deckId, queue: shuffle(deck.songs.map((_, i) => i)), pos: 0 };
@@ -59,7 +58,7 @@ async function resume(c) {
   if (!game) return void (app.innerHTML = '<div class="card">Dit spel bestaat niet meer.</div>');
   state = game.state;
   run = (await get(runRef())).val();
-  deck = (await get(ref(db, `hitster/decks/${game.deck}`))).val();
+  deck = (await get(wref(`hitster/decks/${game.deck}`))).val();
   start();
 }
 
@@ -143,11 +142,11 @@ async function nextPlayable() {
       try {
         const r = await resolveSong(s);
         if (r.preview) {
-          if (!s.preview) update(ref(db, `hitster/decks/${run.deck}/songs/${idx}`), { preview: r.preview, cover: r.cover || '' }).catch(() => {});
+          if (!s.preview) update(wref(`hitster/decks/${run.deck}/songs/${idx}`), { preview: r.preview, cover: r.cover || '' }).catch(() => {});
           return r;
         }
         deck.songs[idx] = { ...s, nopreview: true };
-        update(ref(db, `hitster/decks/${run.deck}/songs/${idx}`), { nopreview: true }).catch(() => {});
+        update(wref(`hitster/decks/${run.deck}/songs/${idx}`), { nopreview: true }).catch(() => {});
       } catch {
         // Catalogus even onbereikbaar: niet markeren, kort wachten en opnieuw proberen.
         if (++fails < 3) { await new Promise((r) => setTimeout(r, 2000)); continue; }
@@ -225,13 +224,13 @@ async function award() {
   const box = $('#award');
   const members = ranked().filter((p) => p.member).map((p) => ({ uid: p.id, name: p.name, score: p.n }));
   if (!members.length) return void (box.innerHTML = '<p class="muted" style="margin:0">Geen weekendgangers, dus geen punten voor het scorebord.</p>');
-  const entry = ref(db, `scoreboard/entries/hitster-${code}`);
+  const entry = wref(`scoreboard/entries/hitster-${code}`);
   const done = (await get(entry).catch(() => null))?.exists();
   const pts = placementPoints(members);
   box.innerHTML = `<h3 style="margin:0 0 8px">🏆 Weekendscorebord</h3><div class="sb-chips">${members.map((m) => `<span class="sb-chip">${av({ member: true }, m.uid)} ${esc(m.name)} <b>+${pts[m.uid]}</b></span>`).join('')}</div>
     <div class="row" style="margin-top:12px">${done ? '<span class="pill" style="background:var(--ok)">✔ Telt al mee</span>' : '<button class="btn bacon" id="awardbtn">🏆 Punten naar het weekendscorebord</button>'}</div>`;
   $('#awardbtn')?.addEventListener('click', async () => {
-    const test = (await get(ref(db, 'scoreboard/config/test')).catch(() => null))?.val() === true;
+    const test = (await get(wref('scoreboard/config/test')).catch(() => null))?.val() === true;
     await set(entry, { title: `🎵 Hitster: ${state.title || ''}`.slice(0, 80), kind: 'game', at: Date.now(), points: pts,
       names: Object.fromEntries(members.map((m) => [m.uid, m.name])), ...(test ? { test: true } : {}) });
     toast('Punten staan op het scorebord 🏆', 'ok');

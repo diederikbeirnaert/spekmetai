@@ -1,4 +1,7 @@
 // Gedeelde stukjes: SVG-illustraties, header/footer, helpers.
+import { avatar as drawAvatar } from './avatarkit.js?v=w1';
+import { weekendId, cachedMeta, cacheMeta, hasFeature } from './weekend.js?v=w1';
+import { firebaseConfig } from './firebase-config.js?v=w1';
 
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -136,22 +139,35 @@ export const AVATAR_BGS = [
   { key: 'avocado', name: 'Avocado' }, { key: 'berry', name: 'Bosbes' },
 ];
 const avatarCache = {};
+// Zelfgemaakte avatars (avatarbouwer) worden ter plekke getekend; we bewaren de tekening per instelling.
+const drawn = new Map();
+export const avatarImg = (a) => {
+  if (a?.cfg) {
+    const key = JSON.stringify(a.cfg);
+    if (!drawn.has(key)) drawn.set(key, `data:image/svg+xml;charset=utf-8,${encodeURIComponent(drawAvatar(a.cfg))}`);
+    return drawn.get(key);
+  }
+  return a?.img || '';
+};
 
-// Avatar van een speler: een emoji, of de PNG-avatar als het een weekendganger is.
+// Avatar van een speler: een emoji, of de avatar van de weekendganger.
 export function av(p, id, cls = '') {
   if (p?.member && id) {
     const a = avatarCache[id];
-    return `<span class="av-pic avbg-${esc(a?.bg || 'yolk')} ${cls}" data-avatar="${esc(id)}">${a?.img ? `<img src="${a.img}" alt="">` : ''}</span>`;
+    const img = avatarImg(a);
+    return `<span class="av-pic avbg-${esc(a?.bg || 'yolk')} ${cls}" data-avatar="${esc(id)}">${img ? `<img src="${img}" alt="">` : ''}</span>`;
   }
   return `<span class="av-emoji ${cls}">${esc(p?.avatar || '')}</span>`;
 }
 
-// Avatargegevens van een weekendganger ({ img, bg }), bv. om het volledige poppetje te kiezen.
+// Avatargegevens van een weekendganger ({ img | cfg, bg, move }), bv. om het volledige poppetje te kiezen.
 export const avatarOf = (id) => avatarCache[id] || null;
 
-// Losse avatar-preview (admin), op basis van { img, bg }.
-export const avatarPreview = (a, cls = '') =>
-  `<span class="av-pic avbg-${esc(a?.bg || 'yolk')} ${cls}">${a?.img ? `<img src="${a.img}" alt="">` : '<span class="av-empty">🥚</span>'}</span>`;
+// Losse avatar-preview, op basis van { img | cfg, bg }.
+export const avatarPreview = (a, cls = '') => {
+  const img = avatarImg(a);
+  return `<span class="av-pic avbg-${esc(a?.bg || 'yolk')} ${cls}">${img ? `<img src="${img}" alt="">` : '<span class="av-empty">🥚</span>'}</span>`;
+};
 
 // Nieuwe avatars binnen → cache bijwerken en alles wat al op het scherm staat invullen.
 export function setAvatars(all) {
@@ -160,8 +176,9 @@ export function setAvatars(all) {
   $$('[data-avatar]').forEach((el) => {
     const a = avatarCache[el.dataset.avatar];
     if (!a) return;
+    const img = avatarImg(a);
     el.className = el.className.replace(/avbg-\S+/, `avbg-${a.bg || 'yolk'}`);
-    el.innerHTML = a.img ? `<img src="${a.img}" alt="">` : '';
+    el.innerHTML = img ? `<img src="${img}" alt="">` : '';
   });
 }
 
@@ -184,35 +201,54 @@ export function setSessionHint(hint) {
 }
 
 /* ---------- Pagina-omlijsting ---------- */
-export function shell(active = '') {
-  const links = [
+// Menu van het huidige weekend: alleen de functies die het weekend aanzette.
+function navLinks(meta) {
+  if (!weekendId()) return [['index.html', 'Weekends', 'home']];
+  const on = (k) => hasFeature(meta, k);
+  return [
     ['index.html', 'Home', 'home'],
-    ['play.html', 'Meedoen', 'play'],
-    ['brief.html', 'Weekendbrief', 'brief'],
-    ['portaal.html', 'Mijn opdracht', 'portaal'],
-    ['raadkaart.html', 'Raadkaart', 'raadkaart'],
-    ['playlist.html', 'Playlist', 'playlist'],
-  ];
+    (on('quiz') || on('hitster')) && ['play.html', 'Meedoen', 'play'],
+    on('brief') && ['brief.html', 'Weekendbrief', 'brief'],
+    ['portaal.html', on('missions') ? 'Mijn opdracht' : 'Mijn poppetje', 'portaal'],
+    on('raadkaart') && ['raadkaart.html', 'Raadkaart', 'raadkaart'],
+    on('playlist') && ['playlist.html', 'Playlist', 'playlist'],
+  ].filter(Boolean);
+}
+
+export function shell(active = '') {
   const hint = getSessionHint();
   const acct = hint
     ? `<a href="account.html" class="btn small acct-btn ${active === 'account' ? 'active' : ''}" title="Mijn account">👤 <span class="acct-name">${esc(hint.name || 'Account')}</span></a>`
     : `<a href="login.html" class="btn small bacon acct-btn">Inloggen</a>`;
   const header = document.createElement('header');
   header.className = 'site-header';
-  header.innerHTML = `
-    <a class="brand" href="index.html" aria-label="SpekmetAI home">${ART.logo}<span class="wordmark">Spekmet<span class="ai">AI</span></span></a>
+  const draw = (meta) => {
+    header.innerHTML = `
+    <a class="brand" href="index.html" aria-label="SpekmetAI home">${ART.logo}<span class="wordmark">Spekmet<span class="ai">AI</span></span>
+      ${meta?.name ? `<span class="wk-chip" title="Jouw weekend">${esc(meta.emoji || '🍳')} ${esc(meta.name)}</span>` : ''}</a>
     ${active === 'host' ? '' : `
-    <nav class="nav" id="nav">${links.map(([href, label, key]) =>
+    <nav class="nav" id="nav">${navLinks(meta).map(([href, label, key]) =>
       `<a href="${href}" class="${key === active ? 'active' : ''}">${label}</a>`).join('')}</nav>
     <div class="header-right">${acct}
       <button class="menu-btn" id="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="nav"><span></span><span></span><span></span></button>
     </div>`}`;
+    const btn = header.querySelector('#menu-btn');
+    btn?.addEventListener('click', () => {
+      const open = header.classList.toggle('menu-open');
+      btn.setAttribute('aria-expanded', open);
+    });
+  };
+  draw(cachedMeta());
   document.body.prepend(header);
-  const btn = header.querySelector('#menu-btn');
-  btn?.addEventListener('click', () => {
-    const open = header.classList.toggle('menu-open');
-    btn.setAttribute('aria-expanded', open);
-  });
+  // Weekendnaam en functies verversen (snel via REST); het menu past zich aan als er iets veranderde.
+  const w = weekendId();
+  if (w && !String(firebaseConfig.apiKey).startsWith('VUL')) {
+    fetch(`${firebaseConfig.databaseURL}/weekends/${w}/meta.json`).then((r) => (r.ok ? r.json() : Promise.reject())).then((meta) => {
+      const before = JSON.stringify(cachedMeta());
+      cacheMeta(w, meta);
+      if (JSON.stringify(cachedMeta()) !== before) draw(cachedMeta());
+    }).catch(() => {});
+  }
 
   const bg = document.createElement('div');
   bg.className = 'bg-float';
@@ -227,10 +263,18 @@ export function shell(active = '') {
   if (active !== 'host') {
     const footer = document.createElement('footer');
     footer.className = 'site-footer';
-    footer.innerHTML = `Gebakken met liefde 🍳🥓 · <a href="admin.html">admin</a>`;
+    footer.innerHTML = `Gebakken met liefde 🍳🥓 · <a href="index.html?kies=1">ander weekend</a> · <a href="admin.html">admin</a>`;
     document.body.append(footer);
   }
 }
+
+// Staat deze functie uit in het weekend? Dan tonen we een vriendelijke melding in plaats van de pagina.
+export function featureOff(key) {
+  const meta = cachedMeta();
+  return weekendId() && meta && !hasFeature(meta, key);
+}
+export const featureOffHtml = (name) => `<div class="card center login-wrap"><div class="wobble" style="width:110px;margin:auto">${ART.egg()}</div>
+  <h2>${esc(name)} staat uit voor dit weekend</h2><a class="btn" href="index.html">Naar de homepage</a></div>`;
 
 /* ---------- Toast & confetti ---------- */
 let toastWrap;

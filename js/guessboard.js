@@ -1,7 +1,7 @@
 // Raadkaart-overzicht voor admin en admin light: ranking per weekendganger met uitklapbare gokken,
 // en pinnen op de kaart met een wolkje (wie, wanneer, hoe ver).
-import { esc, av } from './common.js';
-import { eggPin, tColor, distanceKm, fmtKm, dayLabel, tempLabel } from './mapkit.js';
+import { esc, av } from './common.js?v=w1';
+import { eggPin, tColor, distanceKm, fmtKm, dayLabel, tempLabel } from './mapkit.js?v=w1';
 
 const fmtTime = (t) => new Date(t).toLocaleString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 export { fmtTime };

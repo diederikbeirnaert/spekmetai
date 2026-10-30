@@ -1,273 +1,344 @@
 {
   "rules": {
+    ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+    ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
     "admins": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid"
       }
     },
-    "moderators": {
+    "staff": {
       ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
       ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid"
       }
     },
-    "roster": {
-      ".read": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
-      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
-    },
-    "quizzes": {
-      ".read": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
-      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
-      "$qid": {
-        ".write": "(auth != null && root.child('moderators').child(auth.uid).val() === true) && newData.exists()"
-      }
-    },
-    "media": {
-      ".read": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
-      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
-      "$mid": {
-        ".write": "(auth != null && root.child('moderators').child(auth.uid).val() === true) && newData.exists()"
-      }
-    },
-    "letters": {
+    "weekendList": {
       ".read": true,
-      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      "$w": {
+        ".write": "auth != null && root.child('weekends').child($w).child('owners').child(auth.uid).val() === true && newData.exists() && data.exists()",
+        ".validate": "newData.hasChildren(['name']) && newData.child('name').isString() && newData.child('name').val().length <= 60"
+      }
     },
-    "members": {
+    "userWeekends": {
       ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
       ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        "password": {
-          ".write": "auth != null && auth.uid === $uid && data.parent().exists()",
-          ".validate": "newData.isString() && newData.val().length >= 6"
+        "$w": {
+          ".write": "auth != null && auth.uid === $uid && newData.val() === 'member' && root.child('weekends').child($w).child('members').child($uid).exists()"
         }
       }
     },
-    "missions": {
-      ".read": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
-      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
-      "$uid": {
-        ".read": "auth != null && auth.uid === $uid",
-        "revealedAt": {
-          ".write": "auth != null && auth.uid === $uid && !data.exists() && data.parent().exists()",
-          ".validate": "newData.val() === now"
-        },
-        ".write": "auth != null && root.child('moderators').child(auth.uid).val() === true"
-      }
-    },
-    "missionDrafts": {
-      ".read": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
-      ".write": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)"
-    },
-    "avatars": {
+    "gameCodes": {
       ".read": true,
-      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
-      "$uid": {
-        ".validate": "newData.hasChildren(['bg']) && newData.child('bg').isString() && (!newData.child('img').exists() || (newData.child('img').isString() && newData.child('img').val().length < 400000))"
+      "$code": {
+        ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || (newData.exists() && (root.child('weekends').child(newData.child('w').val()).child('owners').child(auth.uid).val() === true || root.child('weekends').child(newData.child('w').val()).child('moderators').child(auth.uid).val() === true)) || (!newData.exists() && (root.child('weekends').child(data.child('w').val()).child('owners').child(auth.uid).val() === true || root.child('weekends').child(data.child('w').val()).child('moderators').child(auth.uid).val() === true))) && (!data.exists() || !newData.exists() || data.child('w').val() === newData.child('w').val())",
+        ".validate": "newData.hasChildren(['w', 'kind']) && newData.child('w').isString() && (newData.child('kind').val() === 'quiz' || newData.child('kind').val() === 'hitster')"
       }
     },
-    "raadkaart": {
+    "weekends": {
       ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
       ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
-      "config": {
-        ".read": "auth != null"
-      },
-      "reveal": {
-        ".read": "auth != null"
-      },
-      "last": {
-        "$uid": {
-          ".read": "auth != null && auth.uid === $uid",
-          ".write": "auth != null && auth.uid === $uid && root.child('members').child($uid).exists() && root.child('raadkaart/config/open').val() === true && !root.child('raadkaart/reveal').exists()",
-          ".validate": "newData.child('at').val() === now && newData.child('day').isNumber() && newData.child('day').val() * 86400000 <= now + 7200000 && (newData.child('day').val() + 1) * 86400000 > now + 7200000 && (!data.exists() || newData.child('day').val() > data.child('day').val() || root.child('raadkaart/config/test').val() === true)"
-        }
-      },
-      "guesses": {
-        ".read": "(auth != null && root.child('raadkaart/reveal').exists()) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
-        "$uid": {
-          ".read": "auth != null && auth.uid === $uid",
-          "$gid": {
-            ".write": "auth != null && auth.uid === $uid && root.child('members').child($uid).exists() && root.child('raadkaart/config/open').val() === true && !root.child('raadkaart/reveal').exists() && !data.exists()",
-            ".validate": "newData.hasChildren(['lat', 'lng', 't', 'tk', 'day', 'at']) && newData.child('lat').val() >= -90 && newData.child('lat').val() <= 90 && newData.child('lng').val() >= -180 && newData.child('lng').val() <= 180 && newData.child('at').val() === now && newData.child('day').val() === newData.parent().parent().parent().child('last').child($uid).child('day').val() && newData.child('tk').isString() && root.child('raadkaart/edges').child(newData.child('tk').val()).exists() && newData.child('t').val() === root.child('raadkaart/edges').child(newData.child('tk').val()).child('t').val() && (((newData.child('lat').val() - root.child('raadkaart/secret').child('lat').val()) * 111.2) * ((newData.child('lat').val() - root.child('raadkaart/secret').child('lat').val()) * 111.2) + ((newData.child('lng').val() - root.child('raadkaart/secret').child('lng').val()) * 111.2 * root.child('raadkaart/secret').child('k').val()) * ((newData.child('lng').val() - root.child('raadkaart/secret').child('lng').val()) * 111.2 * root.child('raadkaart/secret').child('k').val())) >= root.child('raadkaart/edges').child(newData.child('tk').val()).child('lo2').val() && (((newData.child('lat').val() - root.child('raadkaart/secret').child('lat').val()) * 111.2) * ((newData.child('lat').val() - root.child('raadkaart/secret').child('lat').val()) * 111.2) + ((newData.child('lng').val() - root.child('raadkaart/secret').child('lng').val()) * 111.2 * root.child('raadkaart/secret').child('k').val()) * ((newData.child('lng').val() - root.child('raadkaart/secret').child('lng').val()) * 111.2 * root.child('raadkaart/secret').child('k').val())) < root.child('raadkaart/edges').child(newData.child('tk').val()).child('hi2').val()"
-          }
-        }
-      }
-    },
-    "playlist": {
-      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
-      "songs": {
-        ".read": true,
-        "$song": {
-          ".write": "auth != null && ((!data.exists() && newData.exists() && root.child('members').child(auth.uid).exists()) || (data.exists() && !newData.exists() && data.child('by').val() === auth.uid))",
-          ".validate": "newData.hasChildren(['title', 'artist', 'by', 'byName', 'slot', 'at']) && newData.child('by').val() === auth.uid && newData.child('byName').val() === root.child('members').child(auth.uid).child('name').val() && newData.child('at').val() === now && newData.child('title').isString() && newData.child('title').val().length <= 200 && newData.child('artist').isString() && newData.child('artist').val().length <= 200 && newData.child('slot').isString() && newData.parent().parent().child('mine').child(auth.uid).child(newData.child('slot').val()).val() === $song"
-        }
-      },
-      "mine": {
-        "$uid": {
-          ".read": "auth != null && auth.uid === $uid",
-          "$slot": {
-            ".write": "auth != null && auth.uid === $uid && $slot.matches(/^s[0-9a-e]$/) && (!data.exists() || data.val() === newData.val() || newData.parent().parent().parent().child('songs').child(data.val()).child('by').val() !== $uid)",
-            ".validate": "newData.isString() && newData.parent().parent().parent().child('songs').child(newData.val()).child('by').val() === $uid && newData.parent().parent().parent().child('songs').child(newData.val()).child('slot').val() === $slot"
-          }
-        }
-      },
-      "votes": {
-        ".read": true,
-        "$song": {
-          ".write": "auth != null && !newData.exists() && root.child('playlist/songs').child($song).child('by').val() === auth.uid",
+      "$w": {
+        "meta": {
+          ".read": true,
+          ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)",
+          ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.hasChildren(['name']) && newData.child('name').isString() && newData.child('name').val().length <= 60)"
+        },
+        "owners": {
+          ".read": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)",
+          ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
           "$uid": {
-            ".write": "auth != null && auth.uid === $uid && root.child('members').child($uid).exists()",
-            ".validate": "newData.parent().parent().parent().child('songs').child($song).exists() && newData.parent().parent().parent().child('songs').child($song).child('by').val() !== $uid && (newData.val() === 'up' || (newData.isString() && newData.val().matches(/^d[0-4]$/) && newData.parent().parent().parent().child('downs').child($uid).child(newData.val()).val() === $song))"
+            ".read": "auth != null && auth.uid === $uid"
           }
-        }
-      },
-      "downs": {
-        "$uid": {
-          ".read": "auth != null && auth.uid === $uid",
-          "$slot": {
-            ".write": "auth != null && auth.uid === $uid && $slot.matches(/^d[0-4]$/) && (!data.exists() || data.val() === newData.val() || newData.parent().parent().parent().child('votes').child(data.val()).child($uid).val() !== $slot)",
-            ".validate": "newData.isString() && newData.parent().parent().parent().child('votes').child(newData.val()).child($uid).val() === $slot"
+        },
+        "invite": {
+          ".read": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)",
+          ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)",
+          "code": {
+            ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.isString() && newData.val().length >= 6 && newData.val().length <= 40)"
           }
-        }
-      },
-      "names": {
-        ".read": "auth != null",
-        "$uid": {
-          ".write": "auth != null && auth.uid === $uid",
-          ".validate": "newData.val() === root.child('members').child($uid).child('name').val()"
-        }
-      },
-      "config": {
-        ".read": true
-      },
-      "admin": {
-        ".read": "auth != null && root.child('admins').child(auth.uid).val() === true"
-      },
-      "spotify": {
-        ".read": "auth != null && root.child('admins').child(auth.uid).val() === true"
-      }
-    },
-    "scoreboard": {
-      ".read": true,
-      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
-      "entries": {
-        "$id": {
-          ".write": "(auth != null && root.child('moderators').child(auth.uid).val() === true) && !data.exists() && newData.exists()",
-          ".validate": "newData.hasChildren(['title', 'kind', 'at', 'points']) && newData.child('title').isString() && newData.child('title').val().length <= 80"
-        }
-      }
-    },
-    "hitster": {
-      ".read": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
-      ".write": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)"
-    },
-    "hgames": {
-      ".read": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
-      ".write": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
-      ".indexOn": [
-        "createdAt"
-      ],
-      "$code": {
-        ".read": "auth != null",
-        "players": {
+        },
+        "moderators": {
+          ".read": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)",
+          ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)",
           "$uid": {
-            ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('hgames').child($code).child('state').exists()",
-            ".validate": "newData.hasChildren(['name', 'avatar'])",
-            "name": {
-              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 20"
-            },
-            "avatar": {
-              ".validate": "newData.isString() && newData.val().length <= 8"
-            },
-            "member": {
-              ".validate": "newData.val() === true && root.child('members').child($uid).exists()"
-            },
-            "online": {
+            ".read": "auth != null && auth.uid === $uid"
+          }
+        },
+        "roster": {
+          ".read": "(auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)) || (auth != null && root.child('weekends').child($w).child('moderators').child(auth.uid).val() === true)",
+          ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)",
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && root.child('weekends').child($w).child('members').child($uid).exists()",
+            ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (!newData.exists() || newData.child('name').val() === root.child('weekends').child($w).child('members').child($uid).child('name').val())"
+          }
+        },
+        "quizzes": {
+          ".read": "(auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)) || (auth != null && root.child('weekends').child($w).child('moderators').child(auth.uid).val() === true)",
+          ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)",
+          "$qid": {
+            ".write": "(auth != null && root.child('weekends').child($w).child('moderators').child(auth.uid).val() === true) && newData.exists()"
+          }
+        },
+        "media": {
+          ".read": "(auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)) || (auth != null && root.child('weekends').child($w).child('moderators').child(auth.uid).val() === true)",
+          ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)",
+          "$mid": {
+            ".write": "(auth != null && root.child('weekends').child($w).child('moderators').child(auth.uid).val() === true) && newData.exists()"
+          }
+        },
+        "letters": {
+          ".read": true,
+          ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)"
+        },
+        "members": {
+          ".read": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)",
+          ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)",
+          "$uid": {
+            ".read": "auth != null && auth.uid === $uid",
+            "password": {
               ".write": "auth != null && auth.uid === $uid && data.parent().exists()",
-              ".validate": "newData.isBoolean()"
+              ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.isString() && newData.val().length >= 6)"
             },
-            "cards": {
-              ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)"
-            }
+            ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('weekends').child($w).child('invite/open').val() !== false && newData.child('invite').val() === root.child('weekends').child($w).child('invite/code').val()",
+            ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.hasChildren(['name', 'username']) && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 30 && newData.child('username').isString() && newData.child('username').val().length <= 20)"
           }
         },
-        "move": {
-          ".write": "auth != null && !data.exists() && root.child('hgames').child($code).child('state/phase').val() === 'play' && root.child('hgames').child($code).child('state/turn').val() === auth.uid",
-          ".validate": "newData.child('uid').val() === auth.uid && newData.child('slot').isNumber() && newData.child('round').val() === root.child('hgames').child($code).child('state/round').val()"
-        }
-      }
-    },
-    "juryPins": {
-      ".read": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
-      ".write": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)"
-    },
-    "games": {
-      ".read": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
-      ".write": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (auth != null && root.child('moderators').child(auth.uid).val() === true)",
-      ".indexOn": [
-        "createdAt"
-      ],
-      "$code": {
-        ".read": "auth != null",
-        "players": {
+        "missions": {
+          ".read": "(auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)) || (auth != null && root.child('weekends').child($w).child('moderators').child(auth.uid).val() === true)",
+          ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)",
           "$uid": {
-            ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('games').child($code).child('state').exists()",
-            ".validate": "newData.hasChildren(['name', 'avatar', 'score'])",
-            "name": {
-              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 20"
+            ".read": "auth != null && auth.uid === $uid",
+            "revealedAt": {
+              ".write": "auth != null && auth.uid === $uid && !data.exists() && data.parent().exists()",
+              ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.val() === now)"
             },
-            "avatar": {
-              ".validate": "newData.isString() && newData.val().length <= 8"
-            },
-            "score": {
-              ".validate": "newData.isNumber() && (newData.val() === 0 || auth != null && root.child('admins').child(auth.uid).val() === true || auth != null && root.child('moderators').child(auth.uid).val() === true)"
-            },
-            "online": {
-              ".write": "auth != null && auth.uid === $uid && data.parent().exists()",
-              ".validate": "newData.isBoolean()"
-            },
-            "joinedAt": {
-              ".validate": "newData.isNumber()"
-            },
-            "streak": {
-              ".validate": "newData.isNumber()"
-            },
-            "last": {
-              ".validate": "newData.hasChildren(['q'])"
-            },
-            "$other": {
-              ".validate": false
-            },
-            "member": {
-              ".validate": "newData.val() === true && root.child('members').child($uid).exists()"
-            }
+            ".write": "auth != null && root.child('weekends').child($w).child('moderators').child(auth.uid).val() === true"
           }
         },
-        "jurors": {
+        "missionDrafts": {
+          ".read": "(auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)) || (auth != null && root.child('weekends').child($w).child('moderators').child(auth.uid).val() === true)",
+          ".write": "(auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)) || (auth != null && root.child('weekends').child($w).child('moderators').child(auth.uid).val() === true)"
+        },
+        "avatars": {
+          ".read": true,
+          ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)",
           "$uid": {
-            ".write": "auth != null && auth.uid === $uid && newData.val() === root.child('juryPins').child($code).val()"
-          }
-        },
-        "jury": {
-          "$qkey": {
-            ".write": "auth != null && root.child('games').child($code).child('jurors').child(auth.uid).exists() && root.child('games').child($code).child('state/qkey').val() === $qkey && (root.child('games').child($code).child('state/phase').val() === 'question' || root.child('games').child($code).child('state/phase').val() === 'freeze')"
-          }
-        },
-        "bets": {
-          "$qkey": {
-            "$uid": {
-              ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('games').child($code).child('state/phase').val() === 'question' && root.child('games').child($code).child('state/qkey').val() === $qkey && root.child('games').child($code).child('players').child($uid).exists() && !root.child('games').child($code).child('mat').child($uid).exists()",
-              ".validate": "newData.isString() && newData.val().length <= 40"
+            ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.hasChildren(['bg']) && newData.child('bg').isString() && newData.child('bg').val().length <= 20 && (!newData.child('img').exists() || (newData.child('img').isString() && newData.child('img').val().length < 400000)) && (!newData.child('move').exists() || (newData.child('move').isString() && newData.child('move').val().length <= 20)) && (!newData.child('name').exists() || (newData.child('name').isString() && newData.child('name').val().length <= 30)))",
+            ".write": "auth != null && auth.uid === $uid && root.child('weekends').child($w).child('members').child($uid).exists()",
+            "cfg": {
+              "$k": {
+                ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || ((newData.isString() && newData.val().length <= 24) || newData.isNumber() || newData.isBoolean())"
+              }
             }
           }
         },
-        "answers": {
-          "$qkey": {
+        "raadkaart": {
+          ".read": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)",
+          ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)",
+          "config": {
+            ".read": "auth != null"
+          },
+          "reveal": {
+            ".read": "auth != null"
+          },
+          "last": {
             "$uid": {
-              ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('games').child($code).child('state/phase').val() === 'question' && root.child('games').child($code).child('state/qkey').val() === $qkey && root.child('games').child($code).child('players').child($uid).exists() && !root.child('games').child($code).child('mat').child($uid).exists()",
-              ".validate": "newData.hasChildren(['v', 'at']) && newData.child('at').val() === now && (newData.child('v').isNumber() || (newData.child('v').isString() && newData.child('v').val().length <= 80))"
+              ".read": "auth != null && auth.uid === $uid",
+              ".write": "auth != null && auth.uid === $uid && root.child('weekends').child($w).child('members').child($uid).exists() && root.child('weekends').child($w).child('raadkaart/config/open').val() === true && !root.child('weekends').child($w).child('raadkaart/reveal').exists()",
+              ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.child('at').val() === now && newData.child('day').isNumber() && newData.child('day').val() * 86400000 <= now + 7200000 && (newData.child('day').val() + 1) * 86400000 > now + 7200000 && (!data.exists() || newData.child('day').val() > data.child('day').val() || root.child('weekends').child($w).child('raadkaart/config/test').val() === true))"
+            }
+          },
+          "guesses": {
+            ".read": "(auth != null && root.child('weekends').child($w).child('raadkaart/reveal').exists()) || (auth != null && root.child('weekends').child($w).child('moderators').child(auth.uid).val() === true)",
+            "$uid": {
+              ".read": "auth != null && auth.uid === $uid",
+              "$gid": {
+                ".write": "auth != null && auth.uid === $uid && root.child('weekends').child($w).child('members').child($uid).exists() && root.child('weekends').child($w).child('raadkaart/config/open').val() === true && !root.child('weekends').child($w).child('raadkaart/reveal').exists() && !data.exists()",
+                ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.hasChildren(['lat', 'lng', 't', 'tk', 'day', 'at']) && newData.child('lat').val() >= -90 && newData.child('lat').val() <= 90 && newData.child('lng').val() >= -180 && newData.child('lng').val() <= 180 && newData.child('at').val() === now && newData.child('day').val() === newData.parent().parent().parent().child('last').child($uid).child('day').val() && newData.child('tk').isString() && root.child('weekends').child($w).child('raadkaart/edges').child(newData.child('tk').val()).exists() && newData.child('t').val() === root.child('weekends').child($w).child('raadkaart/edges').child(newData.child('tk').val()).child('t').val() && (((newData.child('lat').val() - root.child('weekends').child($w).child('raadkaart/secret').child('lat').val()) * 111.2) * ((newData.child('lat').val() - root.child('weekends').child($w).child('raadkaart/secret').child('lat').val()) * 111.2) + ((newData.child('lng').val() - root.child('weekends').child($w).child('raadkaart/secret').child('lng').val()) * 111.2 * root.child('weekends').child($w).child('raadkaart/secret').child('k').val()) * ((newData.child('lng').val() - root.child('weekends').child($w).child('raadkaart/secret').child('lng').val()) * 111.2 * root.child('weekends').child($w).child('raadkaart/secret').child('k').val())) >= root.child('weekends').child($w).child('raadkaart/edges').child(newData.child('tk').val()).child('lo2').val() && (((newData.child('lat').val() - root.child('weekends').child($w).child('raadkaart/secret').child('lat').val()) * 111.2) * ((newData.child('lat').val() - root.child('weekends').child($w).child('raadkaart/secret').child('lat').val()) * 111.2) + ((newData.child('lng').val() - root.child('weekends').child($w).child('raadkaart/secret').child('lng').val()) * 111.2 * root.child('weekends').child($w).child('raadkaart/secret').child('k').val()) * ((newData.child('lng').val() - root.child('weekends').child($w).child('raadkaart/secret').child('lng').val()) * 111.2 * root.child('weekends').child($w).child('raadkaart/secret').child('k').val())) < root.child('weekends').child($w).child('raadkaart/edges').child(newData.child('tk').val()).child('hi2').val())"
+              }
+            }
+          }
+        },
+        "playlist": {
+          ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)",
+          "songs": {
+            ".read": true,
+            "$song": {
+              ".write": "auth != null && ((!data.exists() && newData.exists() && root.child('weekends').child($w).child('members').child(auth.uid).exists()) || (data.exists() && !newData.exists() && data.child('by').val() === auth.uid))",
+              ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.hasChildren(['title', 'artist', 'by', 'byName', 'slot', 'at']) && newData.child('by').val() === auth.uid && newData.child('byName').val() === root.child('weekends').child($w).child('members').child(auth.uid).child('name').val() && newData.child('at').val() === now && newData.child('title').isString() && newData.child('title').val().length <= 200 && newData.child('artist').isString() && newData.child('artist').val().length <= 200 && newData.child('slot').isString() && newData.parent().parent().child('mine').child(auth.uid).child(newData.child('slot').val()).val() === $song)"
+            }
+          },
+          "mine": {
+            "$uid": {
+              ".read": "auth != null && auth.uid === $uid",
+              "$slot": {
+                ".write": "auth != null && auth.uid === $uid && $slot.matches(/^s[0-9a-e]$/) && (!data.exists() || data.val() === newData.val() || newData.parent().parent().parent().child('songs').child(data.val()).child('by').val() !== $uid)",
+                ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.isString() && newData.parent().parent().parent().child('songs').child(newData.val()).child('by').val() === $uid && newData.parent().parent().parent().child('songs').child(newData.val()).child('slot').val() === $slot)"
+              }
+            }
+          },
+          "votes": {
+            ".read": true,
+            "$song": {
+              ".write": "auth != null && !newData.exists() && root.child('weekends').child($w).child('playlist/songs').child($song).child('by').val() === auth.uid",
+              "$uid": {
+                ".write": "auth != null && auth.uid === $uid && root.child('weekends').child($w).child('members').child($uid).exists()",
+                ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.parent().parent().parent().child('songs').child($song).exists() && newData.parent().parent().parent().child('songs').child($song).child('by').val() !== $uid && (newData.val() === 'up' || (newData.isString() && newData.val().matches(/^d[0-4]$/) && newData.parent().parent().parent().child('downs').child($uid).child(newData.val()).val() === $song)))"
+              }
+            }
+          },
+          "downs": {
+            "$uid": {
+              ".read": "auth != null && auth.uid === $uid",
+              "$slot": {
+                ".write": "auth != null && auth.uid === $uid && $slot.matches(/^d[0-4]$/) && (!data.exists() || data.val() === newData.val() || newData.parent().parent().parent().child('votes').child(data.val()).child($uid).val() !== $slot)",
+                ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.isString() && newData.parent().parent().parent().child('votes').child(newData.val()).child($uid).val() === $slot)"
+              }
+            }
+          },
+          "names": {
+            ".read": "auth != null",
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid",
+              ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.val() === root.child('weekends').child($w).child('members').child($uid).child('name').val())"
+            }
+          },
+          "config": {
+            ".read": true
+          },
+          "admin": {
+            ".read": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)"
+          },
+          "spotify": {
+            ".read": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)"
+          }
+        },
+        "scoreboard": {
+          ".read": true,
+          ".write": "auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)",
+          "entries": {
+            "$id": {
+              ".write": "(auth != null && root.child('weekends').child($w).child('moderators').child(auth.uid).val() === true) && !data.exists() && newData.exists()",
+              ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.hasChildren(['title', 'kind', 'at', 'points']) && newData.child('title').isString() && newData.child('title').val().length <= 80)"
+            }
+          }
+        },
+        "hitster": {
+          ".read": "(auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)) || (auth != null && root.child('weekends').child($w).child('moderators').child(auth.uid).val() === true)",
+          ".write": "(auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)) || (auth != null && root.child('weekends').child($w).child('moderators').child(auth.uid).val() === true)"
+        },
+        "hgames": {
+          ".read": "(auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)) || (auth != null && root.child('weekends').child($w).child('moderators').child(auth.uid).val() === true)",
+          ".write": "(auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)) || (auth != null && root.child('weekends').child($w).child('moderators').child(auth.uid).val() === true)",
+          ".indexOn": [
+            "createdAt"
+          ],
+          "$code": {
+            ".read": "auth != null",
+            "players": {
+              "$uid": {
+                ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('weekends').child($w).child('hgames').child($code).child('state').exists()",
+                ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.hasChildren(['name', 'avatar']))",
+                "name": {
+                  ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.isString() && newData.val().length > 0 && newData.val().length <= 20)"
+                },
+                "avatar": {
+                  ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.isString() && newData.val().length <= 8)"
+                },
+                "member": {
+                  ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.val() === true && root.child('weekends').child($w).child('members').child($uid).exists())"
+                },
+                "online": {
+                  ".write": "auth != null && auth.uid === $uid && data.parent().exists()",
+                  ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.isBoolean())"
+                },
+                "cards": {
+                  ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || ((auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)) || (auth != null && root.child('weekends').child($w).child('moderators').child(auth.uid).val() === true))"
+                }
+              }
+            },
+            "move": {
+              ".write": "auth != null && !data.exists() && root.child('weekends').child($w).child('hgames').child($code).child('state/phase').val() === 'play' && root.child('weekends').child($w).child('hgames').child($code).child('state/turn').val() === auth.uid",
+              ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.child('uid').val() === auth.uid && newData.child('slot').isNumber() && newData.child('round').val() === root.child('weekends').child($w).child('hgames').child($code).child('state/round').val())"
+            }
+          }
+        },
+        "juryPins": {
+          ".read": "(auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)) || (auth != null && root.child('weekends').child($w).child('moderators').child(auth.uid).val() === true)",
+          ".write": "(auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)) || (auth != null && root.child('weekends').child($w).child('moderators').child(auth.uid).val() === true)"
+        },
+        "games": {
+          ".read": "(auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)) || (auth != null && root.child('weekends').child($w).child('moderators').child(auth.uid).val() === true)",
+          ".write": "(auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true)) || (auth != null && root.child('weekends').child($w).child('moderators').child(auth.uid).val() === true)",
+          ".indexOn": [
+            "createdAt"
+          ],
+          "$code": {
+            ".read": "auth != null",
+            "players": {
+              "$uid": {
+                ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('weekends').child($w).child('games').child($code).child('state').exists()",
+                ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.hasChildren(['name', 'avatar', 'score']))",
+                "name": {
+                  ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.isString() && newData.val().length > 0 && newData.val().length <= 20)"
+                },
+                "avatar": {
+                  ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.isString() && newData.val().length <= 8)"
+                },
+                "score": {
+                  ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.isNumber() && (newData.val() === 0 || auth != null && (root.child('admins').child(auth.uid).val() === true || root.child('weekends').child($w).child('owners').child(auth.uid).val() === true) || auth != null && root.child('weekends').child($w).child('moderators').child(auth.uid).val() === true))"
+                },
+                "online": {
+                  ".write": "auth != null && auth.uid === $uid && data.parent().exists()",
+                  ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.isBoolean())"
+                },
+                "joinedAt": {
+                  ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.isNumber())"
+                },
+                "streak": {
+                  ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.isNumber())"
+                },
+                "last": {
+                  ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.hasChildren(['q']))"
+                },
+                "$other": {
+                  ".validate": false
+                },
+                "member": {
+                  ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.val() === true && root.child('weekends').child($w).child('members').child($uid).exists())"
+                }
+              }
+            },
+            "jurors": {
+              "$uid": {
+                ".write": "auth != null && auth.uid === $uid && newData.val() === root.child('weekends').child($w).child('juryPins').child($code).val()"
+              }
+            },
+            "jury": {
+              "$qkey": {
+                ".write": "auth != null && root.child('weekends').child($w).child('games').child($code).child('jurors').child(auth.uid).exists() && root.child('weekends').child($w).child('games').child($code).child('state/qkey').val() === $qkey && (root.child('weekends').child($w).child('games').child($code).child('state/phase').val() === 'question' || root.child('weekends').child($w).child('games').child($code).child('state/phase').val() === 'freeze')"
+              }
+            },
+            "bets": {
+              "$qkey": {
+                "$uid": {
+                  ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('weekends').child($w).child('games').child($code).child('state/phase').val() === 'question' && root.child('weekends').child($w).child('games').child($code).child('state/qkey').val() === $qkey && root.child('weekends').child($w).child('games').child($code).child('players').child($uid).exists() && !root.child('weekends').child($w).child('games').child($code).child('mat').child($uid).exists()",
+                  ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.isString() && newData.val().length <= 40)"
+                }
+              }
+            },
+            "answers": {
+              "$qkey": {
+                "$uid": {
+                  ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('weekends').child($w).child('games').child($code).child('state/phase').val() === 'question' && root.child('weekends').child($w).child('games').child($code).child('state/qkey').val() === $qkey && root.child('weekends').child($w).child('games').child($code).child('players').child($uid).exists() && !root.child('weekends').child($w).child('games').child($code).child('mat').child($uid).exists()",
+                  ".validate": "(auth != null && root.child('admins').child(auth.uid).val() === true) || (newData.hasChildren(['v', 'at']) && newData.child('at').val() === now && (newData.child('v').isNumber() || (newData.child('v').isString() && newData.child('v').val().length <= 80)))"
+                }
+              }
             }
           }
         }

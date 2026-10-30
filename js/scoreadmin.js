@@ -1,14 +1,14 @@
 // Admin-tabblad "Scorebord": punten uitdelen voor spelletjes (volgens volgorde of vrij),
 // en (alleen de hoofdadmin) rondes aanpassen of verwijderen.
-import { $, $$, esc, toast, uid, av, setAvatars } from './common.js';
-import { db, ref, get, set, remove, onValue, watchAvatars } from './fb.js';
-import { totals, orderPoints, sortedEntries, KIND_ICON, standings, animateFigures } from './scoreboard.js';
+import { $, $$, esc, toast, uid, av, setAvatars } from './common.js?v=w1';
+import { db, wref, ref, get, set, remove, onValue, watchAvatars } from './fb.js?v=w1';
+import { totals, orderPoints, sortedEntries, KIND_ICON, standings, animateFigures } from './scoreboard.js?v=w1';
 
 let unsub = null;
 
 export async function mountScoreAdmin(el, { light = false } = {}) {
   unsub?.();
-  const roster = (await get(ref(db, 'roster')).catch(() => null))?.val() || {};
+  const roster = (await get(wref('roster')).catch(() => null))?.val() || {};
   const people = Object.entries(roster).map(([id, m]) => ({ id, name: m.name })).sort((a, b) => a.name.localeCompare(b.name));
   const names = Object.fromEntries(people.map((p) => [p.id, p.name]));
   watchAvatars(setAvatars);
@@ -91,11 +91,11 @@ export async function mountScoreAdmin(el, { light = false } = {}) {
   }
 
   function wire() {
-    $('#sbtest', el)?.addEventListener('change', (e) => set(ref(db, 'scoreboard/config/test'), e.target.checked || null));
+    $('#sbtest', el)?.addEventListener('change', (e) => set(wref('scoreboard/config/test'), e.target.checked || null));
     $('#sbclear', el)?.addEventListener('click', async () => {
       const ids = Object.entries(entries).filter(([, e]) => e.test).map(([k]) => k);
       if (!confirm(`${ids.length} testronde(s) wissen?`)) return;
-      await Promise.all(ids.map((k) => remove(ref(db, `scoreboard/entries/${k}`))));
+      await Promise.all(ids.map((k) => remove(wref(`scoreboard/entries/${k}`))));
       toast('Testpunten gewist 🧪', 'ok');
     });
     $('#sbtitle', el).oninput = (e) => { form.title = e.target.value; $('#sbsave', el).disabled = !(Object.keys(preview()).length && form.title.trim()); };
@@ -123,7 +123,7 @@ export async function mountScoreAdmin(el, { light = false } = {}) {
         names: Object.fromEntries(Object.keys(points).map((u) => [u, names[u] || old.names?.[u] || '?'])),
       };
       try {
-        await set(ref(db, `scoreboard/entries/${id}`), entry);
+        await set(wref(`scoreboard/entries/${id}`), entry);
         toast(editing() ? 'Ronde aangepast ✏️' : `Punten toegekend aan ${Object.keys(points).length} spelers 🏆`, 'ok');
         form = { id: null, title: '', kind: 'game', mode: 'order', order: [], free: {} };
       } catch {
@@ -134,7 +134,7 @@ export async function mountScoreAdmin(el, { light = false } = {}) {
       const e = entries[li.dataset.entry];
       $('[data-del]', li)?.addEventListener('click', async () => {
         if (!confirm(`"${e.title}" en de punten ervan verwijderen?`)) return;
-        await remove(ref(db, `scoreboard/entries/${li.dataset.entry}`));
+        await remove(wref(`scoreboard/entries/${li.dataset.entry}`));
         toast('Ronde verwijderd');
       });
       $('[data-edit]', li)?.addEventListener('click', () => {
@@ -146,7 +146,7 @@ export async function mountScoreAdmin(el, { light = false } = {}) {
     });
   }
 
-  const u1 = onValue(ref(db, 'scoreboard/entries'), (s) => { entries = s.val() || {}; render(); }, () => {});
-  const u2 = onValue(ref(db, 'scoreboard/config'), (s) => { config = s.val() || {}; render(); }, () => {});
+  const u1 = onValue(wref('scoreboard/entries'), (s) => { entries = s.val() || {}; render(); }, () => {});
+  const u2 = onValue(wref('scoreboard/config'), (s) => { config = s.val() || {}; render(); }, () => {});
   unsub = () => { u1(); u2(); };
 }

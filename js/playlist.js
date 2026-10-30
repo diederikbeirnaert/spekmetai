@@ -1,10 +1,10 @@
 // Weekendplaylist: liedjes zoeken en toevoegen (max 15), spekjes geven, laten aanbranden (max 5),
 // en een live ranking: hoe meer spekjes, hoe hoger in de lijst.
-import { $, $$, ART, esc, shell, toast, av, setAvatars, setSessionHint } from './common.js';
+import { $, $$, ART, esc, shell, toast, av, setAvatars, setSessionHint, featureOff, featureOffHtml } from './common.js?v=w1';
 import {
-  configured, db, ref, get, set, update, onValue, serverTimestamp, useAuth, currentUser, notConfiguredHtml, watchAvatars, isAdmin,
-} from './fb.js';
-import { MAX_SONGS, MAX_DOWNS, SONG_SLOTS, DOWN_SLOTS, searchSongs, rankSongs, djRanking } from './songs.js?v=3';
+  configured, db, wref, ref, get, set, update, onValue, serverTimestamp, useAuth, currentUser, notConfiguredHtml, noWeekendHtml, watchAvatars, isAdmin, whoAmI, weekendId,
+} from './fb.js?v=w1';
+import { MAX_SONGS, MAX_DOWNS, SONG_SLOTS, DOWN_SLOTS, searchSongs, rankSongs, djRanking } from './songs.js?v=w1';
 
 shell('playlist');
 const app = $('#app');
@@ -25,7 +25,10 @@ async function init() {
   app.innerHTML = `<div class="play-screen"><div class="wobble" style="width:120px">${ART.egg()}</div><p class="muted">Platen opwarmen…</p></div>`;
   useAuth('local');
   user = await currentUser();
-  member = user && !user.isAnonymous ? (await get(ref(db, `members/${user.uid}`)).catch(() => null))?.val() : null;
+  if (user && !user.isAnonymous) await whoAmI(user); // springt zo nodig naar het weekend van deze gebruiker
+  if (!weekendId()) return void (app.innerHTML = noWeekendHtml());
+  if (featureOff('playlist')) return void (app.innerHTML = featureOffHtml('De weekendplaylist'));
+  member = user && !user.isAnonymous ? (await get(wref(`members/${user.uid}`)).catch(() => null))?.val() : null;
   admin = !member && (await isAdmin(user)); // de admin kijkt mee en kan liedjes verwijderen
   if (!member && !admin) {
     app.innerHTML = `<div class="login-wrap slide-up"><div class="float" style="width:130px;margin:auto">${ART.egg()}</div>
@@ -34,13 +37,13 @@ async function init() {
     return;
   }
   if (member) {
-    setSessionHint({ role: 'member', name: member.name, username: member.username });
-    set(ref(db, `playlist/names/${user.uid}`), member.name).catch(() => {}); // zodat anderen zien wie een spekje gaf
+    setSessionHint({ role: 'member', name: member.name, username: member.username, w: weekendId() });
+    set(wref(`playlist/names/${user.uid}`), member.name).catch(() => {}); // zodat anderen zien wie een spekje gaf
   }
   watchAvatars((a) => { setAvatars(a); });
   renderShell();
 
-  const watch = (path, fn) => onValue(ref(db, path), (s) => { fn(s.val() || {}); queueRender(); }, () => {});
+  const watch = (path, fn) => onValue(wref(path), (s) => { fn(s.val() || {}); queueRender(); }, () => {});
   watch('playlist/songs', (v) => { songs = v; });
   watch('playlist/votes', (v) => { votes = v; });
   watch('playlist/config', (v) => { config = v; });
@@ -287,7 +290,7 @@ async function addSong(s) {
   const slot = freeSongSlot();
   if (!slot || mySongCount() >= MAX_SONGS) return toast(`Je zit aan je maximum van ${MAX_SONGS} liedjes`, 'bad');
   try {
-    await update(ref(db, 'playlist'), {
+    await update(wref('playlist'), {
       [`songs/${s.key}`]: {
         tid: s.tid, title: s.title, artist: s.artist, album: s.album, cover: s.cover, preview: s.preview,
         by: user.uid, byName: member.name, slot, at: serverTimestamp(),
@@ -319,7 +322,7 @@ async function vote(key, kind) {
   }
   navigator.vibrate?.(20);
   try {
-    await update(ref(db, 'playlist'), upd);
+    await update(wref('playlist'), upd);
   } catch {
     toast('Stemmen lukte niet', 'bad');
   }
@@ -331,7 +334,7 @@ async function removeSong(key) {
   if (!confirm(`"${s.title}" uit de playlist halen? De spekjes verdwijnen mee.`)) return;
   if (playing === s.preview) togglePlay(s.preview);
   try {
-    await update(ref(db, 'playlist'), { [`songs/${key}`]: null, [`votes/${key}`]: null, [`mine/${s.by}/${s.slot}`]: null });
+    await update(wref('playlist'), { [`songs/${key}`]: null, [`votes/${key}`]: null, [`mine/${s.by}/${s.slot}`]: null });
     toast('Liedje verwijderd');
   } catch {
     toast('Verwijderen lukte niet', 'bad');

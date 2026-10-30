@@ -1,8 +1,8 @@
 // Jury-gsm: met code + pin binnen, dan per vraag de kleuren van de matspelers aantikken.
-import { $, ART, esc, shell, toast, av, setAvatars } from './common.js';
-import { configured, db, ref, get, set, onValue, useAuth, ensureAnon, notConfiguredHtml, watchAvatars } from './fb.js';
-import { LIMBS, COLORS } from './twister.js';
-import { mountJuryPanel } from './jurypanel.js';
+import { $, ART, esc, shell, toast, av, setAvatars } from './common.js?v=w1';
+import { configured, db, wref, ref, get, set, onValue, useAuth, ensureAnon, notConfiguredHtml, watchAvatars, resolveCode } from './fb.js?v=w1';
+import { LIMBS, COLORS } from './twister.js?v=w1';
+import { mountJuryPanel } from './jurypanel.js?v=w1';
 
 shell('jury');
 const app = $('#app');
@@ -16,10 +16,11 @@ async function boot() {
   if (!configured) return void (app.innerHTML = notConfiguredHtml());
   useAuth('session');
   user = await ensureAnon();
-  watchAvatars(setAvatars);
   let saved = null;
   try { saved = sessionStorage.getItem(SKEY); } catch {}
-  if (saved && (await get(ref(db, `games/${saved}/jurors/${user.uid}`)).catch(() => null))?.exists()) return connect(saved);
+  if (saved) await resolveCode(saved);
+  watchAvatars(setAvatars);
+  if (saved && (await get(wref(`games/${saved}/jurors/${user.uid}`)).catch(() => null))?.exists()) return connect(saved);
   renderJoin(new URLSearchParams(location.search).get('code') || '');
 }
 
@@ -38,7 +39,9 @@ function renderJoin(prefill) {
     e.preventDefault();
     const c = $('#c').value.replace(/\D/g, '');
     try {
-      await set(ref(db, `games/${c}/jurors/${user.uid}`), $('#p').value.trim());
+      if (!(await resolveCode(c))) throw new Error('onbekend');
+      watchAvatars(setAvatars);
+      await set(wref(`games/${c}/jurors/${user.uid}`), $('#p').value.trim());
       try { sessionStorage.setItem(SKEY, c); } catch {}
       connect(c);
     } catch {
@@ -50,10 +53,10 @@ function renderJoin(prefill) {
 function connect(c) {
   code = c;
   const base = `games/${c}`;
-  onValue(ref(db, `${base}/state`), (s) => { state = s.val() || { phase: 'gone' }; render(); });
-  onValue(ref(db, `${base}/current`), (s) => { current = s.val() || {}; render(); });
-  onValue(ref(db, `${base}/mat`), (s) => { mat = s.val() || {}; lastKey = ''; render(); });
-  onValue(ref(db, `${base}/players`), (s) => { players = s.val() || {}; render(true); });
+  onValue(wref(`${base}/state`), (s) => { state = s.val() || { phase: 'gone' }; render(); });
+  onValue(wref(`${base}/current`), (s) => { current = s.val() || {}; render(); });
+  onValue(wref(`${base}/mat`), (s) => { mat = s.val() || {}; lastKey = ''; render(); });
+  onValue(wref(`${base}/players`), (s) => { players = s.val() || {}; render(true); });
   try { navigator.wakeLock?.request('screen'); } catch {}
 }
 

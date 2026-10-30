@@ -1,9 +1,9 @@
 // Admin-tabblad voor de weekendplaylist: Spotify koppelen en synchroniseren, liedjes beheren,
 // en de quiz "Wie voegde dit toe?" maken.
-import { $, $$, esc, toast, uid, av, setAvatars } from './common.js';
-import { db, ref, get, set, update, onValue, watchAvatars } from './fb.js';
-import { rankSongs, djRanking, buildWhoAddedQuiz } from './songs.js?v=3';
-import * as spotify from './spotify.js';
+import { $, $$, esc, toast, uid, av, setAvatars } from './common.js?v=w1';
+import { db, wref, ref, get, set, update, onValue, watchAvatars } from './fb.js?v=w1';
+import { rankSongs, djRanking, buildWhoAddedQuiz } from './songs.js?v=w1';
+import * as spotify from './spotify.js?v=w1';
 
 const AUTO_MS = 5 * 60 * 1000;
 let autoTimer = null;
@@ -16,7 +16,7 @@ export async function mountPlaylistAdmin(el) {
   let songs = {}, votes = {}, matches = {}, config = {}, adminCfg = {}, names = {};
   let busy = false, lastOrder = '', account = null;
 
-  const val = async (p) => (await get(ref(db, p)).catch(() => null))?.val() || {};
+  const val = async (p) => (await get(wref(p)).catch(() => null))?.val() || {};
   [adminCfg, names] = await Promise.all([val('playlist/admin'), val('roster')]);
   if (spotify.connected()) account = await spotify.me().catch(() => null);
   watchAvatars(setAvatars);
@@ -96,14 +96,14 @@ export async function mountPlaylistAdmin(el) {
       const id = spotify.parsePlaylistId(raw);
       if (raw && !id) return toast('Dat lijkt geen link naar een Spotify-playlist', 'bad');
       adminCfg = { ...adminCfg, clientId };
-      await update(ref(db, 'playlist'), { 'admin/clientId': clientId || null, 'config/spotifyId': id || null });
+      await update(wref('playlist'), { 'admin/clientId': clientId || null, 'config/spotifyId': id || null });
       toast('Opgeslagen', 'ok');
     };
     $('#spon', el)?.addEventListener('click', async () => {
       const clientId = $('#spid', el).value.trim();
       if (!clientId) return toast('Vul eerst de Client ID in', 'bad');
       if (spotify.needsLoopback()) return toast('Open de admin via http://127.0.0.1 om te koppelen', 'bad');
-      await set(ref(db, 'playlist/admin/clientId'), clientId);
+      await set(wref('playlist/admin/clientId'), clientId);
       spotify.connect(clientId);
     });
     $('#spoff', el)?.addEventListener('click', () => { spotify.disconnect(); account = null; clearInterval(autoTimer); autoTimer = null; render(); });
@@ -113,24 +113,24 @@ export async function mountPlaylistAdmin(el) {
       autoTimer = e.target.checked ? setInterval(() => sync(true), AUTO_MS) : null;
       if (e.target.checked) sync(true);
     };
-    $('#hide', el).onchange = (e) => set(ref(db, 'playlist/config/hideAdders'), e.target.checked || null);
+    $('#hide', el).onchange = (e) => set(wref('playlist/config/hideAdders'), e.target.checked || null);
     $('#mkquiz', el).onclick = makeQuiz;
     $$('[data-k]', el).forEach((li) => {
       const key = li.dataset.k;
       $('[data-del]', li).onclick = async () => {
         const s = songs[key];
         if (!confirm(`"${s.title}" uit de playlist halen?`)) return;
-        await update(ref(db, 'playlist'), { [`songs/${key}`]: null, [`votes/${key}`]: null, [`mine/${s.by}/${s.slot}`]: null, [`spotify/${key}`]: null });
+        await update(wref('playlist'), { [`songs/${key}`]: null, [`votes/${key}`]: null, [`mine/${s.by}/${s.slot}`]: null, [`spotify/${key}`]: null });
       };
       $('[data-fix]', li).onclick = async () => {
         if (!spotify.connected()) return toast('Koppel eerst met Spotify', 'bad');
         const link = prompt('Plak de Spotify-link van het juiste nummer (Delen → Link kopiëren). Laat leeg om opnieuw automatisch te zoeken.');
         if (link === null) return;
         try {
-          if (!link.trim()) return void (await set(ref(db, `playlist/spotify/${key}`), null));
+          if (!link.trim()) return void (await set(wref(`playlist/spotify/${key}`), null));
           const id = spotify.parseTrackId(link);
           if (!id) return toast('Dat is geen link naar een Spotify-nummer', 'bad');
-          await set(ref(db, `playlist/spotify/${key}`), { ...(await spotify.trackById(id)), manual: true });
+          await set(wref(`playlist/spotify/${key}`), { ...(await spotify.trackById(id)), manual: true });
           toast('Nummer gekozen', 'ok');
         } catch (e) { toast(e.message, 'bad'); }
       };
@@ -150,14 +150,14 @@ export async function mountPlaylistAdmin(el) {
         if (state) state.textContent = `Nummers opzoeken op Spotify… ${i + 1}/${todo.length}`;
         const found = await spotify.findTrack(s);
         matches[s.key] = found || { none: true };
-        await set(ref(db, `playlist/spotify/${s.key}`), matches[s.key]);
+        await set(wref(`playlist/spotify/${s.key}`), matches[s.key]);
       }
       const uris = [...new Set(all.map((s) => matches[s.key]?.uri).filter(Boolean))];
       const order = uris.join();
       if (silent && order === lastOrder) return; // niets veranderd sinds de vorige automatische sync
       await spotify.writePlaylist(playlistId(), uris);
       lastOrder = order;
-      await update(ref(db, 'playlist/config'), { syncedAt: Date.now(), syncedCount: uris.length });
+      await update(wref('playlist/config'), { syncedAt: Date.now(), syncedCount: uris.length });
       if (!silent) toast(`Spotify-playlist bijgewerkt: ${uris.length} nummers 🎵`, 'ok');
     } catch (e) {
       toast(`Sync mislukt: ${e.message}`, 'bad');
@@ -173,14 +173,14 @@ export async function mountPlaylistAdmin(el) {
     const questions = buildWhoAddedQuiz(ranked(), people, Math.min(30, Math.max(1, +$('#qn', el).value || 10)));
     if (!questions.length) return toast('Te weinig liedjes met een fragment, of van te weinig verschillende mensen', 'bad');
     const id = uid();
-    await set(ref(db, `quizzes/${id}`), {
+    await set(wref(`quizzes/${id}`), {
       title: '🎧 Wie voegde dit toe?', description: 'Automatisch gemaakt uit de weekendplaylist.', updatedAt: Date.now(), questions,
     });
     toast(`Quiz met ${questions.length} vragen gemaakt`, 'ok');
     location.hash = `quiz/${id}`;
   }
 
-  const watch = (path, fn) => unsubs.push(onValue(ref(db, path), (s) => { fn(s.val() || {}); if (!busy) render(); }, () => {}));
+  const watch = (path, fn) => unsubs.push(onValue(wref(path), (s) => { fn(s.val() || {}); if (!busy) render(); }, () => {}));
   watch('playlist/songs', (v) => { songs = v; });
   watch('playlist/votes', (v) => { votes = v; });
   watch('playlist/spotify', (v) => { matches = v; });

@@ -1,6 +1,7 @@
 // Weekendscorebord: gedeelde rekenlogica en weergave (zonder Firebase, zodat ook de homepage dit kan gebruiken).
-import { esc, av, avatarOf } from './common.js';
-import { playMove, hasMove } from './moves.js';
+import { esc, av, avatarOf } from './common.js?v=w1';
+import { playMove, hasMove, LEGACY_MOVES } from './moves.js?v=w1';
+import { figure as drawFigure } from './avatarkit.js?v=w1';
 // Een "ronde" is een quiz of spelletje: { title, kind: 'quiz' | 'game' | 'bonus', at, points: { uid: n }, names: { uid: naam } }.
 
 // Punten volgens plaats: met n spelers krijgt de eerste n punten, de laatste 1.
@@ -70,20 +71,26 @@ export function standings(list) {
 }
 
 /* ---------- Volledige poppetjes op het scorebord ---------- */
-// Wie een getekende avatar heeft (avatars/naam.svg), krijgt het volledige poppetje (avatars/full/naam.svg);
-// anders tonen we gewoon de ronde avatar.
-const figName = (uid) => (avatarOf(uid)?.img || '').match(/^avatars\/([a-z0-9-]+)\.svg$/)?.[1] || '';
-function figureSlot(uid) {
-  const name = figName(uid);
-  return name ? `<span class="sb-fig" data-fig="${esc(name)}" data-anim="run" data-mood="happy"></span>`
+// Zelfgemaakte avatars (avatarbouwer) worden als volledig poppetje getekend; de getekende avatars van het
+// eerste weekend (avatars/naam.svg) hebben een eigen bestand in avatars/full/. Anders: de ronde avatar.
+const legacyName = (a) => (a?.img || '').match(/^avatars\/([a-z0-9-]+)\.svg$/)?.[1] || '';
+const hasFigure = (a) => !!(a?.cfg || legacyName(a));
+// Welke signature move speelt dit poppetje? (zelf gekozen, of die van het eerste weekend)
+export const moveOf = (a) => a?.move || LEGACY_MOVES[legacyName(a)] || '';
+
+export function figureSlot(uid, anim = 'run') {
+  return hasFigure(avatarOf(uid)) ? `<span class="sb-fig" data-uid="${esc(uid)}" data-anim="${anim}" data-mood="happy"></span>`
     : `<span class="sb-ava">${av({ member: true }, uid)}</span>`;
 }
 
 const svgCache = new Map();
-const loadFigure = (name) => {
+export function loadFigure(a) {
+  if (a?.cfg) return Promise.resolve(drawFigure(a.cfg));
+  const name = legacyName(a);
+  if (!name) return Promise.resolve('');
   if (!svgCache.has(name)) svgCache.set(name, fetch(`avatars/full/${name}.svg`).then((r) => (r.ok ? r.text() : '')).catch(() => ''));
   return svgCache.get(name);
-};
+}
 
 // Per plaats een paar combinaties van animatie + gezichtsuitdrukking; ze wisselen om de paar seconden.
 // Gezichten passen bij de plaats: bovenaan trots en verliefd, in het midden blij of even geschrokken,
@@ -103,15 +110,17 @@ let cycleTimer = null;
 export async function animateFigures(root) {
   const slots = [...root.querySelectorAll('.sb-fig')];
   await Promise.all(slots.map(async (el) => {
-    const svg = await loadFigure(el.dataset.fig);
+    const a = avatarOf(el.dataset.uid);
+    const svg = await loadFigure(a);
     if (!svg) return;
     el.innerHTML = svg.replace(/<svg ([^>]*)width="320" height="[\d.]+"/, '<svg $1');
     if (el.closest('.sb-lane.lead')) el.classList.add('crowned');
     // Tik op een poppetje: signature move.
-    if (hasMove(el.dataset.fig) && !el.dataset.wired) {
+    const move = moveOf(a);
+    if (hasMove(move) && !el.dataset.wired) {
       el.dataset.wired = '1';
       el.title = 'Tik voor de signature move!';
-      el.addEventListener('click', () => playMove(el.dataset.fig));
+      el.addEventListener('click', () => playMove(move, svg));
     }
   }));
   const lanes = slots.map((el) => ({ el, mood: el.closest('.sb-lineup') ? 'lineup' : el.closest('.sb-lane')?.className.match(/\b(lead|second|third|pack|last)\b/)?.[1] || 'pack', step: Math.floor(Math.random() * 6) }));

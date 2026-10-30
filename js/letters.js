@@ -1,13 +1,14 @@
 // Weekendbrieven publiek ophalen via de REST-API: geen SDK nodig, dus supersnel.
 // De geüploade foto's staan apart onder letters/_media/{briefId}, zodat de lijst met brieven licht blijft.
-import { firebaseConfig } from './firebase-config.js';
+import { firebaseConfig } from './firebase-config.js?v=w1';
+import { weekendId } from './weekend.js?v=w1';
 
-const base = () => `${firebaseConfig.databaseURL}/letters`;
+const base = () => `${firebaseConfig.databaseURL}/weekends/${weekendId()}/letters`;
 const ready = () => !String(firebaseConfig.apiKey).startsWith('VUL');
 const json = async (url) => { const res = await fetch(url); return res.ok ? res.json() : null; };
 
 export async function fetchLetters() {
-  if (!ready()) return [];
+  if (!ready() || !weekendId()) return [];
   // Eerst alleen de sleutels, dan elke brief apart: zo downloaden we de foto's niet mee.
   const keys = Object.keys((await json(`${base()}.json?shallow=true`)) || {}).filter((k) => k !== '_media');
   const all = await Promise.all(keys.map(async (id) => ({ id, ...((await json(`${base()}/${encodeURIComponent(id)}.json`)) || {}) })));

@@ -1,5 +1,5 @@
 // Gedeelde stukken voor de raadkaart: Leaflet laden, temperaturen, eierpinnen en afstanden.
-import { esc } from './common.js';
+import { esc } from './common.js?v=w1';
 
 // 40 temperaturen over 300 km, van t = 0 (bevroren, verder dan 300 km) tot t = 39 (raak, dichter dan 50 m).
 //   300 – 70 km  bevroren → koud (stapjes van ±8%)

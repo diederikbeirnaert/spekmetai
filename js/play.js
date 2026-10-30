@@ -1,10 +1,10 @@
 // Spelerscherm (gsm): meedoen met code + naam, antwoorden geven, score zien.
-import { $, $$, ART, AVATARS, esc, shell, toast, confetti, eggAnswerInner, av, setAvatars, getSessionHint, setSessionHint } from './common.js';
-import { LIMBS } from './twister.js';
+import { $, $$, ART, AVATARS, esc, shell, toast, confetti, eggAnswerInner, av, setAvatars, getSessionHint, setSessionHint } from './common.js?v=w1';
+import { LIMBS } from './twister.js?v=w1';
 import {
-  configured, db, ref, get, set, onValue, onDisconnect, serverTimestamp,
-  useAuth, ensureAnon, currentUser, serverNow, notConfiguredHtml, watchAvatars,
-} from './fb.js';
+  configured, db, wref, ref, get, set, onValue, onDisconnect, serverTimestamp,
+  useAuth, ensureAnon, currentUser, serverNow, notConfiguredHtml, watchAvatars, resolveCode, weekendId,
+} from './fb.js?v=w1';
 
 shell('play');
 const app = $('#app');
@@ -29,16 +29,19 @@ async function boot() {
   const hint = getSessionHint();
   useAuth(hint?.role === 'member' ? 'local' : 'session');
   const u = await currentUser();
-  if (hint?.role === 'member' && u && !u.isAnonymous) {
-    member = (await get(ref(db, `members/${u.uid}`)).catch(() => null))?.val() || null;
+  const urlCode = params.get('code');
+  // Weekend volgt uit de spelcode (een code van een ander weekend → dat weekend).
+  if (urlCode) await resolveCode(urlCode);
+  else if (session().code) await resolveCode(session().code);
+  if (hint?.role === 'member' && hint.w === weekendId() && u && !u.isAnonymous) {
+    member = (await get(wref(`members/${u.uid}`)).catch(() => null))?.val() || null;
     if (!member) setSessionHint(null);
   }
   user = member ? u : await ensureAnon();
   watchAvatars(setAvatars);
   const s = session();
-  const urlCode = params.get('code');
   if (s.code && (!urlCode || urlCode === s.code)) {
-    const p = (await get(ref(db, `games/${s.code}/players/${user.uid}`)).catch(() => null))?.val();
+    const p = (await get(wref(`games/${s.code}/players/${user.uid}`)).catch(() => null))?.val();
     if (p) return connect(s.code);
   }
   renderJoin(urlCode || '');
@@ -85,13 +88,17 @@ function renderJoin(prefill) {
     if (!name) return shakeToast('Vul je naam in');
     $('#go').disabled = true;
     try {
+      const before = weekendId();
+      const info = await resolveCode(c);
+      if (!info) throw new Error('Deze code bestaat niet 🥚');
+      if (member && info.w !== before) throw new Error('Deze code hoort bij een ander weekend');
       // Is het een Hitster-code? Dan naar de Hitster-pagina.
-      if ((await get(ref(db, `hgames/${c}/state`)).catch(() => null))?.exists()) return void location.assign(`hitster.html?code=${c}`);
-      const st = (await get(ref(db, `games/${c}/state`))).val();
+      if (info.kind === 'hitster') return void location.assign(`hitster.html?code=${c}`);
+      const st = (await get(wref(`games/${c}/state`))).val();
       if (!st) throw new Error('Deze code bestaat niet 🥚');
       if (st.phase === 'end') throw new Error('Deze quiz is al afgelopen');
       if (!member) try { localStorage.setItem(PREF, JSON.stringify({ name, avatar })); } catch {}
-      const mine = ref(db, `games/${c}/players/${user.uid}`);
+      const mine = wref(`games/${c}/players/${user.uid}`);
       if (!(await get(mine)).exists()) {
         const rec = { name, avatar: member ? '🍳' : avatar, score: 0, joinedAt: serverTimestamp(), online: true };
         if (member) rec.member = true;
@@ -119,24 +126,24 @@ function shakeToast(msg) {
 function connect(c) {
   code = c;
   const base = `games/${c}`;
-  const online = ref(db, `${base}/players/${user.uid}/online`);
+  const online = wref(`${base}/players/${user.uid}/online`);
   onValue(ref(db, '.info/connected'), (s) => {
     if (s.val() && hadMe !== 'kicked') { onDisconnect(online).set(false); set(online, true).catch(() => {}); }
   });
-  onValue(ref(db, `${base}/state`), (s) => {
+  onValue(wref(`${base}/state`), (s) => {
     state = s.val() || { phase: 'gone' };
     render();
   });
-  onValue(ref(db, `${base}/current`), (s) => { current = s.val() || {}; render(); });
-  onValue(ref(db, `${base}/reveal`), (s) => { reveal = s.val(); render(); });
-  onValue(ref(db, `${base}/players/${user.uid}`), (s) => {
+  onValue(wref(`${base}/current`), (s) => { current = s.val() || {}; render(); });
+  onValue(wref(`${base}/reveal`), (s) => { reveal = s.val(); render(); });
+  onValue(wref(`${base}/players/${user.uid}`), (s) => {
     me = s.val();
     if (me) hadMe = true;
     else if (hadMe) hadMe = 'kicked';
     render();
   });
-  onValue(ref(db, `${base}/players`), (s) => { players = s.val() || {}; updateRank(); });
-  onValue(ref(db, `${base}/mat`), (s) => { mat = s.val() || {}; render(); });
+  onValue(wref(`${base}/players`), (s) => { players = s.val() || {}; updateRank(); });
+  onValue(wref(`${base}/mat`), (s) => { mat = s.val() || {}; render(); });
   keepAwake();
 }
 
@@ -272,7 +279,7 @@ async function answer(v, btn) {
     btn.classList.add('picked');
   }
   try {
-    await set(ref(db, `games/${code}/answers/${qkey}/${user.uid}`), { v, at: serverTimestamp() });
+    await set(wref(`games/${code}/answers/${qkey}/${user.uid}`), { v, at: serverTimestamp() });
   } catch {
     toast('Te laat! ⏰', 'bad');
   }
@@ -293,7 +300,7 @@ function betScreen() {
     saveSession({ bet: `${code}:${state.qkey}` });
     if (bet) {
       navigator.vibrate?.(30);
-      try { await set(ref(db, `games/${code}/bets/${state.qkey}/${user.uid}`), bet); } catch { toast('Te laat om te gokken ⏰', 'bad'); }
+      try { await set(wref(`games/${code}/bets/${state.qkey}/${user.uid}`), bet); } catch { toast('Te laat om te gokken ⏰', 'bad'); }
     }
     lastKey = '';
     render();

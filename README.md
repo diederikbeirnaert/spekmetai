@@ -1,11 +1,15 @@
 # 🍳 SpekmetAI
 
-Een quizapp in de stijl van Kahoot, in het thema van spek met ei. Er hoort ook een weekendbrief bij.
+Alles voor het sappigste weekend, in het thema van spek met ei: een quiz in de stijl van Kahoot, Twister, geheime opdrachten,
+de raadkaart, een weekendplaylist, Hitster, een weekendbrief en een scorebord met wedrennende poppetjes.
+Elk weekend heeft zijn eigen keuken: eigen weekendgangers, poppetjes, scores en functies.
 Het is gewone HTML, CSS en JavaScript: er is geen build-stap en geen framework. Het draait gratis op **GitHub Pages** en **Firebase** (Spark-plan).
 
 | Pagina | Wat |
 |---|---|
-| `index.html` | Home: je vult er een quizcode in en ziet de laatste weekendbrief |
+| `index.html` | Home: kies je weekend (of `spekmetai.tech/weekend`), daarna de homepage van dat weekend |
+| `doemee.html` | Meedoen via de uitnodigingslink: account maken en je poppetje bouwen |
+| `avatar.html` | Avatarbouwer: je eigen poppetje en signature move |
 | `play.html` | Spelers: code, naam en avatar invullen en dan antwoorden op de gsm |
 | `host.html` | Groot scherm (beamer of tv): code, QR-code, vragen, media, tussenstand en podium |
 | `admin.html` | Login voor de admin: quizzen maken, weekendbrieven schrijven, back-up |
@@ -89,18 +93,35 @@ Voeg `<gebruiker>.github.io` toe aan *Firebase → Authentication → Settings �
 
 Bij een vraag met een video start de timer pas als je op **Antwoorden openen** klikt.
 
+## Weekends en rollen
+
+| Rol | Wie | Mag |
+|---|---|---|
+| 👑 Hoofdchef | `admins/{uid}` | weekends aanmaken en verwijderen, weekendverantwoordelijken aanmaken en toewijzen, alles in elk weekend |
+| 👩‍🍳 Weekendverantwoordelijke | `weekends/{id}/owners/{uid}` | zijn weekend instellen (naam, data, functies), uitnodigen, alles binnen dat weekend |
+| 🛡️ Admin light | `weekends/{id}/moderators/{uid}` | zie hieronder |
+| 🤫 Weekendganger | `weekends/{id}/members/{uid}` | meedoen, eigen poppetje, opdracht, raden, playlist |
+
+1. De hoofdchef maakt in **Admin → 🗓️ Weekends** een weekend aan met een korte link (bv. `ardennen26` → `spekmetai.tech/ardennen26`) en voegt een weekendverantwoordelijke toe (nieuw account of een bestaand).
+2. De verantwoordelijke logt in ("Ik organiseer"), kiest in **⚙️ Weekend** welke functies erin zitten en kopieert de **💌 uitnodigingslink**.
+3. Weekendgangers openen de link, maken zelf een account (per weekend) en bouwen hun eigen poppetje: hoofd, huidskleur, kapsel, ogen, mond, wenkbrauwen, baard, bril, oorbellen, kleren, lengte, en een **signature move**.
+4. Met **🔒 Sluiten** kan niemand nog meedoen, met **🔄 Nieuwe link** werkt de oude link niet meer.
+
+Wachtwoord vergeten? Verwijder de weekendganger in de admin; die kan daarna opnieuw meedoen via de link.
+
+**Het eerste weekend overzetten:** de gegevens van vóór de weekends stonden op de root van de database. De hoofdchef zet ze in **Admin → 🗓️ Weekends → 📦 Overzetten** over naar een eigen weekend (weekendgangers loggen daarna in met hun oude gebruikersnaam en wachtwoord, na het kiezen van dat weekend). Werkt alles, dan wis je de oude kopie met **🧹 Oude kopie wissen**.
+
 ## Geheime opdrachten voor het weekend
 
-1. Ga naar **Admin → 🤫 Weekendgangers** en voeg iedereen toe. De gebruikersnaam en het wachtwoord worden automatisch ingevuld, maar je mag ze aanpassen.
+1. Ga naar **Admin → 👥 Weekendgangers**. Iedereen die via de uitnodigingslink meedeed, staat hier.
 2. Typ per persoon de geheime opdracht en klik op **Opslaan**.
-3. Klik op **📋 Login kopiëren** en stuur het bericht door via WhatsApp of een ander kanaal.
-4. De weekendganger logt in, tikt op het ei in de pan en ziet de opdracht verschijnen. In de admin zie je wie zijn ei al geflipt heeft.
+3. De weekendganger logt in, tikt op het ei in de pan en ziet de opdracht verschijnen. In de admin zie je wie zijn ei al geflipt heeft.
 
 Wat je typt, is eerst een **📝 concept**, en de weekendganger ziet het nog niet. Met **📤 Nu delen** deel je één opdracht, met **📤 Deel alle opdrachten** alle concepten tegelijk. Met **🙈 Verbergen** haal je een gedeelde opdracht weer weg; de tekst blijft dan als concept bewaard.
 
 Wijzig je een opdracht die al gedeeld was? Dan moet die persoon het ei opnieuw flippen.
 
-**Avatars:** kies bij elke weekendganger een getekende avatar uit het rijtje; die staan als SVG in [`avatars/`](avatars/). Je kan ook op de cirkel klikken en een eigen PNG zonder achtergrond kiezen. Met de bolletjes ernaast kies je de achtergrond: eigeel, spekreepjes, pan, toast, ontbijtbord, AI-circuit, avocado of bosbes. Een ingelogde weekendganger die meedoet aan een quiz, vult alleen de code in. Naam en avatar worden dan automatisch gebruikt.
+**Poppetjes:** elke weekendganger bouwt zijn eigen poppetje in `avatar.html` (een admin kan het via **🎨 Poppetje aanpassen** ook doen). De tekencode staat in [`js/avatarkit.js`](js/avatarkit.js) en wordt ook gebruikt voor de getekende avatars van het eerste weekend ([`avatars/generate.mjs`](avatars/generate.mjs)). Een ingelogde weekendganger die meedoet aan een quiz, vult alleen de code in. Naam en avatar worden dan automatisch gebruikt.
 
 ## 🌀 Twister-quiz (met echte mat)
 
@@ -136,7 +157,7 @@ Zet in de quiz-editor **🌀 Twister-quiz** aan. Kies daarna het aantal plekken 
 
 ## 🛡️ Admin light
 
-In **Admin → 🤫 Weekendgangers** geef je een weekendganger met een vinkje **admin light**. Die ziet dan via zijn account een knop **"Naar de keuken"**.
+In **Admin → 👥 Weekendgangers** geef je een weekendganger met een vinkje **admin light**. Die ziet dan via zijn account een knop **"Naar de keuken"**.
 
 Admin light mag:
 - quizzen maken en aanpassen (niet verwijderen);
@@ -220,16 +241,19 @@ In **Admin → 🌀 Twister** vind je een draaischijf in spiegelei-stijl. Klik o
 Alles staat in de Firebase Realtime Database. Die is zelf één grote JSON-boom:
 
 ```
-quizzes/   quizzen (alleen de admin kan ze lezen)
-media/     geüploade afbeeldingen
-letters/   weekendbrieven (publiek)
-games/     lopende spellen (worden na 24 uur opgeruimd)
-members/   weekendgangers (alleen de admin en de persoon zelf)
-missions/  geheime opdrachten (alleen de admin en de persoon zelf)
-avatars/   avatar + achtergrond van weekendgangers
-playlist/  liedjes, stemmen en de Spotify-instellingen
-admins/    wie admin is
+admins/              wie hoofdchef is
+staff/               weekendverantwoordelijken (naam, gebruikersnaam)
+weekendList/         de weekends op de homepage (publiek)
+userWeekends/{uid}/  in welk(e) weekend(s) een account zit
+gameCodes/{code}     bij welk weekend een quiz- of Hitstercode hoort
+weekends/{id}/
+  meta               naam, emoji, data en functies (publiek)
+  owners/ invite/    verantwoordelijken en de uitnodigingscode
+  members/ roster/ moderators/ avatars/ missions/ missionDrafts/
+  quizzes/ media/ games/ juryPins/ letters/ raadkaart/ playlist/ scoreboard/ hitster/ hgames/
 ```
+
+**Databaseregels:** de regels per weekend staan in [`tools/weekend-rules.json`](tools/weekend-rules.json). `python3 tools/build-rules.py` maakt daaruit [`database.rules.json`](database.rules.json) (alles onder `weekends/$w`, met de rollen van dat weekend). Plak dat bestand daarna in Firebase → Realtime Database → Rules.
 
 Voor het scorebord maakt dezelfde generator ook **volledige poppetjes** in `avatars/full/`, met 8 gezichtsuitdrukkingen en een lengte per persoon (`height` in `PEOPLE`). De getekende avatars pas je aan in [`avatars/generate.mjs`](avatars/generate.mjs) (kapsel, kleuren, bril…) en maak je opnieuw met `node avatars/generate.mjs`.
 

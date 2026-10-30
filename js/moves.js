@@ -1,6 +1,6 @@
 // Signature moves: tik op een poppetje op het scorebord en het speelt een korte scène op een podium.
 // Rekwisieten worden in dezelfde coördinaten als het poppetje getekend (avatars/full/*.svg, 320 breed).
-import { esc } from './common.js';
+import { esc } from './common.js?v=w1';
 
 const INK = '#3A2618';
 const S = (w = 4) => `stroke="${INK}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"`;
@@ -24,8 +24,8 @@ const many = (n, fn) => Array.from({ length: n }, (_, i) => fn(i)).join('');
 // Elke scène geeft: titel, rekwisieten achter/voor het poppetje, rekwisieten in de hand,
 // en een tijdlijn van stappen [ms, { mood, anim, on: ['klasse', …], off: [...] }].
 const SCENES = {
-  karel: (g) => ({
-    title: '🧪 Karel de chemicus',
+  chemist: (g) => ({
+    title: '🧪 De chemicus',
     coat: `<path class="mv mv-coat" d="M104 ${g.NY - 4} L216 ${g.NY - 4} L246 ${g.NY + 46} L240 ${g.TB + 22} L80 ${g.TB + 22} L74 ${g.NY + 46} Z" fill="#fff" ${S(4.5)}/>
       <path class="mv mv-coat" d="M140 ${g.NY - 2} L160 ${g.NY + 60} L180 ${g.NY - 2}" fill="#E8EEF5" ${S(3.5)}/>
       <path class="mv mv-coat" d="M160 ${g.NY + 60} L160 ${g.TB + 20}" ${S(3)}/>
@@ -49,8 +49,8 @@ const SCENES = {
       [3900, { anim: 'wobble', mood: 'dizzy' }], [5000, { anim: 'none', mood: 'confused' }]],
   }),
 
-  simon: (g) => ({
-    title: '💶 Simon de bankier',
+  banker: (g) => ({
+    title: '💶 De bankier',
     coat: `<path class="mv mv-coat" d="M104 ${g.NY - 4} L216 ${g.NY - 4} L246 ${g.NY + 46} L240 ${g.TB + 6} L80 ${g.TB + 6} L74 ${g.NY + 46} Z" fill="#26324F" ${S(4.5)}/>
       <path class="mv mv-coat" d="M138 ${g.NY - 2} L160 ${g.NY + 66} L182 ${g.NY - 2} Z" fill="#fff" ${S(3)}/>
       <path class="mv mv-coat" d="M153 ${g.NY + 4} h14 l-3 8 l6 40 l-10 12 l-10 -12 l6 -40 Z" fill="#C8102E" ${S(2.5)}/>
@@ -72,10 +72,10 @@ const SCENES = {
       [2000, { mood: 'proud', anim: 'cheer', on: ['mv-bills'], off: ['mv-wad'] }], [4000, { anim: 'dance' }], [5200, { anim: 'none', mood: 'wink', off: ['mv-euroeyes'] }]],
   }),
 
-  tom: (g) => {
+  electrician: (g) => {
     const top = g.ground - 330;
     return {
-      title: '⚡ Tom de elektricien',
+      title: '⚡ De elektricien',
       back: `<g class="mv mv-ladder">
           <path d="M262 ${g.ground} L282 ${top} M318 ${g.ground} L298 ${top}" ${S(6)} fill="none"/>
           ${many(7, (i) => `<path d="M${264 + i * 2.6} ${g.ground - 22 - i * 34} H${316 - i * 2.6}" ${S(5)}/>`)}
@@ -93,11 +93,11 @@ const SCENES = {
     };
   },
 
-  diederik: (g) => {
+  it: (g) => {
     const lx = 160;
     const ly = g.NY + 70;
     return {
-      title: '💻 Diederik de IT\'er',
+      title: '💻 De IT\'er',
       front: `<g class="mv mv-laptop" style="--fall:${g.ground - ly - 10}px">
           <path d="M${lx - 58} ${ly - 46} h116 v54 h-116 Z" fill="#C9CED6" ${S(4)}/>
           <circle cx="${lx}" cy="${ly - 19}" r="8" fill="#fff" opacity=".8"/>
@@ -116,11 +116,11 @@ const SCENES = {
     };
   },
 
-  ines: (g) => {
+  chocolate: (g) => {
     const fx = 290; // chocoladefontein
     const tiers = [[g.ground - 70, 70], [g.ground - 150, 50], [g.ground - 220, 32]];
     return {
-      title: '🍫 Ines en de chocoladefontein',
+      title: '🍫 De chocoladefontein',
       back: `<g class="mv mv-fountain"><g class="mv-fshake">
           <path d="M${fx - 14} ${g.ground} V${tiers[2][0] - 20} M${fx + 14} ${g.ground} V${tiers[2][0] - 20}" stroke="#C9CED6" stroke-width="10"/>
           ${tiers.map(([y, r]) => `<ellipse cx="${fx}" cy="${y}" rx="${r}" ry="12" fill="#C9CED6" ${S(3.5)}/>
@@ -146,10 +146,10 @@ const SCENES = {
     };
   },
 
-  linde: (g) => {
+  pets: (g) => {
     const y = g.ground - 14;
     return {
-      title: '🐍 Linde en haar slang',
+      title: '🐾 Dierenvriend',
       front: `<g class="mv mv-snake"><g class="mv-snakewalk" style="--sx:${-430}px"><g class="mv-snakebody">
           <path d="M-60 ${y} q20 -26 40 0 t40 0 t40 0 t40 0 q12 0 22 -10" stroke="${INK}" stroke-width="22" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
           <path d="M-60 ${y} q20 -26 40 0 t40 0 t40 0 t40 0 q12 0 22 -10" stroke="#5BA84F" stroke-width="15" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
@@ -202,7 +202,7 @@ const SCENES = {
     };
   },
 
-  femke: (g) => {
+  frame: (g) => {
     const wx = 250;
     const rows = 10;
     const bh = 26;
@@ -217,7 +217,7 @@ const SCENES = {
     const fy = g.ground - 7 * bh; // hoogte van het kadertje
     const nail = [326, fy - 44];
     return {
-      title: '🔨 Femke hangt een kadertje op',
+      title: '🔨 Een kadertje ophangen',
       back: `<g class="mv mv-wall"><clipPath id="mvwall"><rect x="${wx - 80}" y="${g.ground - rows * bh - 40}" width="300" height="${rows * bh + 60}"/></clipPath>
           <g clip-path="url(#mvwall)">${bricks.join('')}</g></g>
         <g class="mv mv-cracks">${[`M${nail[0]} ${nail[1]} l-14 22 l8 18 l-16 24 l6 22 l-12 30`, `M${nail[0]} ${nail[1]} l18 16 l-6 20 l20 22`, `M${nail[0]} ${nail[1]} l-4 -26 l12 -18`, `M${nail[0] - 22} ${nail[1] + 64} l-26 10 l-10 24`]
@@ -242,10 +242,10 @@ const SCENES = {
     };
   },
 
-  justine: (g) => {
+  sewing: (g) => {
     const ty = g.hand - 8; // tafelblad
     return {
-      title: '🧵 Justine aan de naaimachine',
+      title: '🧵 Aan de naaimachine',
       front: `<g class="mv mv-machine">
           <rect x="44" y="${ty}" width="232" height="16" rx="4" fill="#C08552" ${S(4)}/>
           <path d="M60 ${ty + 16} V${g.ground} M260 ${ty + 16} V${g.ground}" ${S(8)} stroke="#8A5A33"/>
@@ -280,11 +280,11 @@ const SCENES = {
     };
   },
 
-  charlotte: (g) => {
+  spinning: (g) => {
     const hy = g.hand - 18; // stuur
     const fw = g.ground - 46; // vliegwiel
     return {
-      title: '🚴 Charlotte op de spinningfiets',
+      title: '🚴 Op de spinningfiets',
       back: `<g class="mv mv-bike"><path d="M100 ${g.TB - 8} h120" ${S(14)} stroke="#2B2D42"/></g>
         <g class="mv mv-coach"><path d="M-150 30 h170 a12 12 0 0 1 12 12 v40 a12 12 0 0 1 -12 12 h-120 l-24 18 l4 -18 h-30 a12 12 0 0 1 -12 -12 v-40 a12 12 0 0 1 12 -12 z" fill="#fff" ${S(3)}/>
           <text class="mv-c1" x="-65" y="70" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="17" fill="#E63946">NOG 10 SECONDEN!!</text>
@@ -311,20 +311,102 @@ const SCENES = {
         [3200, { on: ['r3', 'k3', 'mv-steam'], off: ['k2'], mood: 'angry' }], [4300, { anim: 'slump', mood: 'tired', off: ['mv-speed'], on: ['mv-puddle'] }]],
     };
   },
+  karaoke: (g) => ({
+    title: '🎤 Karaoke-ster',
+    back: `<g class="mv mv-spot"><path d="M110 -170 L210 -170 L300 ${g.ground + 10} L20 ${g.ground + 10} Z" fill="#FFF1A8" opacity=".55"/></g>
+      <g class="mv mv-disco" transform="translate(-90 -60)"><path d="M0 -110 V-36" ${S(3)}/>
+        <g class="mv-discoball"><circle cx="0" cy="0" r="36" fill="#C9D3DE" ${S(4)}/>
+        ${many(4, (i) => `<path d="M-34 ${-24 + i * 16} H34" stroke="#8D99A8" stroke-width="2"/>`)}${many(5, (i) => `<path d="M${-28 + i * 14} -32 V32" stroke="#8D99A8" stroke-width="2"/>`)}
+        <circle cx="-12" cy="-14" r="6" fill="#fff"/></g>
+        ${many(6, (i) => `<circle class="mv-sparkle" style="animation-delay:${i * 0.2}s" cx="${rnd(-140, 140)}" cy="${rnd(20, 260)}" r="${rnd(4, 8)}" fill="${['#FFD166', '#F25C78', '#5BC0EB'][i % 3]}"/>`)}</g>`,
+    handR: `<g class="mv mv-mic"><rect x="220" y="${g.hand - 6}" width="12" height="30" rx="5" fill="#2B2D42" ${S(3)}/>
+      <circle cx="226" cy="${g.hand + 30}" r="12" fill="#AEB4BE" ${S(3.5)}/><path d="M218 ${g.hand + 27} h16 M218 ${g.hand + 33} h16" stroke="#7A828E" stroke-width="2"/></g>`,
+    front: `<g class="mv mv-notes">${many(7, (i) => `<text class="mv-note" style="animation-delay:${(i * 0.32).toFixed(2)}s;--nx:${rnd(-120, 120).toFixed(0)}px" x="${rnd(120, 200).toFixed(0)}" y="${g.NY - 30}" font-size="${rnd(30, 44).toFixed(0)}" fill="${['#E63946', '#2A7FB8', '#7A4BC2', '#2E9E5B'][i % 4]}" stroke="${INK}" stroke-width="1.5">${i % 2 ? '♪' : '♫'}</text>`)}</g>`,
+    steps: [[0, { mood: 'happy', anim: 'none', on: ['mv-spot'] }], [400, { on: ['mv-mic'], mood: 'wink' }], [900, { anim: 'sing', mood: 'proud', on: ['mv-notes'] }],
+      [2600, { anim: 'dance', mood: 'love', on: ['mv-disco'] }], [4200, { anim: 'cheer', mood: 'proud' }], [5400, { anim: 'none', mood: 'wink', off: ['mv-notes'] }]],
+  }),
+
+  chef: (g) => {
+    // Waar de pan zit met de arm horizontaal (zie [data-anim="pan"]): draaipunt van de schouder + armlengte.
+    const px = 226 + (g.hand - (g.NY + 15)) + 62;
+    const py = g.NY + 15;
+    return {
+      title: '🍳 De chef-kok',
+      head: `<g class="mv mv-hat"><path d="M118 52 Q104 18 132 10 Q136 -14 160 -12 Q186 -14 190 10 Q218 18 202 52 Z" fill="#fff" ${S(4)}/>
+          <rect x="118" y="40" width="84" height="22" rx="6" fill="#fff" ${S(4)}/><path d="M140 44 v14 M160 44 v14 M180 44 v14" stroke="#E5DCCB" stroke-width="3"/></g>
+        <g class="mv mv-splat"><path d="M112 40 Q118 6 160 8 Q206 6 210 40 Q214 62 196 56 Q190 70 176 58 Q160 72 146 58 Q128 70 124 54 Q104 58 112 40 Z" fill="#fff" ${S(3.5)}/>
+          <circle cx="164" cy="30" r="16" fill="#FFB703" ${S(3.5)}/><path d="M176 42 q4 18 -2 26" stroke="#FFB703" stroke-width="7" fill="none" stroke-linecap="round"/></g>`,
+      handR: `<g class="mv mv-pan"><rect x="221" y="${g.hand + 2}" width="10" height="40" rx="5" fill="#3A2618" ${S(2.5)}/>
+          <ellipse cx="226" cy="${g.hand + 66}" rx="14" ry="38" fill="#2B2D42" ${S(4)}/>
+          <path d="M214 ${g.hand + 46} q8 6 0 12 q8 6 0 12 q8 6 0 12" stroke="#C8553D" stroke-width="7" fill="none" stroke-linecap="round"/></g>`,
+      front: `<g transform="translate(${px} ${py - 22})"><g class="mv mv-egg" style="--ex:${160 - px}px;--ey:${50 - py}px">
+          <path d="M-26 0 Q-24 -16 0 -14 Q24 -16 26 0 Q26 14 0 12 Q-26 14 -26 0 Z" fill="#fff" ${S(3)}/><circle cx="2" cy="-1" r="8" fill="#FFB703" ${S(2.5)}/></g></g>
+        <g class="mv mv-sizzle">${many(3, (i) => `<path class="mv-puff" style="animation-delay:${i * 0.3}s" d="M${px - 20 + i * 20} ${py - 30} q-6 -10 0 -20 t0 -18" stroke="#C9B79C" stroke-width="5" fill="none" stroke-linecap="round"/>`)}</g>`,
+      steps: [[0, { mood: 'happy', anim: 'none' }], [300, { on: ['mv-hat'], mood: 'proud' }], [800, { anim: 'pan', on: ['mv-pan', 'mv-sizzle', 'mv-egg'] }],
+        [1900, { anim: 'flip', on: ['flipped'], mood: 'wink' }], [2500, { anim: 'pan', mood: 'shock' }],
+        [3200, { on: ['mv-splat'], off: ['mv-egg', 'mv-hat'], mood: 'confused', anim: 'none' }], [4200, { anim: 'laugh', mood: 'proud' }], [5400, { anim: 'none', mood: 'shy' }]],
+    };
+  },
+
+  soccer: (g) => {
+    const by = g.ground - 18;
+    return {
+      title: '⚽ De voetballer',
+      back: `<g class="mv mv-goal"><path d="M410 ${g.ground} V${g.ground - 170} H530 V${g.ground}" ${S(6)} fill="none"/>
+          <g stroke="#B9AE9C" stroke-width="2">${many(6, (i) => `<path d="M${420 + i * 18} ${g.ground - 168} V${g.ground}"/>`)}${many(8, (i) => `<path d="M412 ${g.ground - 150 + i * 20} H528"/>`)}</g></g>`,
+      front: `<g class="mv mv-ball" transform="translate(222 ${by})"><g class="mv-ballfly"><circle r="18" fill="#fff" ${S(3.5)}/>
+          <path d="M0 -8 l8 6 -3 9 h-10 l-3 -9 Z" fill="${INK}"/><path d="M0 -8 V-18 M8 -2 L17 -6 M5 7 L11 14 M-5 7 L-11 14 M-8 -2 L-17 -6" ${S(2.5)}/></g></g>
+        <g transform="translate(470 ${g.ground - 210})"><g class="mv mv-goaltext"><text x="0" y="0" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="64" fill="#FFD166" stroke="${INK}" stroke-width="4" paint-order="stroke">GOAL!</text></g></g>
+        <g class="mv mv-confetti">${many(26, (i) => `<rect class="mv-conf" style="animation-delay:${(i * 0.07).toFixed(2)}s;--cx:${rnd(-60, 60).toFixed(0)}px" x="${rnd(-160, 480).toFixed(0)}" y="-160" width="10" height="16" rx="2" fill="${['#E63946', '#FFD166', '#2A7FB8', '#2E9E5B', '#F25C78'][i % 5]}"/>`)}</g>`,
+      steps: [[0, { mood: 'happy', anim: 'none', on: ['mv-goal', 'mv-ball'] }], [500, { anim: 'wave', mood: 'angry' }], [1400, { anim: 'kick' }],
+        [1600, { on: ['kicked'] }], [2300, { on: ['mv-goaltext', 'mv-confetti'], anim: 'cheer', mood: 'proud' }], [3900, { anim: 'spin', mood: 'love' }], [5200, { anim: 'none', mood: 'wink' }]],
+    };
+  },
+
+  zen: (g) => ({
+    title: '🧘 Zen-meester',
+    back: `<g class="mv mv-mat"><path d="M30 ${g.ground + 4} L290 ${g.ground + 4} L270 ${g.ground + 20} L50 ${g.ground + 20} Z" fill="#7FC8A9" ${S(3.5)}/></g>`,
+    front: `<g class="mv mv-om">${many(3, (i) => `<text class="mv-omtext" style="animation-delay:${i * 0.8}s" x="${[10, 310, 160][i]}" y="${[g.NY - 30, g.NY - 30, -60][i]}" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="30" fill="#7A4BC2">Ommm…</text>`)}</g>
+      <g class="mv mv-aura">${many(8, (i) => `<path class="mv-sparkle" style="animation-delay:${i * 0.15}s" transform="translate(${rnd(40, 280).toFixed(0)} ${rnd(-40, g.ground - 40).toFixed(0)})" d="M0 -10 L3 -3 L10 0 L3 3 L0 10 L-3 3 L-10 0 L-3 -3 Z" fill="#FFD166" ${S(1.5)}/>`)}</g>
+      <g class="mv mv-fly" transform="translate(220 40)"><g class="mv-buzz"><ellipse cx="0" cy="0" rx="7" ry="5" fill="${INK}"/>
+        <ellipse cx="-4" cy="-7" rx="6" ry="4" fill="#E8F4FF" opacity=".9" ${S(1)}/><ellipse cx="4" cy="-7" rx="6" ry="4" fill="#E8F4FF" opacity=".9" ${S(1)}/></g></g>
+      <g class="mv mv-dust">${many(5, (i) => `<circle class="mv-puff" style="animation-delay:${i * 0.1}s" cx="${rnd(80, 240)}" cy="${g.ground - 4}" r="${rnd(10, 18)}" fill="#D9CBB3"/>`)}</g>`,
+    steps: [[0, { mood: 'happy', anim: 'none', on: ['mv-mat'] }], [500, { mood: 'proud', anim: 'zen' }], [1200, { on: ['levitate', 'mv-om', 'mv-aura'] }],
+      [3000, { on: ['mv-fly'], mood: 'confused' }], [3800, { mood: 'angry', anim: 'wave' }], [4300, { off: ['levitate', 'mv-om', 'mv-aura'], on: ['mv-dust'], anim: 'wobble', mood: 'dizzy' }],
+      [5400, { anim: 'none', mood: 'shy', off: ['mv-fly'] }]],
+  }),
+
+  rock: (g) => ({
+    title: '🎸 Rockster',
+    coat: `<g class="mv mv-guitar">
+        <path d="M150 ${g.NY + 82} L22 ${g.NY + 44}" stroke="#6B3E1F" stroke-width="14" stroke-linecap="round"/>
+        <path d="M150 ${g.NY + 82} L22 ${g.NY + 44}" stroke="#E5DCCB" stroke-width="2" stroke-dasharray="3 9"/>
+        <rect x="-4" y="${g.NY + 30}" width="30" height="20" rx="5" transform="rotate(16 10 ${g.NY + 40})" fill="#2B2D42" ${S(3)}/>
+        <path d="M150 ${g.NY + 54} C190 ${g.NY + 40} 214 ${g.NY + 64} 206 ${g.NY + 88} C226 ${g.NY + 104} 216 ${g.NY + 140} 182 ${g.NY + 140} C150 ${g.NY + 142} 130 ${g.NY + 118} 140 ${g.NY + 96} C126 ${g.NY + 80} 132 ${g.NY + 60} 150 ${g.NY + 54} Z" fill="#E63946" ${S(4)}/>
+        <rect x="160" y="${g.NY + 92}" width="34" height="9" rx="3" fill="#2B2D42"/><circle cx="176" cy="${g.NY + 118}" r="6" fill="#FFD166" ${S(2)}/></g>`,
+    back: `<g class="mv mv-amps">${[-150, 400].map((x) => `<g transform="translate(${x} ${g.ground - 150})"><rect width="110" height="150" rx="10" fill="#2B2D42" ${S(4)}/>
+        <circle class="mv-woofer" cx="55" cy="58" r="34" fill="#3D405B" ${S(3)}/><circle cx="55" cy="118" r="16" fill="#3D405B" ${S(3)}/></g>`).join('')}</g>
+      <g class="mv mv-flames">${[-95, 455].map((x) => many(3, (i) => `<path class="mv-flame" style="animation-delay:${i * 0.12}s" d="M${x - 30 + i * 30} ${g.ground - 150} q-18 -40 6 -70 q2 30 16 36 q8 -22 0 -46 q34 28 14 80 Z" fill="${i % 2 ? '#FFB703' : '#F77F00'}" ${S(2.5)}/>`)).join('')}</g>`,
+    front: `<g class="mv mv-waves">${many(3, (i) => `<path class="mv-wave" style="animation-delay:${i * 0.25}s" d="M${250 + i * 26} ${g.NY + 40} q20 50 0 100" stroke="#5BC0EB" stroke-width="6" fill="none" stroke-linecap="round"/>
+        <path class="mv-wave" style="animation-delay:${i * 0.25}s" d="M${70 - i * 26} ${g.NY + 10} q-20 50 0 100" stroke="#5BC0EB" stroke-width="6" fill="none" stroke-linecap="round"/>`)}</g>
+      <g class="mv mv-bolts">${many(4, (i) => `<path class="mv-bolt" style="animation-delay:${i * 0.1}s" d="M${40 + i * 80} -40 l-12 30 h14 l-14 34 l30 -42 h-14 l12 -22 Z" fill="#FFE14D" ${S(3)}/>`)}</g>`,
+    steps: [[0, { mood: 'happy', anim: 'none', on: ['mv-amps'] }], [300, { on: ['mv-guitar'], mood: 'wink' }], [900, { anim: 'strum', mood: 'angry', on: ['mv-waves'] }],
+      [2600, { on: ['mv-bolts'], mood: 'proud' }], [3400, { anim: 'stomp', on: ['mv-flames'], off: ['mv-bolts'] }], [4900, { anim: 'none', mood: 'wink', off: ['mv-waves'] }]],
+  }),
 };
 
-const svgCache = new Map();
-const loadFigure = (name) => {
-  if (!svgCache.has(name)) svgCache.set(name, fetch(`avatars/full/${name}.svg`).then((r) => (r.ok ? r.text() : '')).catch(() => ''));
-  return svgCache.get(name);
-};
-export const hasMove = (name) => !!SCENES[name];
+// De signature moves om uit te kiezen in de avatarbouwer.
+export const MOVES = Object.keys(SCENES).map((id) => ({ id, title: SCENES[id](geom(1)).title }));
+// De poppetjes van het eerste weekend hadden elk hun eigen scène.
+export const LEGACY_MOVES = { karel: 'chemist', simon: 'banker', tom: 'electrician', diederik: 'it', ines: 'chocolate',
+  linde: 'pets', femke: 'frame', justine: 'sewing', charlotte: 'spinning' };
+export const hasMove = (id) => !!SCENES[id];
 
 let playing = null;
 
-export async function playMove(name, displayName = '') {
-  const scene = SCENES[name];
-  const raw = await loadFigure(name);
+// Speel scène `id` met het poppetje `raw` (de SVG-tekst van het volledige poppetje).
+export async function playMove(id, raw) {
+  const scene = SCENES[id];
   if (!scene || !raw) return;
   playing?.close();
 

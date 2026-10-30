@@ -1,12 +1,14 @@
 // Portaal voor weekendgangers: inloggen en de geheime opdracht onthullen door het ei te flippen.
-import { $, ART, esc, shell, confetti, setSessionHint, av, setAvatars } from './common.js';
+import { $, ART, esc, shell, confetti, setSessionHint, av, setAvatars, avatarOf } from './common.js?v=w1';
+import { cachedMeta, hasFeature } from './weekend.js?v=w1';
 import {
-  configured, db, ref, get, set, serverTimestamp, useAuth, currentUser, notConfiguredHtml, signOut, watchAvatars,
-} from './fb.js';
+  configured, db, wref, ref, get, set, serverTimestamp, useAuth, currentUser, notConfiguredHtml, signOut, watchAvatars, weekendId, whoAmI,
+} from './fb.js?v=w1';
 
 shell('portaal');
 const app = $('#app');
 let user, member, mission;
+const on = (k) => hasFeature(cachedMeta(), k);
 
 init();
 
@@ -15,9 +17,10 @@ async function init() {
   app.innerHTML = `<div class="play-screen"><div class="wobble" style="width:120px">${ART.egg()}</div><p class="muted">Pan opwarmen…</p></div>`;
   useAuth('local');
   user = await currentUser();
+  if (user && !user.isAnonymous) await whoAmI(user); // springt zo nodig naar het weekend van deze gebruiker
   if (user && !user.isAnonymous && (await loadMember())) {
-    setSessionHint({ role: 'member', name: member.name, username: member.username });
-    watchAvatars(setAvatars);
+    setSessionHint({ role: 'member', name: member.name, username: member.username, w: weekendId() });
+    watchAvatars((all) => { setAvatars(all); if (!on('missions') && !$('#mission')) renderHome(); });
     return renderPan();
   }
   // Ingelogd, maar geen weekendganger (bv. de admin): niet doorsturen, anders ontstaat er een lus.
@@ -27,9 +30,9 @@ async function init() {
 
 async function loadMember() {
   try {
-    member = (await get(ref(db, `members/${user.uid}`))).val();
+    member = (await get(wref(`members/${user.uid}`))).val();
     if (!member) return false;
-    mission = (await get(ref(db, `missions/${user.uid}`))).val();
+    mission = on('missions') ? (await get(wref(`missions/${user.uid}`)).catch(() => null))?.val() : null;
     return true;
   } catch {
     return false;
@@ -45,7 +48,7 @@ function renderNotMember() {
   app.innerHTML = `<div class="login-wrap slide-up">
     <div class="wobble" style="width:120px;margin:auto">${ART.egg()}</div>
     <h2>Dit portaal is voor weekendgangers</h2>
-    <p class="muted">Je bent ingelogd als admin. De opdrachten beheer je in de keuken.</p>
+    <p class="muted">Je bent ingelogd als admin. De weekendgangers en opdrachten beheer je in de keuken.</p>
     <div class="row" style="justify-content:center">
       <a class="btn pan" href="admin.html#members">🍳 Naar de opdrachten</a>
       <button class="btn ghost" id="lo">Inloggen als weekendganger</button>
@@ -54,9 +57,10 @@ function renderNotMember() {
 }
 
 function renderPan() {
+  if (!on('missions')) return renderHome();
   const has = !!mission?.text;
   app.innerHTML = `<div class="play-screen">
-    <div class="big-avatar pop-in">${av({ member: true }, user.uid)}</div>
+    <a class="big-avatar pop-in" href="avatar.html" title="Pas je poppetje aan">${av({ member: true }, user.uid)}</a>
     <h1 style="margin:0">Hoi ${esc(member.name)} 👋</h1>
     <p class="muted" style="margin:0">${has ? 'Er ligt iets in je pan…' : 'Je opdracht wordt nog gebakken. Kom later terug!'}</p>
     <div class="flip-stage ${has ? '' : 'waiting'}" id="stage">
@@ -68,13 +72,30 @@ function renderPan() {
     </div>
     ${has ? '<p class="flip-hint float" id="hint">👆 Tik op het ei om het te flippen!</p>' : ''}
     <div id="mission"></div>
-    <div class="row" style="justify-content:center"><a class="btn pan" href="raadkaart.html">🗺️ Raad waar we heen gaan</a>
-      <a class="btn" href="playlist.html">🎵 Weekendplaylist</a></div>
+    ${links()}
     <button class="btn ghost small" id="lo">Uitloggen</button>
   </div>`;
-  $('#lo').onclick = () => signOut(useAuth()).then(() => { setSessionHint(null); location.href = 'index.html'; });
+  $('#lo').onclick = logout;
   if (has) $('#egg').onclick = flip;
 }
+
+// Zonder geheime opdrachten: gewoon je poppetje en de snelkoppelingen van het weekend.
+function renderHome() {
+  const a = avatarOf(user.uid);
+  app.innerHTML = `<div class="play-screen">
+    <a class="big-avatar pop-in" href="avatar.html" title="Pas je poppetje aan">${av({ member: true }, user.uid)}</a>
+    <h1 style="margin:0">Hoi ${esc(member.name)} 👋</h1>
+    <p class="muted" style="margin:0">${a?.cfg || a?.img ? 'Klaar voor het weekend!' : 'Je hebt nog geen poppetje. Bouw er snel een!'}</p>
+    ${links()}
+    <button class="btn ghost small" id="lo">Uitloggen</button></div>`;
+  $('#lo').onclick = logout;
+}
+
+const links = () => `<div class="row" style="justify-content:center">
+    <a class="btn" href="avatar.html">🎨 Mijn poppetje</a>
+    ${on('raadkaart') ? '<a class="btn pan" href="raadkaart.html">🗺️ Raad waar we heen gaan</a>' : ''}
+    ${on('playlist') ? '<a class="btn" href="playlist.html">🎵 Weekendplaylist</a>' : ''}</div>`;
+const logout = () => signOut(useAuth()).then(() => { setSessionHint(null); location.href = 'index.html'; });
 
 function flip() {
   const egg = $('#egg');
@@ -84,7 +105,7 @@ function flip() {
   $('#pan').classList.add('shake-pan');
   egg.classList.add('flipping');
   if (!mission.revealedAt) {
-    set(ref(db, `missions/${user.uid}/revealedAt`), serverTimestamp()).catch(() => {});
+    set(wref(`missions/${user.uid}/revealedAt`), serverTimestamp()).catch(() => {});
     mission.revealedAt = Date.now();
   }
   setTimeout(() => {

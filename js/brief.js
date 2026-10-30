@@ -1,11 +1,11 @@
-import { $, ART, shell, esc, md, fmtDate } from './common.js';
-import { fetchLetters, fetchLetterImages } from './letters.js?v=4';
+import { $, ART, shell, esc, md, fmtDate, featureOff, featureOffHtml } from './common.js?v=w1';
+import { fetchLetters, fetchLetterImages } from './letters.js?v=w1';
 
 shell('brief');
 const id = new URLSearchParams(location.search).get('id');
 $('#app').innerHTML = `<div class="card muted">Even opwarmen…</div>`;
-
-fetchLetters().then(async (letters) => {
+if (featureOff('brief')) $('#app').innerHTML = featureOffHtml('De weekendbrief');
+else fetchLetters().then(async (letters) => {
   const l = id && letters.find((x) => x.id === id);
   if (l) {
     const images = l.body?.includes('](img:') ? await fetchLetterImages(l.id).catch(() => ({})) : {};

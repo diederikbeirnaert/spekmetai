@@ -1,13 +1,13 @@
 // Host-scherm: maakt een spel aan, stuurt de vragen en rekent de punten uit.
 // Een Twister-quiz voegt daar aan toe: spinner per vraag, matspelers, jury, FREEZE + SpekVAR, gokjes en rotatie.
-import { $, $$, ART, esc, shell, toast, confetti, mediaHtml, normalize, whistle, av, setAvatars } from './common.js';
+import { $, $$, ART, esc, shell, toast, confetti, mediaHtml, normalize, whistle, av, setAvatars } from './common.js?v=w1';
 import {
-  configured, db, ref, get, set, update, remove, onValue, serverTimestamp, query, orderByChild, endAt,
-  useAuth, currentUser, isStaff, serverNow, notConfiguredHtml, watchAvatars,
-} from './fb.js';
-import { LIMBS, COLORS, boardSvg, makeSpinner } from './twister.js';
-import { placementPoints } from './scoreboard.js';
-import { mountJuryPanel } from './jurypanel.js';
+  configured, db, wref, ref, get, set, update, remove, onValue, serverTimestamp, query, orderByChild, endAt,
+  useAuth, currentUser, isStaff, serverNow, notConfiguredHtml, noWeekendHtml, watchAvatars, resolveCode, claimCode, weekendId,
+} from './fb.js?v=w1';
+import { LIMBS, COLORS, boardSvg, makeSpinner } from './twister.js?v=w1';
+import { placementPoints } from './scoreboard.js?v=w1';
+import { mountJuryPanel } from './jurypanel.js?v=w1';
 
 shell('host');
 const app = $('#app');
@@ -31,7 +31,7 @@ let lastSnap = null;
 let bonusUid = null; // winnaar van de raadkaart (×1,2 als de quiz dat toelaat)
 const BONUS = 1.2;
 
-const g = (p = '') => ref(db, `games/${code}${p ? `/${p}` : ''}`);
+const g = (p = '') => wref(`games/${code}${p ? `/${p}` : ''}`);
 const cur = () => quiz.questions[state.index];
 const isTw = () => !!quiz?.twister;
 const twQ = (q = cur()) => isTw() && q && q.type !== 'info';
@@ -49,6 +49,8 @@ async function init() {
   if (!configured) return void (app.innerHTML = notConfiguredHtml());
   useAuth('local');
   const user = await currentUser();
+  if (params.get('game')) await resolveCode(params.get('game'));
+  if (!weekendId()) return void (app.innerHTML = noWeekendHtml());
   if (!(await isStaff(user))) {
     app.innerHTML = `<div class="card center login-wrap"><div class="wobble">${ART.egg()}</div>
       <h2>Alleen de chef-kok mag hosten</h2><p>Log eerst in als admin.</p><a class="btn" href="login.html?next=host.html">Inloggen</a></div>`;
@@ -65,7 +67,7 @@ async function init() {
 
 /* ---------- Quiz kiezen / spel aanmaken ---------- */
 async function pickQuiz() {
-  const all = (await get(ref(db, 'quizzes'))).val() || {};
+  const all = (await get(wref('quizzes'))).val() || {};
   const list = Object.entries(all).sort((a, b) => (b[1].updatedAt || 0) - (a[1].updatedAt || 0));
   app.innerHTML = `<h1>Welke quiz bakken we?</h1><div class="list">${list.map(([id, q]) => `
     <div class="card list-item"><div class="grow"><h3>${q.twister ? '🌀 ' : ''}${esc(q.title)}</h3><span class="muted">${(q.questions || []).length} vragen</span></div>
@@ -74,7 +76,7 @@ async function pickQuiz() {
 }
 
 async function loadQuiz(id) {
-  const q = (await get(ref(db, `quizzes/${id}`))).val();
+  const q = (await get(wref(`quizzes/${id}`))).val();
   if (!q) throw new Error('Quiz niet gevonden');
   q.questions = (q.questions || []).filter(Boolean);
   return { id, ...q };
@@ -83,15 +85,12 @@ async function loadQuiz(id) {
 async function createGame(quizId, user) {
   try { quiz = await loadQuiz(quizId); } catch (e) { return void (app.innerHTML = `<div class="card">${esc(e.message)}</div>`); }
   cleanupOld();
-  for (let i = 0; i < 20; i++) {
-    code = String(100000 + Math.floor(Math.random() * 900000));
-    if (!(await get(g('state'))).exists()) break;
-  }
+  code = await claimCode('quiz');
   state = { phase: 'lobby', index: -1 };
   await set(g(), { quizId, title: quiz.title, hostUid: user.uid, createdAt: serverTimestamp(), total: quiz.questions.length, twister: isTw(), state });
   if (isTw()) {
     juryPin = String(1000 + Math.floor(Math.random() * 9000));
-    await set(ref(db, `juryPins/${code}`), juryPin);
+    await set(wref(`juryPins/${code}`), juryPin);
   }
   history.replaceState(null, '', `host.html?game=${code}`);
   start();
@@ -103,22 +102,23 @@ async function resume(c) {
   if (!game) return void (app.innerHTML = `<div class="card">Spel ${esc(c)} bestaat niet meer. <a href="host.html">Start een nieuw</a>.</div>`);
   quiz = await loadQuiz(game.quizId);
   state = game.state || { phase: 'lobby', index: -1 };
-  if (isTw()) juryPin = (await get(ref(db, `juryPins/${code}`))).val() || '';
+  if (isTw()) juryPin = (await get(wref(`juryPins/${code}`))).val() || '';
   start();
 }
 
 function cleanupOld() {
-  const q = query(ref(db, 'games'), orderByChild('createdAt'), endAt(Date.now() - 24 * 3600e3));
+  const q = query(wref('games'), orderByChild('createdAt'), endAt(Date.now() - 24 * 3600e3));
   get(q).then((s) => s.forEach((c) => {
     remove(c.ref);
-    remove(ref(db, `juryPins/${c.key}`));
+    remove(wref(`juryPins/${c.key}`));
+    remove(ref(db, `gameCodes/${c.key}`));
   })).catch(() => {});
 }
 
 async function preloadMedia() {
   const ids = quiz.questions.map((q) => q.media?.kind === 'image' && q.media.src?.startsWith('db:') && q.media.src.slice(3)).filter(Boolean);
   await Promise.all(ids.map(async (id) => {
-    mediaCache[id] = (await get(ref(db, `media/${id}/data`))).val();
+    mediaCache[id] = (await get(wref(`media/${id}/data`))).val();
     new Image().src = mediaCache[id] || '';
   }));
 }
@@ -126,7 +126,7 @@ const resolveSrc = (m) => (m?.src?.startsWith('db:') ? mediaCache[m.src.slice(3)
 
 async function start() {
   watchAvatars(setAvatars);
-  if (quiz.mapBonus) bonusUid = (await get(ref(db, 'raadkaart/reveal/winner')).catch(() => null))?.val() || null;
+  if (quiz.mapBonus) bonusUid = (await get(wref('raadkaart/reveal/winner')).catch(() => null))?.val() || null;
   await preloadMedia();
   onValue(g('players'), (s) => { players = s.val() || {}; onPlayers(); });
   if (isTw()) {
@@ -762,7 +762,7 @@ async function renderAward() {
   const box = $('#award');
   if (!box) return;
   const members = Object.entries(players).filter(([, p]) => p.member).map(([id, p]) => ({ uid: id, name: p.name, score: p.score || 0 }));
-  const entryRef = ref(db, `scoreboard/entries/quiz-${code}`);
+  const entryRef = wref(`scoreboard/entries/quiz-${code}`);
   const done = (await get(entryRef).catch(() => null))?.exists();
   if (!members.length) {
     box.innerHTML = '<p class="muted" style="margin:0">🏆 Er speelden geen ingelogde weekendgangers mee, dus er gaan geen punten naar het weekendscorebord.</p>';
@@ -777,7 +777,7 @@ async function renderAward() {
       : '<button class="btn bacon" id="awardbtn">🏆 Punten naar het weekendscorebord</button>'}</div>`;
   $('#awardbtn')?.addEventListener('click', async () => {
     try {
-      const test = (await get(ref(db, 'scoreboard/config/test')).catch(() => null))?.val() === true;
+      const test = (await get(wref('scoreboard/config/test')).catch(() => null))?.val() === true;
       await set(entryRef, {
         title: quiz.title, kind: 'quiz', at: Date.now(), points: pts, ...(test ? { test: true } : {}),
         names: Object.fromEntries(members.map((m) => [m.uid, m.name])),

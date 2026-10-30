@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFB703">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<title>SpekmetAI</title>
+<script>
+  // Korte weekendlinks: spekmetai.tech/ardennen26 → homepage van dat weekend,
+  // spekmetai.tech/ardennen26?doemee=code → meedoen via de uitnodiging.
+  (function () {
+    var seg = location.pathname.split('/').filter(Boolean);
+    var w = (seg[0] || '').toLowerCase();
+    if (seg.length !== 1 || !/^[a-z0-9][a-z0-9-]{1,29}$/.test(w)) return;
+    var q = new URLSearchParams(location.search);
+    var c = q.get('doemee');
+    location.replace(c ? '/doemee.html?w=' + w + '&c=' + encodeURIComponent(c) : '/index.html?w=' + w);
+  })();
+</script>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<main id="app"><div class="card center login-wrap" style="margin-top:12vh"><h1>🍳 Deze pagina is uit de pan gevallen</h1>
+  <p class="muted">We vinden ze niet terug.</p><a class="btn bacon" href="/index.html">Naar de homepage</a></div></main>
+</body>
+</html>

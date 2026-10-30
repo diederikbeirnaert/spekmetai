@@ -19,7 +19,8 @@ http.createServer((req, res) => {
   const file = path.join(ROOT, path.normalize(p));
   if (!file.startsWith(ROOT)) return res.writeHead(403).end();
   fs.readFile(file, (err, data) => {
-    if (err) return res.writeHead(404, { 'Content-Type': 'text/plain' }).end('404 – geen spek gevonden');
+    // Zoals GitHub Pages: onbekende paden krijgen 404.html (die stuurt korte weekendlinks door).
+    if (err) return res.writeHead(404, { 'Content-Type': TYPES['.html'] }).end(fs.readFileSync(path.join(ROOT, '404.html')));
     res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
     res.end(data);
   });

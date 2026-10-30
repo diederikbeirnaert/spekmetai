@@ -1,5 +1,5 @@
 // Hitster: gedeelde logica (zonder Firebase) voor host, gsm en admin.
-import { esc } from './common.js';
+import { esc } from './common.js?v=w1';
 
 export const DEFAULT_TARGET = 10;
 

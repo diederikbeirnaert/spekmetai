@@ -1,10 +1,10 @@
 // Hitster op de gsm: meedoen met de code, je tijdlijn bekijken en (als je aan de beurt bent)
 // het liedje op de juiste plek leggen.
-import { $, $$, ART, AVATARS, esc, shell, toast, confetti, av, setAvatars, getSessionHint, setSessionHint } from './common.js';
+import { $, $$, ART, AVATARS, esc, shell, toast, confetti, av, setAvatars, getSessionHint, setSessionHint } from './common.js?v=w1';
 import {
-  configured, db, ref, get, set, onValue, onDisconnect, serverTimestamp, useAuth, ensureAnon, currentUser, notConfiguredHtml, watchAvatars,
-} from './fb.js';
-import { timelineHtml, sortCards, cardHtml } from './hitster.js';
+  configured, db, wref, ref, get, set, onValue, onDisconnect, serverTimestamp, useAuth, ensureAnon, currentUser, notConfiguredHtml, watchAvatars, resolveCode, weekendId,
+} from './fb.js?v=w1';
+import { timelineHtml, sortCards, cardHtml } from './hitster.js?v=w1';
 
 shell('play');
 const app = $('#app');
@@ -20,8 +20,11 @@ async function boot() {
   const hint = getSessionHint();
   useAuth(hint?.role === 'member' ? 'local' : 'session');
   const u = await currentUser();
-  if (hint?.role === 'member' && u && !u.isAnonymous) {
-    member = (await get(ref(db, `members/${u.uid}`)).catch(() => null))?.val() || null;
+  let saved0 = null;
+  try { saved0 = sessionStorage.getItem(SKEY); } catch {}
+  if (params.get('code') || saved0) await resolveCode(params.get('code') || saved0);
+  if (hint?.role === 'member' && hint.w === weekendId() && u && !u.isAnonymous) {
+    member = (await get(wref(`members/${u.uid}`)).catch(() => null))?.val() || null;
     if (!member) setSessionHint(null);
   }
   user = member ? u : await ensureAnon();
@@ -30,7 +33,7 @@ async function boot() {
   try { saved = sessionStorage.getItem(SKEY); } catch {}
   const urlCode = params.get('code');
   const c = urlCode || saved;
-  if (c && (await get(ref(db, `hgames/${c}/players/${user.uid}`)).catch(() => null))?.exists()) return connect(c);
+  if (c && (await get(wref(`hgames/${c}/players/${user.uid}`)).catch(() => null))?.exists()) return connect(c);
   renderJoin(urlCode || '');
 }
 
@@ -54,12 +57,16 @@ function renderJoin(prefill) {
     const name = (member ? member.name : $('#name').value).trim().slice(0, 20);
     if (c.length !== 6) return toast('Een code heeft 6 cijfers', 'bad');
     if (!name) return toast('Vul je naam in', 'bad');
-    const st = (await get(ref(db, `hgames/${c}/state`)).catch(() => null))?.val();
+    const before = weekendId();
+    const info = await resolveCode(c);
+    if (info?.kind === 'quiz') return void location.assign(`play.html?code=${c}`);
+    if (member && info && info.w !== before) return toast('Deze code hoort bij een ander weekend', 'bad');
+    const st = info ? (await get(wref(`hgames/${c}/state`)).catch(() => null))?.val() : null;
     if (!st) return toast('Deze code bestaat niet 🥚', 'bad');
     try {
       const rec = { name, avatar: member ? '🍳' : avatar, joinedAt: serverTimestamp(), online: true };
       if (member) rec.member = true;
-      await set(ref(db, `hgames/${c}/players/${user.uid}`), rec);
+      await set(wref(`hgames/${c}/players/${user.uid}`), rec);
       connect(c);
     } catch { toast('Meedoen lukte niet', 'bad'); }
   };
@@ -68,10 +75,10 @@ function renderJoin(prefill) {
 function connect(c) {
   code = c;
   try { sessionStorage.setItem(SKEY, c); } catch {}
-  const online = ref(db, `hgames/${c}/players/${user.uid}/online`);
+  const online = wref(`hgames/${c}/players/${user.uid}/online`);
   onValue(ref(db, '.info/connected'), (s) => { if (s.val()) { onDisconnect(online).set(false); set(online, true).catch(() => {}); } });
-  onValue(ref(db, `hgames/${c}/state`), (s) => { state = s.val() || { phase: 'gone' }; render(); });
-  onValue(ref(db, `hgames/${c}/players`), (s) => { players = s.val() || {}; render(); });
+  onValue(wref(`hgames/${c}/state`), (s) => { state = s.val() || { phase: 'gone' }; render(); });
+  onValue(wref(`hgames/${c}/players`), (s) => { players = s.val() || {}; render(); });
   try { navigator.wakeLock?.request('screen'); } catch {}
 }
 
@@ -129,7 +136,7 @@ function render() {
   $('#go').onclick = async () => {
     if (picked == null) return;
     try {
-      await set(ref(db, `hgames/${code}/move`), { uid: user.uid, slot: picked, round: state.round });
+      await set(wref(`hgames/${code}/move`), { uid: user.uid, slot: picked, round: state.round });
       sent = key;
       picked = null;
       render();

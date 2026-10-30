@@ -1,18 +1,19 @@
 // Admin: inloggen, quizzen maken, weekendbrieven schrijven, instellingen.
-import { $, $$, ART, esc, shell, toast, uid, parseMediaUrl, mediaHtml, compressImage, md, fmtDate, setSessionHint, AVATAR_BGS, avatarPreview, av, setAvatars } from './common.js';
-import { renderTwister, LIMBS } from './twister.js';
-import { makeMap, eggPin, goalPin, tColor, distanceKm, fmtKm, dayLabel, edgesTable, dayIndex } from './mapkit.js';
-import { flatGuesses, addGuessPins, focusPins, mountGuessBoard } from './guessboard.js';
-import { mountPlaylistAdmin } from './playlistadmin.js';
-import { loadMissions, missionsToolbar, missionField, wireMissions } from './missions.js';
-import { mountScoreAdmin } from './scoreadmin.js';
-import { mountHitsterAdmin } from './hitsteradmin.js';
-import { handleCallback as spotifyCallback } from './spotify.js';
+import { $, $$, ART, esc, shell, toast, uid, parseMediaUrl, mediaHtml, compressImage, md, fmtDate, setSessionHint, AVATAR_BGS, avatarPreview, av, setAvatars } from './common.js?v=w1';
+import { renderTwister, LIMBS } from './twister.js?v=w1';
+import { makeMap, eggPin, goalPin, tColor, distanceKm, fmtKm, dayLabel, edgesTable, dayIndex } from './mapkit.js?v=w1';
+import { flatGuesses, addGuessPins, focusPins, mountGuessBoard } from './guessboard.js?v=w1';
+import { mountPlaylistAdmin } from './playlistadmin.js?v=w1';
+import { loadMissions, missionsToolbar, missionField, wireMissions } from './missions.js?v=w1';
+import { mountScoreAdmin } from './scoreadmin.js?v=w1';
+import { mountHitsterAdmin } from './hitsteradmin.js?v=w1';
+import { handleCallback as spotifyCallback } from './spotify.js?v=w1';
+import { mountWeekends, mountWeekendSettings, inviteCard, wireInviteCard } from './weekendadmin.js?v=w1';
+import { weekendId, setWeekend, cacheMeta, hasFeature } from './weekend.js?v=w1';
 import {
-  configured, db, ref, get, set, update, remove, push, useAuth, currentUser, isAdmin, notConfiguredHtml,
-  signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential,
-  createMemberAccount, deleteMemberAccount, cleanUsername, whoAmI, watchAvatars, isMod,
-} from './fb.js';
+  configured, db, wref, ref, get, set, update, remove, push, useAuth, currentUser, notConfiguredHtml,
+  signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential, whoAmI, watchAvatars, loadMeta, restGet,
+} from './fb.js?v=w1';
 
 shell('admin');
 const app = $('#app');
@@ -21,6 +22,8 @@ const TIMES = [5, 10, 15, 20, 30, 45, 60, 90, 120];
 
 let user, dirty = false, quiz = null, letter = null;
 let light = false; // admin light: beperkte rechten (quizzen, hosten, opdrachten, raadkaart bekijken)
+let me = null, head = false, meta = null, myWeekends = {}; // wie ben ik, welk weekend, welke weekends mag ik beheren
+const on = (k) => hasFeature(meta, k);
 const mediaCache = {};
 
 window.addEventListener('beforeunload', (e) => { if (dirty) e.preventDefault(); });
@@ -33,17 +36,26 @@ async function init() {
   useAuth('local');
   user = await currentUser();
   if (!user || user.isAnonymous) return renderLogin();
-  if (!(await isAdmin(user))) {
-    const me = await whoAmI(user);
-    if (me?.mod) {
-      light = true;
-      setSessionHint(me);
-      return route();
-    }
-    if (me) return void location.replace('account.html'); // weekendganger, geen admin
-    return renderNotAdmin();
+  me = await whoAmI(user); // springt zo nodig naar het weekend van deze gebruiker
+  if (!me) return renderNotAdmin();
+  head = !!me.head;
+  meta = await loadMeta();
+  if (weekendId() && !meta) { setWeekend(null); meta = null; }
+  if (meta) cacheMeta(weekendId(), meta);
+  if (me.role === 'member') {
+    if (!me.mod) return void location.replace('account.html'); // weekendganger, geen admin
+    light = true;
+    setSessionHint(me);
+    return route();
   }
-  setSessionHint({ role: 'admin', name: 'Chef-kok', email: user.email });
+  setSessionHint(me);
+  // Tussen welke weekends kan ik wisselen?
+  const list = (await restGet('weekendList').catch(() => null)) || {};
+  if (head) myWeekends = list;
+  else {
+    const mine = (await get(ref(db, `userWeekends/${user.uid}`)).catch(() => null))?.val() || {};
+    myWeekends = Object.fromEntries(Object.keys(mine).filter((w) => mine[w] === 'owner' && list[w]).map((w) => [w, list[w]]));
+  }
   // Terug van Spotify na het koppelen?
   try { if (await spotifyCallback()) toast('Spotify is gekoppeld 🎧', 'ok'); } catch (e) { toast(`Spotify koppelen mislukte: ${e.message}`, 'bad'); }
   route();
@@ -74,6 +86,22 @@ function route() {
   currentHash = location.hash;
   dirty = false;
   const [page, id] = location.hash.slice(1).split('/').map(decodeURIComponent);
+  // De hoofdadmin zonder gekozen weekend: de lijst met weekends.
+  if (page === 'weekends' && head) {
+    frame('weekends', '<div id="wka"><div class="card muted">Laden…</div></div>');
+    return mountWeekends($('#wka'), { user });
+  }
+  if (!weekendId()) {
+    if (head) { location.hash = 'weekends'; return; }
+    return void (app.innerHTML = `<div class="card center login-wrap"><h2>Je beheert (nog) geen weekend</h2><p class="muted">Vraag de hoofdchef om je aan een weekend toe te voegen.</p></div>`);
+  }
+  if (page === 'weekend' && !light) {
+    frame('weekend', '<div id="wks"><div class="card muted">Laden…</div></div>');
+    return mountWeekendSettings($('#wks'), { onSaved: (m) => { meta = m; cacheMeta(weekendId(), m); } });
+  }
+  // Uitgeschakelde functies: terug naar het eerste tabblad.
+  const featureOf = { quiz: 'quiz', quizzes: 'quiz', scores: 'scoreboard', hitster: 'hitster', letter: 'brief', letters: 'brief', raadkaart: 'raadkaart', playlist: 'playlist', twister: 'twister' };
+  if (featureOf[page] && !on(featureOf[page]) && !(featureOf[page] === 'quiz' && on('twister'))) { location.hash = firstTab(); return; }
   // Admin light ziet de weekendbrief en de instellingen niet.
   if (light && ['letter', 'letters', 'settings', 'playlist'].includes(page)) return listQuizzes();
   if (page === 'playlist') {
@@ -88,6 +116,7 @@ function route() {
   if (page === 'settings') return settings();
   if (page === 'members') return listMembers();
   if (page === 'raadkaart') return raadkaartAdmin();
+  if (!page || (page === 'quizzes' && !on('quiz') && !on('twister'))) { const t = firstTab(); if (t !== 'quizzes') { location.hash = t; return; } }
   if (page === 'hitster') {
     frame('hitster', '<div id="hsa"><div class="card muted">Laden…</div></div>');
     return mountHitsterAdmin($('#hsa'), { light });
@@ -103,30 +132,51 @@ function route() {
   listQuizzes();
 }
 
-function frame(active, html) {
-  const tabs = [
-    ['quizzes', '🍳 Quizzen'],
-    ['scores', '🏆 Scorebord'],
-    ['hitster', '🎵 Hitster'],
-    !light && ['letters', '✉️ Weekendbrief'],
-    ['members', light ? '🤫 Opdrachten' : '🤫 Weekendgangers'],
-    ['raadkaart', '🗺️ Raadkaart'],
-    !light && ['playlist', '🎵 Playlist'],
-    ['twister', '🌀 Twister'],
-    !light && ['settings', '⚙️ Instellingen'],
+// Tabbladen van het huidige weekend, enkel voor de functies die aan staan.
+function tabsFor() {
+  if (!weekendId()) return head ? [['weekends', '🗓️ Weekends']] : [];
+  return [
+    head && ['weekends', '🗓️ Weekends'],
+    !light && ['weekend', '⚙️ Weekend'],
+    (on('quiz') || on('twister')) && ['quizzes', '🍳 Quizzen'],
+    on('scoreboard') && ['scores', '🏆 Scorebord'],
+    on('hitster') && ['hitster', '🎵 Hitster'],
+    !light && on('brief') && ['letters', '✉️ Weekendbrief'],
+    ['members', light ? (on('missions') ? '🤫 Opdrachten' : '👥 Weekendgangers') : '👥 Weekendgangers'],
+    on('raadkaart') && ['raadkaart', '🗺️ Raadkaart'],
+    !light && on('playlist') && ['playlist', '🎵 Playlist'],
+    on('twister') && ['twister', '🌀 Twister'],
+    !light && ['settings', '🔑 Account & back-up'],
   ].filter(Boolean);
+}
+const firstTab = () => (tabsFor().find(([k]) => !['weekends', 'weekend'].includes(k)) || tabsFor()[0] || ['members'])[0];
+
+function frame(active, html) {
+  const tabs = tabsFor();
+  const ids = Object.keys(myWeekends);
+  const switcher = !light && (head || ids.length > 1)
+    ? `<select class="input wk-switch" id="wksel" title="Wissel van weekend">${weekendId() ? '' : '<option value="">— Kies een weekend</option>'}
+        ${ids.map((w) => `<option value="${esc(w)}" ${w === weekendId() ? 'selected' : ''}>${esc(myWeekends[w].emoji || '🍳')} ${esc(myWeekends[w].name)}</option>`).join('')}</select>`
+    : meta ? `<span class="pill">${esc(meta.emoji || '🍳')} ${esc(meta.name)}</span>` : '';
   app.innerHTML = `<div class="row" style="justify-content:space-between;margin-bottom:10px">
       <h1 style="margin:0">Keuken <span class="wobble" style="display:inline-block;width:52px;vertical-align:middle">${ART.egg()}</span>
-        ${light ? '<span class="pill yolk" style="font-size:.9rem;vertical-align:middle">🛡️ Admin light</span>' : ''}</h1>
-      <a class="btn small ghost" href="host.html">▶ Host een quiz</a></div>
+        ${light ? '<span class="pill yolk" style="font-size:.9rem;vertical-align:middle">🛡️ Admin light</span>' : head ? '<span class="pill yolk" style="font-size:.9rem;vertical-align:middle">👑 Hoofdchef</span>' : ''}</h1>
+      <div class="row">${switcher}${weekendId() && (on('quiz') || on('twister')) ? '<a class="btn small ghost" href="host.html">▶ Host een quiz</a>' : ''}</div></div>
     <div class="tabs">${tabs.map(([k, l]) => `<a class="tab ${active === k ? 'active' : ''}" href="#${k}">${l}</a>`).join('')}</div>
     <div id="view">${html}</div>`;
+  $('#wksel')?.addEventListener('change', (e) => {
+    if (dirty && !confirm('Je hebt niet-opgeslagen wijzigingen. Toch wisselen?')) { e.target.value = weekendId() || ''; return; }
+    dirty = false;
+    setWeekend(e.target.value || null);
+    location.hash = '';
+    location.reload();
+  });
 }
 
 /* ---------- Quizlijst ---------- */
 async function listQuizzes() {
   frame('quizzes', '<div class="card muted">Laden…</div>');
-  const all = (await get(ref(db, 'quizzes'))).val() || {};
+  const all = (await get(wref('quizzes'))).val() || {};
   const list = Object.entries(all).sort((a, b) => (b[1].updatedAt || 0) - (a[1].updatedAt || 0));
   $('#view').innerHTML = `
     <div class="row" style="margin-bottom:16px"><button class="btn bacon" id="new">+ Nieuwe quiz</button>
@@ -145,7 +195,7 @@ async function listQuizzes() {
   $('#seed')?.addEventListener('click', loadSeed);
   $$('[data-del]').forEach((b) => b.onclick = async () => {
     if (!confirm(`"${all[b.dataset.del].title}" verwijderen?`)) return;
-    await remove(ref(db, `quizzes/${b.dataset.del}`));
+    await remove(wref(`quizzes/${b.dataset.del}`));
     toast('Quiz verwijderd');
     listQuizzes();
   });
@@ -153,14 +203,14 @@ async function listQuizzes() {
     const q = structuredClone(all[b.dataset.dup]);
     q.title = `${q.title} (kopie)`;
     q.updatedAt = Date.now();
-    await set(ref(db, `quizzes/${uid()}`), q);
+    await set(wref(`quizzes/${uid()}`), q);
     listQuizzes();
   });
 }
 
 async function loadSeed() {
   const seed = await (await fetch('data/db.json', { cache: 'no-store' })).json();
-  await update(ref(db), Object.fromEntries(Object.entries(seed.quizzes || {}).map(([k, v]) => [`quizzes/${k}`, { ...v, updatedAt: Date.now() }])));
+  await update(wref(), Object.fromEntries(Object.entries(seed.quizzes || {}).map(([k, v]) => [`quizzes/${k}`, { ...v, updatedAt: Date.now() }])));
   toast('Voorbeeldquiz geladen 🍳', 'ok');
   listQuizzes();
 }
@@ -178,7 +228,7 @@ const blankQuestion = (type = 'mc') => ({
 
 async function editQuiz(id) {
   frame('quizzes', '<div class="card muted">Laden…</div>');
-  const existing = (await get(ref(db, `quizzes/${id}`))).val();
+  const existing = (await get(wref(`quizzes/${id}`))).val();
   quiz = existing || { title: '', description: '', questions: [blankQuestion('mc')] };
   quiz.id = id;
   quiz.questions = (quiz.questions || []).filter(Boolean).map((q) => ({ options: [], answers: [], ...q }));
@@ -346,7 +396,7 @@ function questionCard(q, i) {
 async function resolveMedia(m) {
   if (!m?.src?.startsWith('db:')) return m?.src;
   const id = m.src.slice(3);
-  mediaCache[id] ??= (await get(ref(db, `media/${id}/data`))).val();
+  mediaCache[id] ??= (await get(wref(`media/${id}/data`))).val();
   return mediaCache[id];
 }
 
@@ -365,7 +415,7 @@ async function upload(file, q, card) {
   try {
     const data = await compressImage(file);
     if (data.length > 3e6) return toast('Afbeelding is te groot', 'bad');
-    const r = push(ref(db, 'media'));
+    const r = push(wref('media'));
     await set(r, { data, name: file.name.slice(0, 80), at: Date.now() });
     mediaCache[r.key] = data;
     q.media = { kind: 'image', src: `db:${r.key}` };
@@ -404,7 +454,7 @@ async function saveQuiz() {
     limb: quiz.twister && q.type !== 'info' && q.limb >= 0 ? q.limb : null,
   }));
   try {
-    await set(ref(db, `quizzes/${id}`), data);
+    await set(wref(`quizzes/${id}`), data);
     dirty = false;
     $('#savestate').textContent = '✔ Opgeslagen';
     toast('Quiz opgeslagen 🍳', 'ok');
@@ -418,7 +468,7 @@ async function saveQuiz() {
 /* ---------- Weekendbrief ---------- */
 async function listLetters() {
   frame('letters', '<div class="card muted">Laden…</div>');
-  const all = (await get(ref(db, 'letters'))).val() || {};
+  const all = (await get(wref('letters'))).val() || {};
   const list = Object.entries(all).filter(([k]) => k !== '_media').sort((a, b) => String(b[1].date).localeCompare(String(a[1].date)));
   $('#view').innerHTML = `
     <div class="row" style="margin-bottom:16px"><button class="btn bacon" id="new">+ Nieuwe brief</button></div>
@@ -432,7 +482,7 @@ async function listLetters() {
 
 async function editLetter(id) {
   frame('letters', '<div class="card muted">Laden…</div>');
-  const [existing, media] = await Promise.all([`letters/${id}`, `letters/_media/${id}`].map(async (p) => (await get(ref(db, p))).val()));
+  const [existing, media] = await Promise.all([`letters/${id}`, `letters/_media/${id}`].map(async (p) => (await get(wref(p))).val()));
   letter = existing || { title: '', date: new Date().toISOString().slice(0, 10), body: '', published: true };
   const images = media || {}; // { fotoId: dataURL }
   $('#view').innerHTML = `
@@ -470,7 +520,7 @@ async function editLetter(id) {
         if (!confirm('Deze foto verwijderen?')) return;
         delete images[k];
         body.value = body.value.replace(new RegExp(`!\\[[^\\]]*\\]\\(img:${k}\\)\\n?`, 'g'), ''); // ook uit de tekst halen
-        await remove(ref(db, `letters/_media/${id}/${k}`));
+        await remove(wref(`letters/_media/${id}/${k}`));
         markDirty();
         preview();
         thumbs();
@@ -501,7 +551,7 @@ async function editLetter(id) {
         if (data.length > 900000) data = await compressImage(file, 1000); // nog te zwaar: kleiner maken
         if (data.length > 1500000) { toast(`"${file.name}" is te groot`, 'bad'); continue; }
         const k = uid();
-        await set(ref(db, `letters/_media/${id}/${k}`), data);
+        await set(wref(`letters/_media/${id}/${k}`), data);
         images[k] = data;
         insert(k);
         toast('Foto toegevoegd 📷', 'ok');
@@ -514,28 +564,34 @@ async function editLetter(id) {
   $('#lsave').onclick = async () => {
     const data = { title: $('#lt').value.trim(), date: $('#ld').value, body: body.value, published: $('#lp').checked, updatedAt: Date.now() };
     if (!data.title) return toast('Geef de brief een titel', 'bad');
-    await set(ref(db, `letters/${id}`), data);
+    await set(wref(`letters/${id}`), data);
     dirty = false;
     $('#savestate').textContent = '✔ Opgeslagen';
     toast('Weekendbrief opgeslagen ✉️', 'ok');
   };
   $('#ldel')?.addEventListener('click', async () => {
     if (!confirm('Deze brief en zijn foto\'s verwijderen?')) return;
-    await update(ref(db, 'letters'), { [id]: null, [`_media/${id}`]: null });
+    await update(wref('letters'), { [id]: null, [`_media/${id}`]: null });
     dirty = false;
     location.hash = 'letters';
   });
 }
 
 /* ---------- Weekendgangers & geheime opdrachten ---------- */
-const PW_WORDS = ['spekje', 'dooier', 'eitje', 'omelet', 'krokant', 'toastje', 'pannetje', 'zoutje', 'worstje', 'croque'];
-const genPassword = () => PW_WORDS[Math.floor(Math.random() * PW_WORDS.length)] + (10 + Math.floor(Math.random() * 90));
+// Uitnodigingslink bovenaan de weekendgangers.
+async function mountInvite() {
+  const box = $('#invite');
+  const inv = (await get(wref('invite')).catch(() => null))?.val() || {};
+  box.innerHTML = inviteCard(inv);
+  wireInviteCard(box, inv, mountInvite);
+}
+
 const portalUrl = () => `${location.origin}${location.pathname.replace(/[^/]*$/, '')}portaal.html`;
 const fmtTime = (t) => new Date(t).toLocaleString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
 async function listMembers() {
   frame('members', '<div class="card muted">Laden…</div>');
-  const [members, avatars, roster, mods] = await Promise.all(['members', 'avatars', 'roster', 'moderators'].map(async (k) => (await get(ref(db, k))).val() || {}));
+  const [members, avatars, roster, mods] = await Promise.all(['members', 'avatars', 'roster', 'moderators'].map(async (k) => (await get(wref(k))).val() || {}));
   const mstate = await loadMissions();
   // Namenlijst zonder wachtwoorden bijhouden, zodat admin light de weekendgangers kan zien.
   const rosterUpd = {};
@@ -543,93 +599,61 @@ async function listMembers() {
     if (roster[id]?.name !== m.name || roster[id]?.username !== m.username) rosterUpd[`roster/${id}`] = { name: m.name, username: m.username };
   }
   for (const id of Object.keys(roster)) if (!members[id]) rosterUpd[`roster/${id}`] = null;
-  if (Object.keys(rosterUpd).length) update(ref(db), rosterUpd).catch(() => {});
-  const newAvatar = { bg: 'yolk', img: null };
-  repoAvatars = await fetch('avatars/index.json', { cache: 'no-store' }).then((r) => r.json()).catch(() => []);
+  if (Object.keys(rosterUpd).length) update(wref(), rosterUpd).catch(() => {});
+  // Getekende avatars (avatars/*.svg) horen bij het eerste weekend; nieuwe weekends gebruiken de avatarbouwer.
+  repoAvatars = meta?.legacy ? await fetch('avatars/index.json', { cache: 'no-store' }).then((r) => r.json()).catch(() => []) : [];
   const list = Object.entries(members).sort((a, b) => a[1].name.localeCompare(b[1].name));
+  const missionsOn = on('missions');
 
   $('#view').innerHTML = `
-    <div class="card"><h3>Nieuwe weekendganger</h3>
-      <form id="mf" class="row">
-        <input class="input grow" id="mn" placeholder="Naam (bv. Jan)" maxlength="30" required>
-        <input class="input" id="mu" placeholder="gebruikersnaam" style="max-width:180px" autocapitalize="none" required>
-        <input class="input" id="mp" value="${genPassword()}" style="max-width:150px" minlength="6" required title="Wachtwoord (min. 6 tekens)">
-        <button class="btn bacon">+ Toevoegen</button>
-      </form>
-      <div id="newav" style="margin-top:12px">${avatarEditor(newAvatar)}</div></div>
-    ${missionsToolbar(list.map(([id]) => id), mstate)}
-    <div class="row" style="margin:0 0 12px"><a class="btn small ghost" href="portaal.html" target="_blank">👀 Portaal bekijken</a></div>
+    <div id="invite"></div>
+    ${missionsOn ? missionsToolbar(list.map(([id]) => id), mstate) : ''}
+    <div class="row" style="margin:0 0 12px"><a class="btn small ghost" href="portaal.html" target="_blank">👀 Portaal bekijken</a>
+      <span class="muted" style="font-size:.9rem">${list.length} weekendganger${list.length === 1 ? '' : 's'} · wachtwoord vergeten? Verwijder de persoon, dan kan die opnieuw meedoen via de link.</span></div>
     <div class="list">${list.map(([id, m]) => `
       <div class="card member-card" data-id="${esc(id)}">
         <div class="list-item">
-          <div data-av>${avatarEditor(avatars[id])}</div>
+          <div data-av>${repoAvatars.length ? avatarEditor(avatars[id]) : avatarPreview(avatars[id])}</div>
           <div class="grow"><h3>${esc(m.name)} ${mods[id] ? '<span class="pill yolk" style="font-size:.7rem">🛡️ admin light</span>' : ''}</h3>
-            <span class="cred">👤 ${esc(m.username)}</span> <span class="cred">🔑 ${esc(m.password || '?')}</span>
+            <span class="cred">👤 ${esc(m.username)}</span> ${m.password ? `<span class="cred">🔑 ${esc(m.password)}</span>` : ''}
+            <a class="btn small ghost" href="avatar.html?uid=${encodeURIComponent(id)}">🎨 Poppetje aanpassen</a>
             <label class="check-row" style="margin-top:8px;font-size:.9rem"><input type="checkbox" data-mod ${mods[id] ? 'checked' : ''}> 🛡️ Admin light (quizzen, hosten, opdrachten, raadkaart bekijken)</label></div>
           <button class="btn small" data-copy>📋 Login kopiëren</button>
           <button class="btn small ghost icon" data-del title="Verwijderen">🗑</button>
         </div>
-        ${missionField(id, mstate)}
+        ${missionsOn ? missionField(id, mstate) : ''}
       </div>`).join('') || `<div class="card center"><div class="float" style="width:110px;margin:auto">${ART.egg()}</div><p>Nog geen weekendgangers.</p></div>`}
     </div>`;
 
-  let userEdited = false;
-  $('#mu').oninput = () => { userEdited = true; };
-  $('#mn').oninput = () => { if (!userEdited) $('#mu').value = cleanUsername($('#mn').value); };
-  $('#mf').onsubmit = async (e) => {
-    e.preventDefault();
-    const name = $('#mn').value.trim();
-    const username = cleanUsername($('#mu').value);
-    const password = $('#mp').value.trim();
-    if (!username) return toast('Kies een gebruikersnaam (letters en cijfers)', 'bad');
-    if (list.some(([, m]) => m.username === username)) return toast('Die gebruikersnaam bestaat al', 'bad');
-    const btn = e.target.querySelector('button');
-    btn.disabled = true;
-    try {
-      const id = await createMemberAccount(username, password);
-      await set(ref(db, `members/${id}`), { name, username, password, createdAt: Date.now() });
-      set(ref(db, `roster/${id}`), { name, username }).catch(() => {}); // namenlijst voor admin light
-      await set(ref(db, `avatars/${id}`), newAvatar.img ? newAvatar : { bg: newAvatar.bg });
-      toast(`${name} zit in de pan 🍳`, 'ok');
-      listMembers();
-    } catch (err) {
-      btn.disabled = false;
-      toast({
-        'auth/email-already-in-use': 'Die gebruikersnaam bestaat al',
-        'auth/weak-password': 'Wachtwoord moet minstens 6 tekens hebben',
-        'auth/operation-not-allowed': 'Zet Email/Password aan in Firebase Authentication',
-      }[err.code] || `Mislukt: ${err.message}`, 'bad');
-    }
-  };
-
-  // Avatar bij het aanmaken: enkel lokaal bijhouden tot "Toevoegen".
-  wireAvatarEditor($('#newav'), newAvatar, async (a) => { Object.assign(newAvatar, a); });
-
-  wireMissions($('#view'), list.map(([id]) => id), mstate, Object.fromEntries(list.map(([id, m]) => [id, m.name])), listMembers);
+  mountInvite();
+  if (missionsOn) wireMissions($('#view'), list.map(([id]) => id), mstate, Object.fromEntries(list.map(([id, m]) => [id, m.name])), listMembers);
   $$('.member-card').forEach((card) => {
     const id = card.dataset.id;
     const m = members[id];
-    // Avatar van een bestaande weekendganger: meteen opslaan.
-    const cur = { bg: 'yolk', ...avatars[id] };
-    wireAvatarEditor($('[data-av]', card), cur, async (a) => {
+    // Getekende avatar of PNG (eerste weekend): meteen opslaan.
+    const cur = { bg: 'yolk', ...avatars[id], name: m.name };
+    if (repoAvatars.length) wireAvatarEditor($('[data-av]', card), cur, async (a) => {
       Object.assign(cur, a);
-      await set(ref(db, `avatars/${id}`), cur.img ? cur : { bg: cur.bg });
+      delete cur.cfg;
+      await set(wref(`avatars/${id}`), cur);
       toast(`Avatar van ${m.name} opgeslagen`, 'ok');
     });
     $('[data-mod]', card).onchange = async (e) => {
-      await set(ref(db, `moderators/${id}`), e.target.checked || null);
+      await set(wref(`moderators/${id}`), e.target.checked || null);
       toast(e.target.checked ? `${m.name} is nu admin light 🛡️` : `${m.name} is geen admin light meer`, 'ok');
       listMembers();
     };
     $('[data-copy]', card).onclick = async () => {
-      const msg = `Hoi ${m.name}! 🍳\nJe geheime weekendopdracht ligt klaar in de pan:\n${portalUrl()}\n\nGebruikersnaam: ${m.username}\nWachtwoord: ${m.password}\n\n🤫 Niet verder vertellen!`;
+      const msg = missionsOn
+        ? `Hoi ${m.name}! 🍳\nJe geheime weekendopdracht ligt klaar in de pan:\n${portalUrl()}?w=${weekendId()}\n\nGebruikersnaam: ${m.username}${m.password ? `\nWachtwoord: ${m.password}` : ''}\n\n🤫 Niet verder vertellen!`
+        : `Hoi ${m.name}! 🍳\nInloggen op ${portalUrl()}?w=${weekendId()}\nGebruikersnaam: ${m.username}${m.password ? `\nWachtwoord: ${m.password}` : ''}`;
       try { await navigator.clipboard.writeText(msg); toast('Gekopieerd! Plak het in een berichtje 📋', 'ok'); }
       catch { prompt('Kopieer dit bericht:', msg); }
     };
     $('[data-del]', card).onclick = async () => {
-      if (!confirm(`${m.name} en de opdracht verwijderen?`)) return;
-      try { await deleteMemberAccount(m.username, m.password); } catch { /* account bestond al niet meer */ }
-      await update(ref(db), { [`members/${id}`]: null, [`missions/${id}`]: null, [`missionDrafts/${id}`]: null, [`avatars/${id}`]: null, [`roster/${id}`]: null, [`moderators/${id}`]: null });
+      if (!confirm(`${m.name} verwijderen uit dit weekend (met poppetje${missionsOn ? ' en opdracht' : ''})?`)) return;
+      await update(wref(), { [`members/${id}`]: null, [`missions/${id}`]: null, [`missionDrafts/${id}`]: null, [`avatars/${id}`]: null, [`roster/${id}`]: null, [`moderators/${id}`]: null });
+      await set(ref(db, `userWeekends/${id}/${weekendId()}`), null).catch(() => {});
       toast(`${m.name} verwijderd`);
       listMembers();
     };
@@ -687,7 +711,7 @@ function wireAvatarEditor(box, state, onChange) {
 /* ---------- Raadkaart ---------- */
 async function raadkaartAdmin() {
   frame('raadkaart', '<div class="card muted">Laden…</div>');
-  const val = async (p) => (await get(ref(db, p))).val();
+  const val = async (p) => (await get(wref(p))).val();
   const [secret, config, reveal, guesses, members, excl] = await Promise.all(
     ['raadkaart/secret', 'raadkaart/config', 'raadkaart/reveal', 'raadkaart/guesses', 'members', 'raadkaart/excluded'].map(val));
   const all = guesses || {};
@@ -750,7 +774,7 @@ async function raadkaartAdmin() {
       const upd = { [`guesses/${g.uid}/${g.key}`]: null };
       // Gok van vandaag gewist → die persoon mag vandaag opnieuw raden.
       if (g.day === dayIndex(Date.now())) upd[`last/${g.uid}`] = null;
-      await update(ref(db, 'raadkaart'), upd);
+      await update(wref('raadkaart'), upd);
       toast('Gok gewist 🗑', 'ok');
       raadkaartAdmin();
     },
@@ -765,7 +789,7 @@ async function raadkaartAdmin() {
   $('#rksave').onclick = async () => {
     if (!spot) return toast('Prik eerst de locatie op de kaart', 'bad');
     const name = $('#rkname').value.trim();
-    await update(ref(db, 'raadkaart'), {
+    await update(wref('raadkaart'), {
       secret: { lat: spot.lat, lng: spot.lng, k: Math.cos((spot.lat * Math.PI) / 180), name },
       edges: edgesTable(), // afstandsgrenzen voor de 40 temperaturen (gebruikt door de databaseregels)
       'config/open': $('#rkopen').checked,
@@ -779,7 +803,7 @@ async function raadkaartAdmin() {
     const all = best().filter((b) => b.km != null).map((b) => ({ uid: b.uid, name: b.name, lat: b.lat, lng: b.lng, km: +b.km.toFixed(2) }));
     const results = all.filter((b) => !excluded[b.uid]); // telt mee voor winst en ranking
     const others = all.filter((b) => excluded[b.uid]); // buiten competitie: enkel op de kaart
-    await set(ref(db, 'raadkaart/reveal'), {
+    await set(wref('raadkaart/reveal'), {
       lat: secret.lat, lng: secret.lng, name: secret.name || $('#rkname').value.trim(), at: Date.now(),
       winner: results[0]?.uid || null, results, others,
     });
@@ -791,14 +815,14 @@ async function raadkaartAdmin() {
       const id = cb.dataset.excl;
       if (cb.checked) excluded[id] = true;
       else delete excluded[id];
-      await set(ref(db, `raadkaart/excluded/${id}`), cb.checked || null);
+      await set(wref(`raadkaart/excluded/${id}`), cb.checked || null);
       toast(cb.checked ? `${mem[id]?.name} telt niet meer mee 🚫` : `${mem[id]?.name} telt weer mee ✔`, 'ok');
       if (reveal) toast('Let op: de onthulling is al gebeurd. Trek ze in en onthul opnieuw om de ranking bij te werken.');
     };
   });
   $('#rkunreveal')?.addEventListener('click', async () => {
     if (!confirm('Onthulling intrekken? De locatie wordt weer geheim.')) return;
-    await remove(ref(db, 'raadkaart/reveal'));
+    await remove(wref('raadkaart/reveal'));
     raadkaartAdmin();
   });
   // Testgokken wissen. Wie getest heeft, mag daarna vandaag gewoon (echt) raden.
@@ -811,13 +835,13 @@ async function raadkaartAdmin() {
       tests.forEach(([k]) => { upd[`guesses/${uid}/${k}`] = null; });
       if (tests.length) upd[`last/${uid}`] = null;
     }
-    await update(ref(db, 'raadkaart'), upd);
+    await update(wref('raadkaart'), upd);
     toast('Testgokken gewist 🧪', 'ok');
     raadkaartAdmin();
   };
   $('#rkreset').onclick = async () => {
     if (!confirm('Alle gokken van iedereen wissen?')) return;
-    await update(ref(db, 'raadkaart'), { guesses: null, last: null, reveal: null });
+    await update(wref('raadkaart'), { guesses: null, last: null, reveal: null });
     toast('Alle gokken gewist 🧹');
     raadkaartAdmin();
   };
@@ -826,23 +850,24 @@ async function raadkaartAdmin() {
 /* ---------- Admin light: opdrachten geven ---------- */
 async function missionsLight() {
   frame('members', '<div class="card muted">Laden…</div>');
-  const roster = (await get(ref(db, 'roster'))).val() || {};
+  const roster = (await get(wref('roster'))).val() || {};
   const mstate = await loadMissions();
   const list = Object.entries(roster).sort((a, b) => a[1].name.localeCompare(b[1].name));
   const ids = list.map(([id]) => id);
-  $('#view').innerHTML = `${missionsToolbar(ids, mstate)}<div class="list">${list.map(([id, m]) => `
+  const mOn = on('missions');
+  $('#view').innerHTML = `${mOn ? missionsToolbar(ids, mstate) : ''}<div class="list">${list.map(([id, m]) => `
     <div class="card member-card" data-id="${esc(id)}">
       <div class="list-item">${av({ member: true }, id)}<div class="grow"><h3>${esc(m.name)}</h3></div></div>
-      ${missionField(id, mstate)}
+      ${mOn ? missionField(id, mstate) : ''}
     </div>`).join('') || '<div class="card muted">Nog geen weekendgangers.</div>'}</div>`;
   watchAvatars(setAvatars);
-  wireMissions($('#view'), ids, mstate, Object.fromEntries(list.map(([id, m]) => [id, m.name])), missionsLight);
+  if (mOn) wireMissions($('#view'), ids, mstate, Object.fromEntries(list.map(([id, m]) => [id, m.name])), missionsLight);
 }
 
 /* ---------- Admin light: raadkaart bekijken (zonder geheime locatie) ---------- */
 async function raadkaartLight() {
   frame('raadkaart', '<div class="card muted">Laden…</div>');
-  const val = async (p) => (await get(ref(db, p)).catch(() => null))?.val();
+  const val = async (p) => (await get(wref(p)).catch(() => null))?.val();
   const [guesses, roster, config, reveal] = await Promise.all(['raadkaart/guesses', 'roster', 'raadkaart/config', 'raadkaart/reveal'].map(val));
   const list = flatGuesses(guesses || {}, roster || {}, null).filter((g) => !g.test);
   $('#view').innerHTML = `
@@ -890,7 +915,7 @@ function settings() {
     }
   };
   $('#exp').onclick = async () => {
-    const [quizzes, letters, media, members, missions, missionDrafts] = await Promise.all(['quizzes', 'letters', 'media', 'members', 'missions', 'missionDrafts'].map(async (k) => (await get(ref(db, k))).val() || {}));
+    const [quizzes, letters, media, members, missions, missionDrafts] = await Promise.all(['quizzes', 'letters', 'media', 'members', 'missions', 'missionDrafts'].map(async (k) => (await get(wref(k))).val() || {}));
     const blob = new Blob([JSON.stringify({ quizzes, letters, media, members, missions, missionDrafts }, null, 2)], { type: 'application/json' });
     const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'db.json' });
     a.click();
@@ -903,7 +928,7 @@ function settings() {
       const upd = {};
       for (const k of ['quizzes', 'letters', 'media', 'members', 'missions', 'missionDrafts']) for (const [id, v] of Object.entries(data[k] || {})) upd[`${k}/${id}`] = v;
       if (!confirm(`${Object.keys(upd).length} items importeren? Items met hetzelfde id worden overschreven.`)) return;
-      await update(ref(db), upd);
+      await update(wref(), upd);
       toast('Geïmporteerd ✔', 'ok');
     } catch (err) {
       toast(`Import mislukt: ${err.message}`, 'bad');
@@ -912,7 +937,7 @@ function settings() {
   };
   $('#clr').onclick = async () => {
     if (!confirm('Alle lopende en oude spellen wissen?')) return;
-    await remove(ref(db, 'games'));
+    await remove(wref('games'));
     toast('Pan is weer proper 🧹', 'ok');
   };
   $('#lo').onclick = () => signOut(useAuth()).then(() => { setSessionHint(null); location.href = 'index.html'; });

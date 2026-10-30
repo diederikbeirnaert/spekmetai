@@ -1,13 +1,13 @@
 // Raadkaart: weekendgangers prikken 1× per dag waar het weekend plaatsvindt.
 // Het temperatuur-ei toont hoe warm je zit (van bevroren blauw tot gloeiend rood).
 // Bij de onthulling staan alle avatars op de kaart met hun afstand, zoals bij GeoGuessr.
-import { $, ART, esc, shell, toast, confetti, av, setAvatars, setSessionHint } from './common.js';
+import { $, ART, esc, shell, toast, confetti, av, setAvatars, setSessionHint, featureOff, featureOffHtml } from './common.js?v=w1';
 import {
-  configured, db, ref, get, update, onValue, serverTimestamp, useAuth, currentUser, serverNow, notConfiguredHtml, watchAvatars, isAdmin,
-} from './fb.js';
+  configured, db, wref, ref, get, update, onValue, serverTimestamp, useAuth, currentUser, serverNow, notConfiguredHtml, noWeekendHtml, watchAvatars, isAdmin, whoAmI, weekendId,
+} from './fb.js?v=w1';
 import {
   makeMap, eggPin, avatarPin, goalPin, tempEgg, tColor, tempFor, tempKey, tProgress, fmtKm, dayIndex, dayLabel, TEMPS_HOT_FIRST, STEPS,
-} from './mapkit.js';
+} from './mapkit.js?v=w1';
 
 shell('raadkaart');
 const app = $('#app');
@@ -22,7 +22,10 @@ async function init() {
   app.innerHTML = `<div class="play-screen"><div class="wobble" style="width:120px">${ART.egg()}</div><p class="muted">Kaart opwarmen…</p></div>`;
   useAuth('local');
   user = await currentUser();
-  member = user && !user.isAnonymous ? (await get(ref(db, `members/${user.uid}`)).catch(() => null))?.val() : null;
+  if (user && !user.isAnonymous) await whoAmI(user); // springt zo nodig naar het weekend van deze gebruiker
+  if (!weekendId()) return void (app.innerHTML = noWeekendHtml());
+  if (featureOff('raadkaart')) return void (app.innerHTML = featureOffHtml('De raadkaart'));
+  member = user && !user.isAnonymous ? (await get(wref(`members/${user.uid}`)).catch(() => null))?.val() : null;
   // De admin mag meespelen om te testen (enkel in testmodus).
   admin = !member && (await isAdmin(user));
   if (admin) member = { name: 'Chef-kok' };
@@ -32,7 +35,7 @@ async function init() {
       <a class="btn bacon big" href="login.html?next=raadkaart.html">Inloggen</a></div>`;
     return;
   }
-  if (!admin) setSessionHint({ role: 'member', name: member.name, username: member.username });
+  if (!admin) setSessionHint({ role: 'member', name: member.name, username: member.username, w: weekendId() });
   watchAvatars(setAvatars);
   renderShell();
   map = await makeMap($('#map'));
@@ -40,10 +43,10 @@ async function init() {
   guessLayer = L.layerGroup().addTo(map);
   map.on('click', onMapClick);
 
-  onValue(ref(db, 'raadkaart/config'), (s) => { config = s.val() || {}; renderStatus(); });
-  onValue(ref(db, 'raadkaart/reveal'), (s) => { reveal = s.val(); reveal ? renderReveal() : renderStatus(); });
-  onValue(ref(db, `raadkaart/last/${user.uid}`), (s) => { last = s.val(); if (!busy) renderStatus(); });
-  onValue(ref(db, `raadkaart/guesses/${user.uid}`), (s) => { guesses = s.val() || {}; if (!busy) renderGuesses(); });
+  onValue(wref('raadkaart/config'), (s) => { config = s.val() || {}; renderStatus(); });
+  onValue(wref('raadkaart/reveal'), (s) => { reveal = s.val(); reveal ? renderReveal() : renderStatus(); });
+  onValue(wref(`raadkaart/last/${user.uid}`), (s) => { last = s.val(); if (!busy) renderStatus(); });
+  onValue(wref(`raadkaart/guesses/${user.uid}`), (s) => { guesses = s.val() || {}; if (!busy) renderGuesses(); });
   setInterval(() => { if (!reveal) renderCountdown(); }, 1000);
 }
 
@@ -133,7 +136,7 @@ async function submitGuess() {
   const day = today();
   // In testmodus mag je vaker per dag gokken, dus krijgt elke testgok een eigen sleutel.
   const key = config.test ? `${day}-test-${Date.now().toString(36)}` : `${day}`;
-  const attempts = TEMPS_HOT_FIRST.map((t) => update(ref(db, 'raadkaart'), {
+  const attempts = TEMPS_HOT_FIRST.map((t) => update(wref('raadkaart'), {
     [`last/${user.uid}`]: { day, at: serverTimestamp() },
     [`guesses/${user.uid}/${key}`]: { ...draft, t, tk: tempKey(t), day, at: serverTimestamp(), ...(config.test ? { test: true } : {}) },
   }).then(() => t));
@@ -145,7 +148,7 @@ async function submitGuess() {
   draftMarker?.remove();
   draftMarker = null;
   draft = null;
-  const [g, l] = await Promise.all([get(ref(db, `raadkaart/guesses/${user.uid}`)), get(ref(db, `raadkaart/last/${user.uid}`))]);
+  const [g, l] = await Promise.all([get(wref(`raadkaart/guesses/${user.uid}`)), get(wref(`raadkaart/last/${user.uid}`))]);
   guesses = g.val() || {};
   last = l.val();
   renderGuesses();

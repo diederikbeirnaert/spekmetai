@@ -1,13 +1,13 @@
 // Admin-tabblad Hitster: decks beheren (standaarddecks, deck uit de weekendplaylist, eigen liedjes, jaartallen
 // nakijken) en een spel starten op het grote scherm.
-import { $, $$, esc, toast, uid } from './common.js';
-import { db, ref, get, set, remove, update } from './fb.js';
-import { STANDARD_DECKS } from './hitsterdecks.js';
-import { deckFromPlaylist } from './hitster.js';
-import { searchSongs } from './songs.js?v=3';
+import { $, $$, esc, toast, uid } from './common.js?v=w1';
+import { db, wref, ref, get, set, remove, update } from './fb.js?v=w1';
+import { STANDARD_DECKS } from './hitsterdecks.js?v=w1';
+import { deckFromPlaylist } from './hitster.js?v=w1';
+import { searchSongs } from './songs.js?v=w1';
 
 export async function mountHitsterAdmin(el, { light = false } = {}) {
-  const decks = (await get(ref(db, 'hitster/decks')).catch(() => null))?.val() || {};
+  const decks = (await get(wref('hitster/decks')).catch(() => null))?.val() || {};
   const id = location.hash.split('/')[1];
   if (id && decks[id]) return editDeck(el, id, decks[id]);
   el.innerHTML = `
@@ -31,30 +31,30 @@ export async function mountHitsterAdmin(el, { light = false } = {}) {
     for (const [k, d] of Object.entries(STANDARD_DECKS)) {
       upd[k] = { title: d.title, songs: d.songs.map(([artist, title, year]) => ({ artist, title, year })) };
     }
-    await update(ref(db, 'hitster/decks'), upd);
+    await update(wref('hitster/decks'), upd);
     toast('Standaarddecks geladen 🎵', 'ok');
     mountHitsterAdmin(el, { light });
   };
   $('#fromPl', el).onclick = async () => {
     toast('Jaartallen opzoeken…');
     try {
-      const songs = (await get(ref(db, 'playlist/songs'))).val() || {};
+      const songs = (await get(wref('playlist/songs'))).val() || {};
       const list = await deckFromPlaylist(songs);
       if (list.length < 5) return toast('Te weinig liedjes in de playlist', 'bad');
-      await set(ref(db, 'hitster/decks/playlist'), { title: '🎧 Onze weekendplaylist', songs: list });
+      await set(wref('hitster/decks/playlist'), { title: '🎧 Onze weekendplaylist', songs: list });
       toast(`Deck met ${list.length} liedjes gemaakt. Kijk de jaartallen na!`, 'ok');
       location.hash = 'hitster/playlist';
     } catch (e) { toast(e.message, 'bad'); }
   };
   $('#new', el).onclick = async () => {
     const k = uid();
-    await set(ref(db, `hitster/decks/${k}`), { title: 'Nieuw deck', songs: [] });
+    await set(wref(`hitster/decks/${k}`), { title: 'Nieuw deck', songs: [] });
     location.hash = `hitster/${k}`;
   };
   $$('[data-del]', el).forEach((b) => {
     b.onclick = async () => {
       if (!confirm(`"${decks[b.dataset.del].title}" verwijderen?`)) return;
-      await remove(ref(db, `hitster/decks/${b.dataset.del}`));
+      await remove(wref(`hitster/decks/${b.dataset.del}`));
       mountHitsterAdmin(el, { light });
     };
   });
@@ -99,7 +99,7 @@ function editDeck(el, id, deck) {
       const bad = songs.filter((s) => !s.year);
       if (bad.length) return toast(`${bad.length} liedje(s) zonder jaartal`, 'bad');
       deck.title = $('#dtitle', el).value.trim() || deck.title;
-      await set(ref(db, `hitster/decks/${id}`), { title: deck.title, songs: songs.map((s) => Object.fromEntries(Object.entries(s).filter(([, v]) => v != null && v !== ''))) });
+      await set(wref(`hitster/decks/${id}`), { title: deck.title, songs: songs.map((s) => Object.fromEntries(Object.entries(s).filter(([, v]) => v != null && v !== ''))) });
       toast('Deck opgeslagen 🎵', 'ok');
       location.hash = 'hitster';
     };

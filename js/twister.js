@@ -1,5 +1,5 @@
 // Twister-draaischijf in spiegelei-stijl: 4 ledematen × 4 kleuren, een spatel als wijzer.
-import { $, esc } from './common.js';
+import { $, esc } from './common.js?v=w1';
 
 const INK = '#3A2618';
 export const LIMBS = [
